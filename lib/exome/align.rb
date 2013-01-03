@@ -1,11 +1,12 @@
 module Exome
   class Align 
     include Pipeline::Step
-    runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :sort_label, :convert_sam
+    runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label, :convert_sam
+
     class AlignFirst 
       include Pipeline::Task
       requires_file :input_fastq1
-      makes_file :read1_sai
+      dumps_file :read1_sai
 
       def run
         log_info "Aligning first-in-pair reads"
@@ -16,7 +17,7 @@ module Exome
     class AlignSecond 
       include Pipeline::Task
       requires_file :input_fastq2
-      makes_file :read2_sai
+      dumps_file :read2_sai
 
       def run
         log_info "Aligning second-in-pair reads"
@@ -27,7 +28,7 @@ module Exome
     class PairReads 
       include Pipeline::Task
       requires_files :read1_sai, :read2_sai
-      makes_file :paired_sam
+      dumps_file :paired_sam
 
       def run
         log_info "Pairing aligned reads"
@@ -39,7 +40,7 @@ module Exome
     class VerifyMate 
       include Pipeline::Task
       requires_file :paired_sam
-      makes_file :mated_sam
+      dumps_file :mated_sam
 
       def run
         log_info "Verifying mate information"
@@ -50,14 +51,14 @@ module Exome
     class EnforceLabel 
       include Pipeline::Task
       requires_file :mated_sam
-      makes_file :renamed_sam
+      dumps_file :renamed_sam
 
       def run
         log_info "Enforce read group assignments"
         picard :add_or_replace_read_groups, :INPUT => config.mated_sam,
                 :OUTPUT => config.renamed_sam,
                   :RGID => config.sample_name, :RGLB => config.sample_name,
-                  :RGPL => config.platform, :RGPU => config.unit, :RGSM => config.sample_name,
+                  :RGPL => config.platform, :RGPU => config.platform_unit, :RGSM => config.sample_name,
                   :VALIDATION_STRINGENCY => "LENIENT" or error_exit "Relabel failed"
       end
     end
@@ -65,7 +66,7 @@ module Exome
     class ConvertSam 
       include Pipeline::Task
       requires_file :renamed_sam
-      makes_file :renamed_bam
+      outs_file :renamed_bam
 
       def run
         log_info "Convert SAM to BAM..."

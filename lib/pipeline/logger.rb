@@ -5,21 +5,25 @@ module Pipeline
     MAINLOG = File.open("/dev/null","w")
 
     def setup_logging
-      STDOUT.reopen(config.job_log,"a")
+      STDOUT.reopen(config.step_log,"a")
       STDERR.reopen(STDOUT)
       MAINLOG.reopen(config.main_log,"a")
     end
 
     def log_info(txt)
-      log "INFO", step.step_name, txt
+      log "INFO", config.step, txt
     end
 
     def log_debug(txt)
-      log "DEBUG", step.step_name, txt.red
+      log "DEBUG", config.step, txt.red
+    end
+
+    def log_error(txt)
+      log "ERROR", config.step, txt.red.bold
     end
 
     def log_output(txt)
-      log "OUTPUT", step.step_name, txt
+      log "OUTPUT", config.step, txt
     end
 
     def log(t,s,txt)

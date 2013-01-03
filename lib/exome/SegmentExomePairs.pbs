@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# Called by wrapper script 'SegmentExomePairs.sh', expects 4 arguments named:
+# 	nbfile: reference BAM file
+# 	tbfile: test BAM file
+# 	nsamp: reference sample name (normal)
+# 	tsamp: test sample name (tumor)
+#
+#PBS -N SegmentExomePairs 
+#PBS -j oe
+#PBS -V
+#
+
+cd $PBS_O_WORKDIR
+
+TARGET_BED_FILE="/home/taylorbs/lbin/SeqAna/Resources/029720_D_BED_20101013_agilent_50mb_exon_hg19.bed"
+
+echo "Input run parameters:"
+echo "----------------------------------"
+echo "   Normal BAM =" $nbfile
+echo "    Tumor BAM =" $tbfile
+echo "Normal sample =" $nsamp
+echo " Tumor sample =" $tsamp
+echo "----------------------------------"
+
+sbase="../scratch/"$nsamp"_"$tsamp
+ncovfile=$sbase"__"$nsamp".cov"
+tcovfile=$sbase"__"$tsamp".cov"
+
+echo $ncovfile
+echo $tcovfile
+
+coverageBed -abam $nbfile -b $TARGET_BED_FILE -counts | cut -f 1-3,5 > $ncovfile
+coverageBed -abam $tbfile -b $TARGET_BED_FILE -counts | cut -f 1-3,5 > $tcovfile
+./doSeg.R $ncovfile $tcovfile
+
+#rm -f $ncovfile
+#rm -f $tcovfile
+

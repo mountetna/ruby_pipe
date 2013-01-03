@@ -1,0 +1,46 @@
+#Align paired end sequence for a set of conditions, with normal and tumor samples
+
+:script: paired_align
+:job_name: bill_targets
+:samples: 
+  - :sample_name: L17_blood
+    :input_fastq1_list:
+      - ./Sample_Boniva_L_17/Boniva_L_17_GTGTTA_L001_R1_001.fastq.gz
+      - ./Sample_Boniva_L_17/Boniva_L_17_GTGTTA_L001_R1_002.fastq.gz
+    :input_fastq2_list:
+      - ./Sample_Boniva_L_17/Boniva_L_17_GTGTTA_L001_R2_001.fastq.gz
+      - ./Sample_Boniva_L_17/Boniva_L_17_GTGTTA_L001_R2_002.fastq.gz
+  - :sample_name: L18_untreated
+    :input_fastq1_list:
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R1_001.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R1_002.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R1_003.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R1_004.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R1_005.fastq.gz,
+    :input_fastq2_list:
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R2_001.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R2_002.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R2_003.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R2_004.fastq.gz
+      - ./Sample_Boniva_L_18/Boniva_L_18_TGTGAA_L001_R2_005.fastq.gz
+  - :sample_name: L19_treated
+    :input_fastq1_list:
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R1_001.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R1_002.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R1_003.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R1_004.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R1_005.fastq.gz
+    :input_fastq2_list:
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R2_001.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R2_002.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R2_003.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R2_004.fastq.gz
+      - ./Sample_Boniva_L_19/Boniva_L_19_ACAAAC_L001_R2_005.fastq.gz
+:interval_list: /taylorlab/resources/human/hg19/bastian_target_June14_2012.interval_list
+
+:output_dir: ./output
+:metrics_dir: ./metrics
+:scratch_dir: ./scratch
+:log_dir: ./log
+
+:filter_config: ./mutationConfig.cfg
