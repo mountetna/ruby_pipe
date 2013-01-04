@@ -84,10 +84,14 @@ module Pipeline
 
     def filter_muts(snvs,indels,out_file)
       filter_config ="#{config.lib_dir}/FilterMutations/mutationConfig.cfg"
-      "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
+      system "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
     end
 
     def replace_dict(args)
+    end
+
+    def coverage_bed(bam,intervals,outfile)
+      system "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts | cut -f 1-3,5 > #{outfile}"
     end
   end
 end

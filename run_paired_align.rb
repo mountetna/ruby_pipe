@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-ENV['LIB_DIR'] = File.dirname(__FILE__)
+ENV['LIB_DIR'] = File.dirname(File.realdirpath(__FILE__))
 $: << ENV['LIB_DIR'] + "/lib"
 
 # make some dummy variables

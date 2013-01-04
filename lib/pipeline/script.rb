@@ -52,30 +52,27 @@ module Pipeline
       step.cleanup if step.exec 
     end
 
+    def start_pipe(step)
+      FileUtils.rm(config.error_file) if File.exists?(config.error_file)
+      job = create_step(step).setup_exec
+      create_step(config.next_step).setup_scheduler(job) if config.next_step
+    end
+
     def init(args)
       # do something
       cmd = args.shift
-      #if args[0] eq "config"
-        # make a config file for this guy.
-      #end
-      if cmd == "start"
-        exit unless args.length >= 1
-        ENV['CONFIG'] = args[0]
-        config.set_config :step, (args[1].to_sym  || steps.first)
+      
+      ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
 
-        FileUtils.rm(config.error_file) if File.exists?(config.error_file)
-        job = create_step(config.step).setup_exec
-        create_step(config.next_step).setup_scheduler(job) if config.next_step
-      end
-      if cmd == "run_step"
-        exit unless args.length == 2
-        ENV['CONFIG'] = args[0]
-        config.set_config :step, args[1].to_sym
+      case cmd
+      when "start"
+        start_pipe (args[0] || steps.first).to_sym
+      when "run_step"
+        exit unless args.length == 1
         config.set_config :single_step, :true
-
-        FileUtils.rm(config.error_file) if File.exists?(config.error_file)
-        job = create_step(config.step).setup_exec
-        create_step(config.next_step).setup_scheduler(job) if config.next_step
+        start_pipe args[0].to_sym
+      when "audit"
+        audit(args)
       end
     end
 

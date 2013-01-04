@@ -71,7 +71,7 @@ module Pipeline
     def required_files; self.class.required_files; end
 
     def should_run
-      log_info "#{task_name}:"
+      log_info "task #{task_name}:".white.bold
       # this will exit the step if it is missing.
       check_required
 
@@ -184,6 +184,11 @@ module Pipeline
       end
       log_info "#{task_name}: skipping, all files made" if all_made
       return !all_made
+    end
+
+    def exec
+      run
+      log_info "#{task_name} completed successfully".green.bold
     end
 
     def run

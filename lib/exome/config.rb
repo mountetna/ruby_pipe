@@ -67,8 +67,8 @@ module Exome
         :tumor_bam => proc { sample_bam(sample_name) },
 
         # copy_number
-        :normal_cov => proc { },
-        :tumor_cov => proc { }
+        :normal_cov => proc { "#{scratch}/#{normal_name}.cov" },
+        :tumor_cov => proc { "#{scratch}/#{sample_name}.cov" }
       })
     end
   end

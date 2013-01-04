@@ -46,7 +46,7 @@ AllFilters = {'SNPRemovalFilters': {'muTectJudgmentsAllowed':"KEEP"}, \
                 'normalVariantFreq': '>= tumorVariantFreq'}, \
 			  'IndelAnnotationFilters': {'maxHomopolymerRuns':BIG_INT}, \
               'AnnoVarRemovalFilters': {}, \
-              'AnnoVarAnnotationFilters': {'contextsToOmit':""}}
+	      'AnnoVarAnnotationFilters': {'contextsToOmit':"",'mutTypesToOmit':""}}
 
 def configure(fn):
 	''' Read the configuration file '''

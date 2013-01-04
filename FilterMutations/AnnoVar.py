@@ -87,6 +87,10 @@ class AnnoVarLine:
 			if context in annoVarFilters['contextsToOmit']:
 				numBadContexts += 1
 
+		if self.exonMutTypeStr() in annoVarFilters['mutTypesToOmit']:
+			self.ourJudgment = "no"
+			judgmentReasons.append("MUTATION_TYPE_TO_OMIT")
+
 		if numBadContexts == numContexts:
 			self.ourJudgment = "no"
 			judgmentReasons.append("ANNOTATION_CONTEXT_TO_OMIT")
@@ -182,6 +186,7 @@ def getAnnoVarResults(annoVarInputFn, genome, executable, annoVarDBDir, thousand
 		print "    ", k, ":", annoVarFilters[k]
 
 	annoVarFilters['contextsToOmit'] = set(annoVarFilters['contextsToOmit'].split(','))
+	annoVarFilters['mutTypesToOmit'] = set(annoVarFilters['mutTypesToOmit'].split(','))
 
 	# Loop through the entire .variant_function file, making an entry for each.  For those that are exonic, load
 	# the proper exonic variant data as well

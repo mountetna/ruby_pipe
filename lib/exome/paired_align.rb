@@ -5,12 +5,12 @@ require 'exome/recal'
 require 'exome/hybrid_qc'
 require 'exome/mut_det'
 require 'exome/config'
-#require 'exome/copy_number'
+require 'exome/copy_number'
 
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :recal, :hybrid_qc, :mut_det
+    runs_steps :align, :merge, :recal, :hybrid_qc, :mut_det, :copy_number
 
     module Config
       # this is config stuff that is particular to this sample
@@ -20,7 +20,7 @@ module Exome
           samples[samples.to_enum.with_index.map{ |s,i| s[:input_fastq1_list].map{ i } }.flatten[job_index]][:sample_name]
         when :merge, :hybrid_qc
           samples[job_index][:sample_name]
-        when :mut_det
+        when :mut_det, :copy_number
           samples[job_index+1][:sample_name]
         end
       end
@@ -36,7 +36,7 @@ module Exome
         when :recal
           # this runs once
           1
-        when :mut_det
+        when :mut_det, :copy_number
           # this runs once on every tumor sample
           sample_names.size - 1
         end
@@ -44,7 +44,7 @@ module Exome
 
       def scratch
         case step
-        when :align, :merge, :hybrid_qc, :mut_det
+        when :align, :merge, :hybrid_qc, :mut_det, :copy_number
           sample_scratch
         else
           job_scratch

@@ -68,7 +68,7 @@ module Pipeline
       # setup the scheduler to execute this task.
       setup_logging
 
-      log_info "Execution for #{step_name}"
+      log_info "Starting execution for #{step_name}".yellow.bold
       if config.splits
         schedule_job(:exec, :t => "1-#{config.splits}")
       else
@@ -95,10 +95,10 @@ module Pipeline
           filename = config.send(f)
           if filename && filename.is_a?(Array)
             filename.each do |fn|
-              FileUtils.rm(fn) if fn && File.size?(fn) && File.writeable?(fn)
+              FileUtils.rm(fn) if fn && File.size?(fn) && File.writable?(fn)
             end
           else
-            FileUtils.rm(filename) if filename && File.size?(filename) && File.writeable?(filename)
+            FileUtils.rm(filename) if filename && File.size?(filename) && File.writable?(filename)
           end
         end
       end
@@ -109,7 +109,7 @@ module Pipeline
       self.class.tasks.each do |t|
         task = create_task t
 
-        task.run if task.should_run
+        task.exec if task.should_run
       end
       return true
     end
