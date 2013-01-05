@@ -182,7 +182,7 @@ module Pipeline
           all_made = nil
         end
       end
-      log_info "#{task_name}: skipping, all files made" if all_made
+      log_info "#{task_name}: skipping, all files made".blue if all_made
       return !all_made
     end
 

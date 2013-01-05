@@ -44,6 +44,15 @@ module Pipeline
       samtools "flagstat", infile, outfile
     end
 
+    def sam_reads(bam,chr,start,stop)
+      `#{config.samtools_dir}/samtools view #{bam} #{chr}:#{start}-#{stop}`.split(/\n/).map do |l|
+        # these 
+        Hash[
+          [ :qname, :flag, :contig, :pos, :mapq, :cigar, :mate_contig, :mate_pos, :insert_size, :seq, :quality, :opt ].zip l.split(/\t/,12)
+        ]
+      end
+    end
+
     def sam_index(infile)
       samtools "index", infile, nil
     end
@@ -90,8 +99,14 @@ module Pipeline
     def replace_dict(args)
     end
 
+    def hash_table(file,headers=nil)
+      lines = File.foreach(file).to_a.map{|s| s.chomp.split(/\t/)}
+      headers = lines.shift.map(&:to_sym) if !headers
+      lines.map{|l| Hash[headers.zip(l)]}
+    end
+
     def coverage_bed(bam,intervals,outfile)
-      system "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts | cut -f 1-3,5 > #{outfile}"
+      system "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
     end
   end
 end

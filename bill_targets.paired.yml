@@ -43,4 +43,6 @@
 :scratch_dir: ./scratch
 :log_dir: ./log
 
+:keep_temp_files: true
+
 :filter_config: ./mutationConfig.cfg

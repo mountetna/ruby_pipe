@@ -2,7 +2,7 @@
 module Exome
   class HybridQc
     include Pipeline::Step
-    runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes
+    runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes, :collect_align_metrics
 
     class CalcFlags
       include Pipeline::Task
@@ -34,6 +34,17 @@ module Exome
       def run
         log_info "Calculating insert metrics"
         picard :collect_insert_size_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram
+      end
+    end
+
+    class CollectAlignMetrics
+      include Pipeline::Task
+      requires_file :qc_bam
+      outs_files :qc_align_metrics
+
+      def run
+        log_info "Calculating alignment metrics"
+        picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics
       end
     end
   end

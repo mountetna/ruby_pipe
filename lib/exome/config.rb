@@ -50,25 +50,29 @@ module Exome
 
         # hybrid_qc
         :qc_bam => proc { tumor_bam },
-        :qc_flag => proc { "#{metrics_dir}/#{sample_name}.flagstat" },
-        :qc_histogram => proc { "#{metrics_dir}/#{sample_name}.histogram" },
-        :qc_hybrid => proc { "#{metrics_dir}/#{sample_name}.hybrid_selection_metrics" },
-        :qc_inserts => proc { "#{metrics_dir}/#{sample_name}.insert_sizes" },
+        :qc_flag => proc { |s| "#{metrics_dir}/#{s || sample_name}.flagstat" },
+        :qc_histogram => proc { |s| "#{metrics_dir}/#{s || sample_name}.histogram" },
+        :qc_hybrid => proc { |s| "#{metrics_dir}/#{s || sample_name}.hybrid_selection_metrics" },
+        :qc_align_metrics => proc { |s| "#{metrics_dir}/#{s || sample_name}.alignment_metrics" },
+        :qc_inserts => proc { |s| "#{metrics_dir}/#{s || sample_name}.insert_sizes" },
 
         # mut_det
         :mutect_snvs => proc { "#{output_dir}/#{sample_name}/#{sample_name}.snvs.raw.mutect.txt" },
         :mutect_indels_anno => proc { "#{output_dir}/#{sample_name}/#{sample_name}.indels.annotated.vcf" },
         :mutect_indels_raw => proc { "#{output_dir}/#{sample_name}/#{sample_name}.indels.raw.vcf" },
         :mutect_indels_temp => proc { "#{scratch}/#{sample_name}.indels.temp.vcf" },
-        :mutect_mutations => proc { "#{output_dir}/#{sample_name}/#{sample_name}.mutations" },
+        :mutect_mutations => proc { "#{scratch}/#{sample_name}.mutations" },
         :mutect_coverage => proc { "#{output_dir}/#{sample_name}/#{sample_name}.snvs.coverage.mutect.wig" },
+        :insert_mutations => proc { "#{scratch}/#{sample_name}.insert_mutations" },
 
         :normal_bam => proc { sample_bam(normal_name) },
         :tumor_bam => proc { sample_bam(sample_name) },
 
         # copy_number
         :normal_cov => proc { "#{scratch}/#{normal_name}.cov" },
-        :tumor_cov => proc { "#{scratch}/#{sample_name}.cov" }
+        :tumor_cov => proc { "#{scratch}/#{sample_name}.cov" },
+        :tumor_cnr => proc { "#{output_dir}/#{sample_name}/#{sample_name}.cnr" },
+        :tumor_mutations => proc { "#{output_dir}/#{sample_name}/#{sample_name}.mutations" },
       })
     end
   end
