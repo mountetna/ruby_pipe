@@ -13,10 +13,15 @@ class HashTable
     @header
   end
 
+  def [](ind)
+    @lines[ind]
+  end
+
   def print(file)
     File.open(file,"w") do |f|
       f.puts @header.join("\t")
       @lines.each do |l|
+        next if l[:_invalid]
         f.puts @header.map{|h| l[h]}.join("\t")
       end
     end

@@ -1,9 +1,6 @@
-module Exome
+module Rna
   class Config
     include Pipeline::Config
-
-    def platform; "Illumina"; end
-    def platform_unit; "Exome"; end
 
     # Align stuff
     def load_procs
@@ -24,10 +21,10 @@ module Exome
         :sample_names => proc { samples.map{|s| s[:sample_name]}.flatten },
         :normal_name => proc { sample_names[0] },
 
-        :sample_bam => proc { |s| "#{output_dir}/#{s || sample_name}/#{s || sample_name}.bwa.realigned.rmDups.recal.bam" },
+        :sample_bam => proc { |s| "#{output_dir}/#{s || sample_name}/#{s || sample_name}.aligned.merged.sorted.bam" },
         :sample_bams => proc { sample_names.map{|s| sample_bam(s) } },
 
-        :output_bam => proc { |s| "#{output_dir}/#{s || sample_name}/#{s || sample_name}.bwa.realigned.rmDups.recal.bam" },
+        :output_bam => proc { |s| "#{output_dir}/#{s || sample_name}/#{s || sample_name}.bwa.aligned.merged.sorted.bam" },
         :output_bams => proc { sample_names.map{|s| output_bam(s) } },
 
         # Merge stuff
@@ -67,6 +64,11 @@ module Exome
 
         :normal_bam => proc { sample_bam(normal_name) },
         :tumor_bam => proc { sample_bam(sample_name) },
+
+        #univ_geno
+        :ug_raw_vcf => proc { "#{output_dir}/#{job_name}/#{job_name}.ug.raw.vcf" },
+        :ug_annotated_vcf => proc { "#{scratch}/#{job_name}.ug.annotated.vcf" },
+        :ug_filtered_vcf => proc { "#{output_dir}/#{job_name}/#{job_name}.ug.filtered.vcf" },
 
         # copy_number
         :normal_cov => proc { "#{scratch}/#{normal_name}.cov" },

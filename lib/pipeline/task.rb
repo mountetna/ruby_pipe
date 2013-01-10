@@ -79,14 +79,26 @@ module Pipeline
       return make_files?
     end
 
+    def check_file(filename,f)
+      error_exit "Could not get filename for #{f}" if !filename
+
+      # make sure the directory is there
+      ensure_dir File.dirname(filename)
+
+      error_exit "Could not find required file #{f} at #{filename}" if !File.size?(filename) 
+      error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
+
+      log_debug "#{f} ok at #{filename}" if config.verbose?
+    end
+
     def check_required
       required_files.each do |f|
         filename = config.send(f)
-        error_exit "Could not get filename for #{f}" if !filename
-        error_exit "Could not find required file #{f} at #{filename}" if !File.size?(filename) 
-        error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
-
-        log_debug "#{f} ok at #{filename}" if config.verbose?
+        if filename.is_a? Array
+          filename.each {|ff| check_file ff, f }
+        else
+          check_file filename, f
+        end
       end
     end
 
@@ -179,6 +191,7 @@ module Pipeline
         if File.size?(filename) && File.readable?(filename)
           log_debug "#{task_name}: #{f} already made at #{filename}" if config.verbose?
         else
+          ensure_dir File.dirname(filename)
           all_made = nil
         end
       end

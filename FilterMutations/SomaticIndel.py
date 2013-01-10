@@ -115,7 +115,7 @@ class SomaticIndelLine:
 				# A call cannot be made at the locus (see http://www.1000genomes.org/node/101) for either the tumor or normal
 				# or there is no coverage
 				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "Call cannot be made"
+				self.ourJudgmentReasons += "WRONG_GENOTYPE"
 				return False
 			if self.t_ref_count() + self.t_alt_count() < indelRemovalFilters['minTumorReads']:
 				self.ourJudgment = "no"

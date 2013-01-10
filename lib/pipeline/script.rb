@@ -61,9 +61,9 @@ module Pipeline
     def init(args)
       # do something
       cmd = args.shift
-      
-      ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
 
+      ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
+      
       case cmd
       when "start"
         start_pipe (args[0] || steps.first).to_sym

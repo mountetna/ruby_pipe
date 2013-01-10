@@ -15,7 +15,7 @@ module Pipeline
 
     def picard(jar,params)
       params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.scratch }.merge(params)
-      java :mem => 2, :tmp => config.scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :args => (params.map{ |key,value| value.is_a?(Array) ? value.map{|v| "#{key}=#{v}"}.join(" ") : "#{key}=#{value}" }.join(" "))
+      java :mem => 2, :tmp => config.scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :args => format_opts(params){ |k,v| "#{k}=#{v}" }
     end
 
     def java(params)
@@ -70,13 +70,13 @@ module Pipeline
     end
 
     def gatk(tool,opts)
-      opts = { "analysis_type" => tool.to_s.camel_case, "reference_sequence" => config.hg19_fa, "logging_level" => "DEBUG" }.merge(opts)
-      java :tmp => config.scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => opts.map { |flag,opt| "--#{flag} #{opt}" }.join(" ")
+      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.hg19_fa, :logging_level => "DEBUG" }.merge(opts)
+      java :tmp => config.scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
     end
 
     def mutect(opts)
-      opts = { "logging-level" => "WARN", "analysis_type" => "MuTect", "baq" => "CALCULATE_AS_NECESSARY", "reference-sequence" => config.hg19_fa }.merge(opts)
-      java :mem => 2, :tmp => config.scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => opts.map { |flag,opt| "--#{flag} #{opt}" }.join(" ")
+      opts = { :logging_level => "WARN", :analysis_type => "MuTect", :baq => "CALCULATE_AS_NECESSARY", :reference_sequence => config.hg19_fa }.merge(opts)
+      java :mem => 2, :tmp => config.scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
     end
 
     def tophat(args)
@@ -107,6 +107,15 @@ module Pipeline
 
     def coverage_bed(bam,intervals,outfile)
       system "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
+    end
+
+    private
+    def format_opts(o,&block)
+      o.map do |key,value| 
+        value.is_a?(Array) ? value.map do |v| 
+          yield key,v
+        end.join(" ") : yield(key,value)
+      end.join(" ")
     end
   end
 end

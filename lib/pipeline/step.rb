@@ -39,6 +39,8 @@ module Pipeline
       vars = {
         :CONFIG => config.config_file,
         :STEP => config.step,
+        :PIPE => config.pipe,
+        :SCRIPT => config,script,
         :ACTION => action,
         :LIB_DIR => config.lib_dir,
         :SINGLE_STEP => config.single_step
@@ -53,7 +55,7 @@ module Pipeline
       }.merge(opts||{})
 
 
-      `/opt/moab/bin/msub #{opts.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{config.lib_dir}/run_step.rb |tail -1`
+      `/opt/moab/bin/msub #{opts.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{config.lib_dir}/step_pipe.rb |tail -1`
     end
 
     def setup_scheduler(prevjob)

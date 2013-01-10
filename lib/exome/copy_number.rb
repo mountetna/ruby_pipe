@@ -17,7 +17,7 @@ module Exome
     class ComputeRatio
       include Pipeline::Task
       requires_files :normal_cov, :tumor_cov, :insert_mutations
-      outs_files :tumor_cnr, :tumor_mutations
+      outs_files :tumor_gene_cnr, :tumor_exon_cnr, :tumor_mutations
 
       def exon_coverage(cov)
         tot = cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
@@ -29,13 +29,28 @@ module Exome
       def run
         normal_cov = HashTable.new(config.normal_cov, [ :chr, :start, :stop, :strand, :name, :count ])
         tumor_cov = HashTable.new(config.tumor_cov, [ :chr, :start, :stop, :strand, :name, :count ])
+        tumor_logr = HashTable.new(config.tumor_cov, [ :chr, :start, :stop, :strand, :name, :count ])
+
+        n_tot = normal_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
+        t_tot = tumor_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
+        tumor_logr.each_with_index do |l,i|
+          if l[:count].to_i < 10 || normal_cov[i][:count].to_i < 10
+            l[:_invalid] = true
+            next
+          end
+          l[:name].gsub!(/[^\w]/,"")
+          l[:logr] = Math.log((l[:count].to_f+10)/(normal_cov[i][:count].to_f+10)/(t_tot/n_tot),2).round(4)
+        end
+        tumor_logr.header[ tumor_logr.header.index(:count) ] = :logr
+
+        tumor_logr.print config.tumor_exon_cnr
 
         normal_counts = exon_coverage normal_cov
         tumor_counts = exon_coverage tumor_cov
 
         cnr = {}
 
-        File.open(config.tumor_cnr,"w") do |f|
+        File.open(config.tumor_gene_cnr,"w") do |f|
           f.puts "gene\tcounts"
           tumor_counts.each do |gene,counts|
             next if !normal_counts[gene] || normal_counts[gene] == 0
