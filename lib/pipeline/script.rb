@@ -19,6 +19,10 @@ module Pipeline
       self.class.steps
     end
 
+    def exclude_task? task
+      nil
+    end
+
     def initialize(d=nil)
       @defaults = d
     end
@@ -34,12 +38,14 @@ module Pipeline
 
     def schedule(args)
       # handle any previous steps
+      curr_step = config.step
+
       create_step(config.prev_step).complete if config.prev_step
 
       return if config.single_step
 
       # schedule the execution for the current step
-      job = create_step(config.step).setup_exec
+      job = create_step(curr_step).setup_exec
 
       # schedule the scheduler for the next step
       create_step(config.next_step).setup_scheduler(job) if config.next_step
@@ -63,20 +69,30 @@ module Pipeline
       cmd = args.shift
 
       ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
+
       
       case cmd
       when "start"
+        config.set_config :action, :init
         start_pipe (args[0] || steps.first).to_sym
       when "run_step"
         exit unless args.length == 1
+        config.set_config :action, :init
         config.set_config :single_step, :true
         start_pipe args[0].to_sym
       when "audit"
+        config.set_config :action, :init
         audit(args)
+      else
+        puts "Possible commands:"
+        puts " start <config_file.yml>"
+        puts " run_step <config_file.yml> <step_name>"
+        puts " audit <config_file.yml>"
       end
     end
 
     def audit(args)
+      config.set_config :action, :audit
       steps.each do |s|
         step = create_step s
         # config thinks we're now on this step

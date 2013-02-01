@@ -1,6 +1,31 @@
 require 'yaml'
 module Pipeline
   module Config
+    def def_var name, &block
+      class_procs.update name => block
+    end
+    def class_procs; @class_procs ||= {}; end
+  end
+  module BaseConfig
+    extend Pipeline::Config
+
+    def_var :next_step do @script.steps[ @script.steps.index(step) + 1 ] end
+    def_var :prev_step do @script.steps[ @script.steps.index(step) - @script.steps.size - 1 ] end
+    def_var :pipe do @script.class.name.sub(/::.*/,"").to_sym end
+    def_var :script do @script.class.name.snake_case.to_sym end
+    def_var :step_log do "#{log_dir}/#{pipe}.#{job_name}.#{step}.#{job_index}.log" end
+    def_var :main_log do "#{log_dir}/#{pipe}.#{job_name}.#{script}.log" end
+    def_var :job_scratch do "#{scratch_dir}/#{job_name}" end
+    def_var :sample_scratch do |s| "#{scratch_dir}/#{s || sample_name}" end
+    def_var :error_pid do "#{job_scratch}/error.pid" end
+    def_var :error_file do "ERROR.#{job_name}" end
+    def_var :verbose? do verbose == "yes" || verbose == "true" end
+    def_var :job_index do job_number ? job_number - 1 : 0 end
+
+    def_var :config_dir do "#{lib_dir}/config" end
+    def_var :tools_config do "#{config_dir}/tools.yml" end
+
+
     # This creates a new step in a pipeline
     def initialize(script,opts=nil)
       @script = script
@@ -12,21 +37,27 @@ module Pipeline
         :keep_temp_files => nil,
         :single_step => nil
       }.merge(opts || {})
-      @procs = {}
+
       @config = {}
-
-      load_env_vars
-
-      load_tools_config
 
       # also include the script config
       self.class.send(:include, script.class.daughter_class(:config))
 
+      load_procs
+      load_env_vars
+      load_tools_config
+
+
       set_dir
 
       load_config
+    end
 
-      load_procs
+    def load_procs
+      @procs = {}
+      self.class.ancestors.each do |a|
+        @procs.update a.class_procs if a.respond_to? :class_procs
+      end
     end
 
     def load_env_vars
@@ -40,6 +71,7 @@ module Pipeline
         :PBS_ARRAYINDEX => [:job_number, :to_i],
         :MOAB_JOBARRAYRANGE => [:array_range, :to_i ],
         :SINGLE_STEP => :single_step,
+        :SCHEDULER => :scheduler
         :CONFIG => :config_file
       ].each do |ev,o|
         if o.is_a? Array
@@ -55,7 +87,10 @@ module Pipeline
     end
 
     def load_tools_config
-      @opts.update( YAML.load_file( "/taylorlab/resources/tools.yml" ) )
+      @opts.update( YAML.load_file( tools_config ) )
+
+      # update the path
+      ENV['PATH'] = ( tools_path.map{ |t| send t.to_sym } + ENV['PATH'].split(/:/) ).join ":" 
     end
 
     def set_opt(o,v)
@@ -74,23 +109,6 @@ module Pipeline
       @config=YAML.load_file(config_file)
     end
 
-    def load_procs
-      @procs = {
-        :next_step => proc { @script.steps[ @script.steps.index(step) + 1 ] },
-        :prev_step => proc { @script.steps[ @script.steps.index(step) - @script.steps.size - 1 ] },
-        :pipe => proc { self.class.name.sub(/::.*/,"").to_sym },
-        :script => proc { @script.class.name.snake_case.to_sym },
-        :step_log => proc { "#{log_dir}/#{pipe}.#{job_name}.#{step}.#{job_index}.log" },
-        :main_log => proc { "#{log_dir}/#{pipe}.#{job_name}.#{script}.log" },
-        :job_scratch => proc { "#{scratch_dir}/#{job_name}" },
-        :sample_scratch => proc { "#{scratch_dir}/#{sample_name}" },
-        :error_pid => proc { "#{job_scratch}/error.pid" },
-        :error_file => proc { "ERROR.#{job_name}" },
-        :verbose? => proc { verbose == "yes" || verbose == "true" },
-        :job_index => proc { job_number ? job_number - 1 : 0 }
-      }
-    end
-
     def method_missing(meth,*args,&block)
       # always look in the config file first, so we can overrule things there
       meth = meth.to_sym if meth.is_a? String
@@ -98,7 +116,7 @@ module Pipeline
         return @config[meth]
       # if not there, it could be in the procs table, to be found interactively
       elsif @procs[meth]
-        return @procs[meth].call(*args)
+        return instance_exec( *args, &@procs[meth])
       # if not there, it is likely in options. These can be nil for empty variables
       elsif @opts.has_key? meth
         return @opts[meth]

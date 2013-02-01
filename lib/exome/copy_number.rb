@@ -3,7 +3,7 @@ require 'hash_table'
 module Exome
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :mut_add_seg, :mut_add_cnv
     class ComputeCoverage
       include Pipeline::Task
       requires_files :tumor_bam, :normal_bam, :interval_bed
@@ -16,8 +16,8 @@ module Exome
     end
     class ComputeRatio
       include Pipeline::Task
-      requires_files :normal_cov, :tumor_cov, :insert_mutations
-      outs_files :tumor_gene_cnr, :tumor_exon_cnr, :tumor_mutations
+      requires_files :normal_cov, :tumor_cov
+      outs_files :tumor_exon_cnr, :tumor_mutations
 
       def exon_coverage(cov)
         tot = cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
@@ -27,9 +27,9 @@ module Exome
       end
 
       def run
-        normal_cov = HashTable.new(config.normal_cov, [ :chr, :start, :stop, :strand, :name, :count ])
-        tumor_cov = HashTable.new(config.tumor_cov, [ :chr, :start, :stop, :strand, :name, :count ])
-        tumor_logr = HashTable.new(config.tumor_cov, [ :chr, :start, :stop, :strand, :name, :count ])
+        normal_cov = HashTable.new(config.normal_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
+        tumor_cov = HashTable.new(config.tumor_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
+        tumor_logr = HashTable.new(config.tumor_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
 
         n_tot = normal_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
         t_tot = tumor_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
@@ -38,36 +38,48 @@ module Exome
             l[:_invalid] = true
             next
           end
-          l[:name].gsub!(/[^\w]/,"")
           l[:logr] = Math.log((l[:count].to_f+10)/(normal_cov[i][:count].to_f+10)/(t_tot/n_tot),2).round(4)
+          l[:normal_count] = normal_cov[i][:count]
+          l[:tumor_count] = l[:count]
         end
-        tumor_logr.header[ tumor_logr.header.index(:count) ] = :logr
+        tumor_logr.header[ tumor_logr.header.index(:count) ] = [ :tumor_count, :normal_count, :logr ]
+        tumor_logr.header.flatten!
 
         tumor_logr.print config.tumor_exon_cnr
+      end
+    end
+    class CopySeg
+      include Pipeline::Task
+      requires_file :tumor_exon_cnr
+      outs_file :tumor_cnr_rdata, :tumor_cnr_seg
 
-        normal_counts = exon_coverage normal_cov
-        tumor_counts = exon_coverage tumor_cov
+      def run
+        # just pass these arguments to the R script
+        system "#{config.lib_dir}/bin/segment.R #{config.tumor_exon_cnr} #{config.tumor_cnr_rdata} #{config.tumor_cnr_seg} #{config.sample_name}" or error_exit "segment.R failed"
+      end
+    end
+    class MutAddCnv
+      include Pipeline::Task
+      requires_file :insert_mutations, :tumor_exon_cnr
+      outs_file :tumor_mutations
 
-        cnr = {}
-
-        File.open(config.tumor_gene_cnr,"w") do |f|
-          f.puts "gene\tcounts"
-          tumor_counts.each do |gene,counts|
-            next if !normal_counts[gene] || normal_counts[gene] == 0
-            cnr[gene] = Math.log(counts/normal_counts[gene],2).round(4)
-            f.puts "#{gene}\t#{cnr[gene]}"
-          end
-        end
-
+      def run
         muts = HashTable.new(config.insert_mutations)
 
         muts.header.insert( muts.header.index(:t_ref_count), :log_cnr )
 
-        muts.each do |l|
-          # fix bullshit
-          gene = l[:"#gene"].split(/,/).first
-          l[:log_cnr] = cnr[gene] || "-"
-        end
+        muts.print(config.tumor_mutations)
+      end
+    end
+    class MutAddSeg
+      include Pipeline::Task
+      requires_file :insert_mutations, :tumor_cnr_seg
+      outs_file :tumor_mutations
+
+      def run
+        muts = HashTable.new(config.insert_mutations)
+
+        muts.header.insert( muts.header.index(:t_ref_count), :log_cnr_seg )
 
         muts.print(config.tumor_mutations)
       end

@@ -10,7 +10,7 @@ module Exome
 
       def run
         log_info "Merging sample bam files for #{config.sample_name}"
-        picard :merge_sam_files, :CREATE_INDEX => :true, :O => config.merged_bam, :I => config.merged_bam or error_exit "BAM file merge failed."
+        picard :merge_sam_files, :CREATE_INDEX => :true, :O => config.merged_bam, :I => config.aligned_bams or error_exit "BAM file merge failed."
       end
     end
     class IndexBam

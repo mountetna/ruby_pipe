@@ -33,7 +33,7 @@ module Exome
       def run
         log_info "Pairing aligned reads"
         bwa_pair :m1 => config.read1_sai, :m2 => config.read2_sai, 
-          :fastq1 =>  config.input_fastq1, :fastq2 => config.input_fastq2, :out => config.paired_sam or error_exit "BWA sampe failed"
+          :fq1 =>  config.input_fastq1, :fq2 => config.input_fastq2, :out => config.paired_sam or error_exit "BWA sampe failed"
       end
     end
 
@@ -70,7 +70,7 @@ module Exome
 
       def run
         log_info "Convert SAM to BAM..."
-        sam_to_bam config.renamed_sam config.renamed_bam or error_exit "BAM conversion failed"
+        sam_to_bam config.renamed_sam, config.renamed_bam or error_exit "BAM conversion failed"
       end
     end
   end

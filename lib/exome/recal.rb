@@ -6,17 +6,17 @@ module Exome
     class MergeBam
       include Pipeline::Task
       requires_files :recal_bams
-      dumps_file :merged_bam
+      dumps_file :remerged_bam
 
       def run
 	log_info "Merging bam files"
-        picard :merge_sam_files, :CREATE_INDEX => :true, :OUTPUT => config.merged_bam, :INPUT => config.recal_bams, :SORT_ORDER => :coordinate or error_exit "bam file merge failed."
+        picard :merge_sam_files, :CREATE_INDEX => :true, :OUTPUT => config.remerged_bam, :INPUT => config.recal_bams, :SORT_ORDER => :coordinate or error_exit "bam file merge failed."
 	sam_index config.merged_bam or error_exit "First indexing failed"
       end
     end
     class CreateIntervals
       include Pipeline::Task
-      requires_file :merged_bam
+      requires_file :remerged_bam
       dumps_file :merged_intervals
 
       def run
@@ -24,14 +24,14 @@ module Exome
 	gatk :realigner_target_creator,
           :known => config.thousand_genomes_indels,
           :num_threads => 24,
-          :input_file => config.merged_bam,
+          :input_file => config.remerged_bam,
           :out => config.merged_intervals or error_exit "Interval creation failed"
       end
     end
 
     class RealignIndels
       include Pipeline::Task
-      requires_file :merged_bam, :merged_intervals
+      requires_file :remerged_bam, :merged_intervals
       dumps_file :realigned_bam
 
       def run
@@ -39,7 +39,7 @@ module Exome
 	gatk :indel_realigner,
 			:knownAlleles => config.thousand_genomes_indels,
                         :consensusDeterminationModel => :USE_READS,
-			:input_file => config.merged_bam,
+			:input_file => config.remerged_bam,
 			:targetIntervals => config.merged_intervals,
 			:out => config.realigned_bam or error_exit "Indel realignment failed"
       end
@@ -113,9 +113,7 @@ module Exome
 
       def run
 	log_info "Split recalibrated bam into per-sample output bams"
-	gatk :split_sam_file,
-		:input_file => config.recal_bam,
-		:outputRoot => config.split_bam or error_exit "Splitting bam files failed"
+	#gatk :split_sam_file, :input_file => config.recal_bam, :outputRoot => config.split_bam or error_exit "Splitting bam files failed"
 
 	# split off the list of files based on the BASE list, to verify
         config.sample_names.each do |sample|

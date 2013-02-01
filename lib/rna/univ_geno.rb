@@ -1,6 +1,10 @@
 #!/usr/bin/env ruby
 require 'hash_table'
 require 'fileutils'
+require 'net/http'
+require 'resolv-replace'
+require 'json'
+
 module Rna
   class UnivGeno
     include Pipeline::Step
@@ -8,14 +12,14 @@ module Rna
 
     class UnifiedGenotyper
       include Pipeline::Task
-      requires_files :sample_bams, :interval_list
+      requires_files :output_bams, :interval_list
       outs_files :ug_raw_vcf
 
       def run
 	log_info "Running Unified Genotyper"
 	gatk :unified_genotyper,
 		:genotype_likelihoods_model => :BOTH, :genotyping_mode => :DISCOVERY,
-		:input_file => config.sample_bams,
+		:input_file => config.output_bams,
 		:dbsnp => config.dbsnp_vcf, :logging_level => :WARN,
 		:intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
 		:standard_min_confidence_threshold_for_calling => 30.0,
@@ -27,13 +31,13 @@ module Rna
     end
     class AnnotateMuts
       include Pipeline::Task
-      requires_files :sample_bams, :ug_raw_vcf
+      requires_files :output_bams, :ug_raw_vcf
       dumps_file :ug_annotated_vcf
 
       def run
 	log_info "Annotating Unified Genotyper SNPs"
 	gatk :variant_annotator,
-		:input_file => config.sample_bams,
+		:input_file => config.output_bams,
 		:dbsnp => config.dbsnp_vcf,
 		:intervals => config.ug_raw_vcf,
 		:variant => config.ug_raw_vcf,
@@ -53,7 +57,7 @@ module Rna
 	gatk :variant_filtration,
 		:variant => config.ug_annotated_vcf,
 		:baq => :CALCULATE_AS_NECESSARY,
-		:filterExpression => [ "QD < 2.0", "MQ < 40.0", "FS > 60.0", "HaplotypeScore > 13.0", "MQRankSum < -12.5", "ReadPosRankSum < -8.0" ],
+		:filterExpression => [ '"QD < 2.0"', '"MQ < 40.0"', '"FS > 60.0"', '"HaplotypeScore > 13.0"', '"MQRankSum < -12.5"', '"ReadPosRankSum < -8.0"' ],
 		:filterName => [ :QDFilter, :MQFilter, :FSFilter, :HaplotypeScoreFilter, :MQRankSumFilter, :ReadPosFilter ],
 		:out => config.ug_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
 

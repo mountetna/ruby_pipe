@@ -2,11 +2,11 @@ module Pipeline
   module Tools
     def bwa_aln(params)
       params = { :threads => 12 }.merge(params)
-      bwa "aln -t #{params[:threads]} #{config.bwa_index} #{params[:fq]}", params[:out]
+      bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
     end
 
-    def bwa_sampe(params)
-      bwa "sampe #{config.bwa_index} #{params[:m1]} #{params[:m2]} #{params[:fq1]} #{params[:fq2]}", params[:out]
+    def bwa_pair(params)
+      bwa "sampe #{config.bwa_idx} #{params[:m1]} #{params[:m2]} #{params[:fq1]} #{params[:fq2]}", params[:out]
     end
 
     def bwa(cmd,out)
@@ -40,8 +40,12 @@ module Pipeline
       IO.popen("#{config.samtools_dir}/samtools view -H #{bam}").readlines.map{ |l| l.match(/^@RG.*SM:(.*?)\s/) { |m| m[1] } }.compact.first
     end
 
-    def sam_flag(infile,outfile)
+    def sam_flags(infile,outfile)
       samtools "flagstat", infile, outfile
+    end
+
+    def sam_sort(infile,outpref)
+      samtools "sort #{infile}", outpref
     end
 
     def sam_reads(bam,chr,start,stop)
@@ -54,10 +58,10 @@ module Pipeline
     end
 
     def sam_index(infile)
-      samtools "index", infile, nil
+      samtools "index", infile
     end
 
-    def samtools(cmd,infile,outfile)
+    def samtools(cmd,infile,outfile=nil)
       if outfile
         system "#{config.samtools_dir}/samtools #{cmd} #{infile} > #{outfile}"
       else
@@ -79,8 +83,27 @@ module Pipeline
       java :mem => 2, :tmp => config.scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
     end
 
-    def tophat(args)
-      system "#{config.tophat_dir}/tophat #{args}"
+    def tophat(params)
+      params = { :threads => 12, :scratch => config.scratch, :gtf => config.hg19_ucsc_gtf }.merge(params)
+      system "#{config.tophat_dir}/tophat -G #{params[:gtf]} -o #{params[:scratch]} -r #{params[:frag_size]} -p #{params[:threads]} #{config.bowtie2_idx} #{params[:fq1]} #{params[:fq2]}"
+    end
+
+    def cufflinks(params)
+      params = { :threads => 12, :gtf => config.hg19_ucsc_gtf }.merge(params)
+      system "#{config.cufflinks_dir}/cufflinks -q -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
+    end
+
+    def cuffmerge(params)
+      params = { :gtf => config.hg19_ucsc_gtf, :fa => config.hg19_fa, :out => "./merged_asm", :threads => 12 }.merge(params)
+      system "#{config.cufflinks_dir}/cuffmerge -o #{params[:out]} -g #{params[:gtf]} -s #{params[:fa]} -p #{params[:threads]} #{params[:list]}"
+    end
+
+    def cuffcompare(params)
+      system "#{config.cufflinks_dir}/cuffcompare #{params.map{ |o,a| " -#{o} #{a}"}.join(" ") }"
+    end
+
+    def cuffdiff(params)
+      system "#{config.cufflinks_dir}/cuffdiff -o #{params[:out]} #{params[:gtf]} $BAM1 $BAM2"
     end
 
     def fastx_clipper(args)
@@ -94,9 +117,6 @@ module Pipeline
     def filter_muts(snvs,indels,out_file)
       filter_config ="#{config.lib_dir}/FilterMutations/mutationConfig.cfg"
       system "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
-    end
-
-    def replace_dict(args)
     end
 
     def hash_table(file,headers=nil)
@@ -119,3 +139,5 @@ module Pipeline
     end
   end
 end
+
+

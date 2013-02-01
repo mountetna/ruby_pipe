@@ -14,41 +14,42 @@ module Exome
 
     class Mutect
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam, :interval_bed
       outs_files :mutect_snvs, :mutect_coverage
 
       def run
 	log_info "Running muTect..."
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
+          :intervals => config.interval_bed,
           :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
       end
     end
     class SomaticIndels
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam, :interval_bed
       outs_file :mutect_indels_raw
 
       def run
 	log_info "Running Somatic Indel Detector..."
-	gatk :somatic_indel_detector, "input_file:normal" => config.normal_bam,
-		"input_file:tumor" => config.tumor_bam,
-		"intervals" => config.interval_list,
-                "maxNumberOfReads" => 10000,
-                "window_size" => 225,
-                "filter_expressions" => '"N_COV<8||T_COV<14||T_INDEL_F<0.1||T_INDEL_CF<0.7"',
-		"out" => config.mutect_indels_raw or error_exit "Indel detection failed"
+	gatk :somatic_indel_detector, :"input_file:normal" => config.normal_bam,
+		:"input_file:tumor" => config.tumor_bam,
+		:intervals => config.interval_bed,
+                :maxNumberOfReads => 10000,
+                :window_size => 225,
+                :filter_expressions => '"N_COV<8||T_COV<14||T_INDEL_F<0.1||T_INDEL_CF<0.7"',
+		:out => config.mutect_indels_raw or error_exit "Indel detection failed"
       end
     end
     class AnnotateIndels
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :mutect_indels_raw, :interval_list
+      requires_files :normal_bam, :tumor_bam, :mutect_indels_raw, :interval_bed
       outs_file :mutect_indels_anno
       
       def run
 	log_info "Annotating raw indel calls..."
 	gatk :variant_annotator, 
 		:variant => config.mutect_indels_raw,
-		:intervals => config.interval_list,
+		:intervals => config.interval_bed,
 		:"input_file:normal" => config.normal_bam,
 		:"input_file:tumor" => config.tumor_bam,
 		:dbsnp => config.dbsnp_vcf,
@@ -62,7 +63,7 @@ module Exome
       dumps_file :mutect_indels_temp, :mutect_mutations
 
       def reorder_vcf(file,tumor_name,normal_name,out_file)
-        data = HashTable.new(file,nil,"##")
+        data = HashTable.new(file,:comment => "##")
         data.header[9] = tumor_name.to_sym
         data.header[10] = normal_name.to_sym
         data.print(out_file)

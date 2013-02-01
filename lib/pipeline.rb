@@ -1,9 +1,12 @@
 require 'patches/string'
 require 'patches/class'
+require 'patches/enumerable'
 
 require 'pipeline/logger'
+require 'pipeline/scheduling'
 require 'pipeline/tools'
 require 'pipeline/step'
 require 'pipeline/task'
 require 'pipeline/config'
 require 'pipeline/script'
+require 'pipeline/sample_config'

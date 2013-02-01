@@ -3,6 +3,7 @@ require 'fileutils'
 module Pipeline
   module Step
     include Pipeline::Logger
+    include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
       def runs_tasks(*tasklist)
@@ -20,6 +21,11 @@ module Pipeline
       def input
         required - made
       end
+
+      def resources(opts = nil)
+        @resources ||= {}
+        @resources.update(opts || {})
+      end
     end
     def self.included(base)
       base.extend(ClassMethods)
@@ -28,53 +34,30 @@ module Pipeline
     def initialize(s)
       @script = s
       config.set_opt :step, step_name
+      setup_logging unless config.action == :audit
     end
 
     def step_name; self.class.name.split(/::/).last.snake_case.to_sym; end
     def script; @script; end
     def config; @script.config; end
-
-    def schedule_job(action,opts=nil)
-      # there are some standard vars to pass in
-      vars = {
-        :CONFIG => config.config_file,
-        :STEP => config.step,
-        :PIPE => config.pipe,
-        :SCRIPT => config,script,
-        :ACTION => action,
-        :LIB_DIR => config.lib_dir,
-        :SINGLE_STEP => config.single_step
-      }
-      opts = { 
-        :N => "#{config.pipe}.#{config.step}",
-        :m => "n",
-        :j => "oe",
-        :o => "test.log",
-        :l => "walltime=3:00:00:00",
-        :v => vars.map{|v,n| "#{v}=#{n}" }.join(",")
-      }.merge(opts||{})
-
-
-      `/opt/moab/bin/msub #{opts.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{config.lib_dir}/step_pipe.rb |tail -1`
-    end
+    def resources; self.class.resources; end
 
     def setup_scheduler(prevjob)
       # setup the scheduler to run this task.
-      setup_logging
+      prevjob.strip!
 
       log_info "Scheduling #{step_name}"
-      schedule_job(:schedule)
+      schedule_job :schedule, :wait => prevjob
     end
 
     def setup_exec
       # setup the scheduler to execute this task.
-      setup_logging
 
       log_info "Starting execution for #{step_name}".yellow.bold
       if config.splits
-        schedule_job(:exec, :t => "1-#{config.splits}")
+        schedule_job :exec, :splits => config.splits
       else
-        schedule_job(:exec)
+        schedule_job :exec
       end
     end
 
@@ -85,8 +68,9 @@ module Pipeline
       if File.exists?(config.error_pid)
         FileUtils.rm(config.error_pid)
         File.open(config.error_file, "w") do |f|
-          f.puts "Script failed at #{config.prev_step}, see logs in #{config.log_dir}/. Resume with 'run_pipeline start #{config.config_file} #{config.prev_step}'"
+          f.puts "Script failed at #{config.step}, see logs in #{config.log_dir}/. Resume with '#{config.pipe}_#{config.script} start #{config.config_file} #{config.step}'"
         end
+        exit
       end
     end
 
@@ -112,12 +96,12 @@ module Pipeline
     end
 
     def exec
-      setup_logging
       self.class.tasks.each do |t|
         task = create_task t
 
         task.exec if task.should_run
       end
+      log_info "#{step_name} completed successfully".magenta.bold
       return true
     end
 

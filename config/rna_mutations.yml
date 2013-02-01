@@ -1,0 +1,12 @@
+
+:normal:
+  :min_approx_depth: 8
+  :max_alt_count: 0
+  :min_quality: 20
+:tumor:
+  :min_approx_depth: 14
+  :min_alt_count: 2
+  :min_quality: 20
+:oncotator:
+  :exclude_txp_variant_classification: [ Intron, Silent, IGR, Flank ]
+  :is_snp: false

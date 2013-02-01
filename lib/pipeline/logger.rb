@@ -1,10 +1,12 @@
 require 'colored'
+require 'fileutils'
 
 module Pipeline
   module Logger
     MAINLOG = File.open("/dev/null","w")
 
     def setup_logging
+      FileUtils.mkdir_p config.log_dir
       STDOUT.reopen(config.step_log,"a")
       STDOUT.sync = true
       STDERR.reopen(STDOUT)

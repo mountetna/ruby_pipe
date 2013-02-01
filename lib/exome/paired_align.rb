@@ -12,16 +12,29 @@ module Exome
     include Pipeline::Script
     runs_steps :align, :merge, :recal, :hybrid_qc, :mut_det, :copy_number
 
+    def exclude_task? task
+      case task
+      when Exome::CopyNumber::CopySeg, Exome::CopyNumber::MutAddSeg
+        return true if config.unit != "exome"
+      when Exome::CopyNumber::MutAddCnv
+        return true if config.unit == "exome"
+      end
+      return nil
+    end
+
     module Config
+      include Pipeline::SampleConfig
       # this is config stuff that is particular to this sample
-      def sample_name
+
+      def sample_index
+        # just tell the index of the current sample
         case step
         when :align
-          samples[samples.to_enum.with_index.map{ |s,i| s[:input_fastq1_list].map{ i } }.flatten[job_index]][:sample_name]
+          sample_index_list(:input_fastq1_list)[job_index]
         when :merge, :hybrid_qc
-          samples[job_index][:sample_name]
+          job_index
         when :mut_det, :copy_number
-          samples[job_index+1][:sample_name]
+          job_index+1
         end
       end
 
@@ -38,7 +51,7 @@ module Exome
           1
         when :mut_det, :copy_number
           # this runs once on every tumor sample
-          sample_names.size - 1
+          samples.size - 1
         end
       end
 

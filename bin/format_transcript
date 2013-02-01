@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby        
+#
+require "#{File.expand_path File.dirname(__FILE__)}/../lib/hash_table.rb"
+
+gene_alias = HashTable.new("/taylorlab/resources/human/hg19/ucsc_feb_2009/kgXref.txt", :key => [ :"#kgID", :spID ])
+
+File.foreach(ARGV[0]) do |t|
+  t.chomp!
+  t.match(/gene_name "(.*?)"/) do |m|
+    t.sub!(/gene_name ".*?"/,"gene_name \"#{gene_alias[m[1]][:geneSymbol]}\"") if gene_alias[m[1]]
+  end
+  puts t
+end
