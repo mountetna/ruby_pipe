@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'hash_table'
 module Rna
   class CountTranscripts
     include Pipeline::Step

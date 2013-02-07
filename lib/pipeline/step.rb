@@ -42,23 +42,24 @@ module Pipeline
     def config; @script.config; end
     def resources; self.class.resources; end
 
-    def setup_scheduler(prevjob)
+    def setup_scheduler(prevjob, splits)
       # setup the scheduler to run this task.
       prevjob.strip!
 
-      log_info "Scheduling #{step_name}"
-      schedule_job :schedule, :wait => prevjob
+      log_main "Scheduling #{step_name}".yellow.bold
+      schedule_job :schedule, :wait => prevjob, :prev_splits => splits
     end
 
     def setup_exec
       # setup the scheduler to execute this task.
 
-      log_info "Starting execution for #{step_name}".yellow.bold
+      log_main "Starting execution for #{step_name}".yellow.bold
       if config.splits
-        schedule_job :exec, :splits => config.splits
+        job = schedule_job :exec, :splits => config.splits
       else
-        schedule_job :exec
+        job = schedule_job :exec
       end
+      [ job, config.splits ]
     end
 
     def complete
@@ -69,6 +70,7 @@ module Pipeline
         FileUtils.rm(config.error_pid)
         File.open(config.error_file, "w") do |f|
           f.puts "Script failed at #{config.step}, see logs in #{config.log_dir}/. Resume with '#{config.pipe}_#{config.script} start #{config.config_file} #{config.step}'"
+          log_main "Script failed at #{config.step}".red.bold
         end
         exit
       end
@@ -101,7 +103,7 @@ module Pipeline
 
         task.exec if task.should_run
       end
-      log_info "#{step_name} completed successfully".magenta.bold
+      log_main "#{step_name} completed trial #{config.job_index} successfully".magenta.bold
       return true
     end
 

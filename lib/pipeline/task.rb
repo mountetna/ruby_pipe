@@ -12,21 +12,19 @@ module Pipeline
         @required_files = required
       end
       alias :requires_files :requires_file
-      def required_files; @required_files; end
 
       def dumps_file(*dump)
         @dump_files = dump
       end
       alias :dumps_files :dumps_file
-      def dump_files; @dump_files; end
 
       def outs_file(*outs)
         @out_files = outs
       end
       alias :outs_files :outs_file
-      def out_files; @out_files; end
 
       def made_files; @out_files + @dump_files; end
+      attr_reader :required_files, :dump_files, :out_files
     end
   end
   class PipeError < StandardError
@@ -53,97 +51,11 @@ module Pipeline
   end
 
   module Task
-    module Auditing
-      class Audit
-        def initialize(files,c)
-          @files = files
-          @config = c
-        end
-        def summary
-          "(#{count}/#{total})".send( count == total ? :green : :red )
-        end
-
-        def total
-          @files.size
-        end
-
-        def missing?
-          count != total
-        end
-
-        def needed?
-          total != 0 && missing?
-        end
-
-        def count
-          @count ||= @files.count do |f|
-            filename = @config.send f
-            if filename && filename.is_a?(Array)
-              filename.all? do |fn|
-                fn && File.size?(fn) && File.readable?(fn)
-              end
-            else
-              filename && File.size?(filename) && File.readable?(filename)
-            end
-          end
-        end
-        def print_missing
-          @files.each do |f|
-            filename = @config.send f
-            if filename && filename.is_a?(Array)
-              filename.each do |fn|
-                yield(f,fn) if !fn || !File.size?(fn) || !File.readable?(fn)
-              end
-            else
-              yield(f,filename) if !filename || !File.size?(filename) || !File.readable?(filename)
-            end
-          end
-        end
-      end
-
-      def audit_files(files, c1, c2)
-        aud = [ files.count do |f|
-            filename = config.send(f)
-            filename && File.size?(filename) && File.readable?(filename)
-          end, files.size ]
-
-        return aud + [ "(#{aud.first}/#{aud.last})".green ] #.bold.color( aud.first == aud.last ? c1 : c2 ) ]
-      end
-
-      def audit
-        return if step.script.exclude_task? self
-        log_info "task #{task_name}:".blue.bold
-        req = Audit.new(required_files,config)
-        dump = Audit.new(dump_files,config)
-        out = Audit.new(out_files,config)
-        log_info "required files: #{req.summary}" if req.total > 0
-        log_info "dump files: #{dump.summary}" if dump.total > 0
-        log_info "out files: #{out.summary}" if out.total > 0
-        if req.missing?
-          log_info "won't run, required files are missing".red
-          req.print_missing { |f, filename| log_info "#{f} => #{filename}".red }
-          return
-        end
-        if dump.missing?
-          log_info "will run, needs to make dump files".green
-          dump.print_missing { |f, filename| log_info "#{f} => #{filename}".red }
-        end
-        if out.missing?
-          log_info "will run, needs to make out files".green
-          out.print_missing { |f, filename| log_info "#{f} => #{filename}".red }
-        end
-        if !dump.missing? && !out.missing?
-          log_info "won't run, all files are present".blue
-        end
-      end
-    end
-  end
-
-  module Task
     include Pipeline::Tools
     include Pipeline::Logger
     include Pipeline::Task::ErrorHandling
     include Pipeline::Task::Auditing
+    include Pipeline::Base
 
     def self.included(base)
       base.extend(ClassMethods)
@@ -164,30 +76,27 @@ module Pipeline
       step.config
     end
     
-    def step
-      @step
-    end
+    attr_reader :step
 
     def task_name
       self.class.name.split(/::/).last.snake_case
     end
     
-    def dump_files; self.class.dump_files; end
-    def out_files; self.class.out_files; end
-    def made_files; self.class.made_files; end
-    def required_files; self.class.required_files; end
+    class_var :dump_files, :out_files, :made_files, :required_files
 
     def should_run
       # don't even log it if the script says to skip it
-      return if step.script.exclude_task? self
+      error_check do
+        return if step.script.exclude_task? self
 
-      log_info "task #{task_name}:".white.bold
+        log_info "task #{task_name}:".white.bold
 
-      # this will exit the step if it is missing.
-      check_required
+        # this will exit the step if it is missing.
+        check_required
 
-      # this will merely move on to the next step
-      return make_files?
+        # this will merely move on to the next step
+        return make_files?
+      end
     end
 
     def check_file(filename,f)
@@ -237,15 +146,21 @@ module Pipeline
       return !all_made
     end
 
-    def exec
+    def error_check
       begin
-        run
+        yield
       rescue Pipeline::PipeError => e
-        error_out e
+        error_out e.message
       rescue => e
         # there was a ruby error, bail out.
         puts e, e.backtrace
         error_out "script error"
+      end
+    end
+
+    def exec
+      error_check do
+        run
       end
       log_info "#{task_name} completed successfully".green.bold
     end

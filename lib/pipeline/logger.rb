@@ -1,4 +1,3 @@
-require 'colored'
 require 'fileutils'
 
 module Pipeline
@@ -12,6 +11,10 @@ module Pipeline
       STDERR.reopen(STDOUT)
       STDERR.sync = true
       MAINLOG.reopen(config.main_log,"a")
+    end
+
+    def log_main(txt)
+      log "PIPE", :blue, config.step, txt, MAINLOG
     end
 
     def log_info(txt)
@@ -30,11 +33,11 @@ module Pipeline
       log "OUTPUT", :white, config.step, txt
     end
 
-    def log(t,color,s,txt)
+    def log(t,color,s,txt,f=STDOUT)
       s = ("%10s" % s).green.bold
       t = ("%-10s" % t).send color
       date = ("%-20s" % Time.now.strftime("%Y-%m-%d %H:%M:%S")).white.bold
-      puts "%s %s %s %s" % [ date, s, t, txt ]
+      f.puts "%s %s %s %s" % [ date, s, t, txt ]
     end
   end
 end

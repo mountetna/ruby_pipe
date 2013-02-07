@@ -11,8 +11,9 @@ module Pipeline
 
     def_var :next_step do @script.steps[ @script.steps.index(step) + 1 ] end
     def_var :prev_step do @script.steps[ @script.steps.index(step) - @script.steps.size - 1 ] end
-    def_var :pipe do @script.class.name.sub(/::.*/,"").to_sym end
+    def_var :pipe do @script.class.name.sub(/::.*/,"").snake_case.to_sym end
     def_var :script do @script.class.name.snake_case.to_sym end
+    def_var :pipe_script do "#{pipe}_#{script}" end
     def_var :step_log do "#{log_dir}/#{pipe}.#{job_name}.#{step}.#{job_index}.log" end
     def_var :main_log do "#{log_dir}/#{pipe}.#{job_name}.#{script}.log" end
     def_var :job_scratch do "#{scratch_dir}/#{job_name}" end
@@ -47,7 +48,6 @@ module Pipeline
       load_env_vars
       load_tools_config
 
-
       set_dir
 
       load_config
@@ -68,10 +68,10 @@ module Pipeline
         :STEP => [ :step, :to_sym ],
         :LIB_DIR => :lib_dir,
         :MOAB_JOBARRAYINDEX => [:job_number, :to_i],
-        :PBS_ARRAYINDEX => [:job_number, :to_i],
+        :PBS_ARRAYID => [:job_number, :to_i],
         :MOAB_JOBARRAYRANGE => [:array_range, :to_i ],
         :SINGLE_STEP => :single_step,
-        :SCHEDULER => :scheduler
+        :SCHEDULER => :scheduler,
         :CONFIG => :config_file
       ].each do |ev,o|
         if o.is_a? Array
@@ -106,7 +106,7 @@ module Pipeline
     end
 
     def load_config
-      @config=YAML.load_file(config_file)
+      @config=Pipeline::SampleObject.new YAML.load_file(config_file), self
     end
 
     def method_missing(meth,*args,&block)

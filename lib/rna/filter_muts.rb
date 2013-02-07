@@ -1,10 +1,6 @@
 #!/usr/bin/env ruby
 require 'hash_table'
 require 'vcf'
-require 'fileutils'
-require 'net/http/persistent'
-require 'resolv-replace'
-require 'json'
 
 module Rna
   class FilterMuts

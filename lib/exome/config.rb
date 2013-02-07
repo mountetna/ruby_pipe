@@ -8,18 +8,18 @@ module Exome
     def platform_unit; "Exome"; end
 
     def_var :unit do "exome" end
-    def_var :sample_names do samples.map{|s| s[:sample_name]}.flatten end
+    def_var :sample_names do samples.collect(&:sample_name) end
     def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
-    def_var :sample_bams do sample_names.map{|s| sample_bam(s) } end
+    def_var :sample_bams do sample_names.map{ |s| sample_bam(s) } end
     def_var :bam_label do "bwa.realigned.rmDups.recal" end
     def_var :input_bam do |s| s ? sample(s)[:input_bam] : nil end
     def_var :output_bam do |s| "#{output_dir}/#{s || sample_name}/#{s || sample_name}.#{bam_label}.bam" end
     def_var :output_bams do sample_names.map{|s| output_bam(s) } end
     def_var :normal_bam do sample_bam(normal_name) end
-    def_var :normal_name do sample_names[0] end
+    def_var :normal_name do sample_names.first end
     def_var :tumor_bam do sample_bam(sample_name) end
 
-        # Align
+    # Align
     def_var :input_fastq1 do input_fastq1_list.flatten[job_index] end
     def_var :input_fastq1_list do samples.map{ |s| s[:input_fastq1_list] }.flatten end
     def_var :input_fastq2 do input_fastq2_list.flatten[job_index] end
@@ -73,6 +73,7 @@ module Exome
 
 
         # copy_number
+    def_var :interval_bed do "#{job_scratch}/intervals.bed" end
     def_var :normal_cov do "#{scratch}/#{normal_name}.cov" end
     def_var :tumor_cov do "#{scratch}/#{sample_name}.cov" end
     def_var :tumor_gene_cnr do "#{output_dir}/#{sample_name}/#{sample_name}.gene_cnr" end

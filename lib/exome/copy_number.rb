@@ -1,15 +1,24 @@
 #!/usr/bin/env ruby
 require 'hash_table'
+require 'fileutils'
 module Exome
   class CopyNumber
     include Pipeline::Step
     runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :mut_add_seg, :mut_add_cnv
     class ComputeCoverage
       include Pipeline::Task
-      requires_files :tumor_bam, :normal_bam, :interval_bed
+      requires_files :tumor_bam, :normal_bam, :interval_list
       dumps_files :tumor_cov, :normal_cov
 
       def run
+        if !File.exists? config.interval_bed
+          File.open(config.interval_bed,"w") do |f|
+            File.foreach(config.interval_list) do |l|
+              next if l =~ /^@/
+              f.print l
+            end
+          end
+        end
         coverage_bed config.normal_bam, config.interval_bed, config.normal_cov or error_exit "Computing normal coverage failed."
         coverage_bed config.tumor_bam, config.interval_bed, config.tumor_cov or error_exit "Computing tumor coverage failed."
       end

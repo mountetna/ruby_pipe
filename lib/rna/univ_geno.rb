@@ -1,10 +1,4 @@
 #!/usr/bin/env ruby
-require 'hash_table'
-require 'fileutils'
-require 'net/http'
-require 'resolv-replace'
-require 'json'
-
 module Rna
   class UnivGeno
     include Pipeline::Step

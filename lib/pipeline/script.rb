@@ -1,23 +1,21 @@
+require 'fileutils'
 module Pipeline
   module Script
+    include Pipeline::Base
     include Pipeline::Logger
+
     module ClassMethods 
+      attr_reader :steps
       def runs_steps(*step_list)
         @steps = step_list
-      end
-
-      def steps
-        @steps
       end
     end
 
     def self.included(base)
-      base.extend(ClassMethods)
+      base.extend(ClassMethods) if ClassMethods
     end
 
-    def steps
-      self.class.steps
-    end
+    class_var :steps
 
     def exclude_task? task
       nil
@@ -45,10 +43,14 @@ module Pipeline
       return if config.single_step
 
       # schedule the execution for the current step
-      job = create_step(curr_step).setup_exec
+      job, splits = create_step(curr_step).setup_exec
 
       # schedule the scheduler for the next step
-      create_step(config.next_step).setup_scheduler(job) if config.next_step
+      create_step(config.next_step).setup_scheduler(job, splits) if config.next_step
+    end
+
+    def create_step(s)
+      self.class.sister_class(s).new(self)
     end
 
     def exec(args)
@@ -60,8 +62,46 @@ module Pipeline
 
     def start_pipe(step)
       FileUtils.rm(config.error_file) if File.exists?(config.error_file)
-      job = create_step(step).setup_exec
-      create_step(config.next_step).setup_scheduler(job) if config.next_step
+      config.set_config :scheduler, scheduler_type
+      job, splits = create_step(step).setup_exec
+      create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
+    end
+
+    def usage(cmd=nil)
+      puts "Possible commands:"
+      cmds = {
+        :start => {
+          :cmd => "start <config_file.yml> [<step>]" ,
+          :blurb => "Start the pipeline at the beginning or at <step>"
+        },
+        :run_step => {
+          :cmd => "run_step <config_file.yml> <step_name>",
+          :blurb => "Run just the named step"
+        },
+        :audit => {
+          :cmd => "audit <config_file.yml>",
+          :blurb => "Audit the pipeline to see which steps are complete."
+        },
+        :generate => {
+          :cmd => "generate <job_name>",
+          :blurb => "Generate a new config file."
+        }
+      }
+      if cmds[cmd]
+        puts " %-50s" % "#{cmds[cmd][:cmd]}" + "# #{cmds[cmd][:blurb]}".cyan
+      else
+        cmds.each do |a,c|
+          puts " %-50s" % "#{c[:cmd]}" + "# #{c[:blurb]}".cyan
+        end
+      end
+      exit
+    end
+
+    def generate(args)
+      if args.length < 1
+        usage :generate
+      end
+      self.class.daughter_class(:config_generator).new *args
     end
 
     def init(args)
@@ -69,7 +109,6 @@ module Pipeline
       cmd = args.shift
 
       ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
-
       
       case cmd
       when "start"
@@ -83,29 +122,11 @@ module Pipeline
       when "audit"
         config.set_config :action, :init
         audit(args)
+      when "generate"
+        generate(args)
       else
-        puts "Possible commands:"
-        puts " start <config_file.yml>"
-        puts " run_step <config_file.yml> <step_name>"
-        puts " audit <config_file.yml>"
+        usage
       end
-    end
-
-    def audit(args)
-      config.set_config :action, :audit
-      steps.each do |s|
-        step = create_step s
-        # config thinks we're now on this step
-        #config.set_config :array_range, config.splits
-        config.splits.times do |i|
-          config.set_config :job_index, i
-          step.audit
-        end
-      end
-    end
-
-    def create_step(s)
-      self.class.sister_class(s).new(self)
     end
   end
 end

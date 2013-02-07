@@ -14,26 +14,26 @@ module Exome
 
     class Mutect
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_bed
+      requires_files :normal_bam, :tumor_bam, :interval_list
       outs_files :mutect_snvs, :mutect_coverage
 
       def run
 	log_info "Running muTect..."
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
-          :intervals => config.interval_bed,
+          :intervals => config.interval_list,
           :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
       end
     end
     class SomaticIndels
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_bed
+      requires_files :normal_bam, :tumor_bam, :interval_list
       outs_file :mutect_indels_raw
 
       def run
 	log_info "Running Somatic Indel Detector..."
 	gatk :somatic_indel_detector, :"input_file:normal" => config.normal_bam,
 		:"input_file:tumor" => config.tumor_bam,
-		:intervals => config.interval_bed,
+		:intervals => config.interval_list,
                 :maxNumberOfReads => 10000,
                 :window_size => 225,
                 :filter_expressions => '"N_COV<8||T_COV<14||T_INDEL_F<0.1||T_INDEL_CF<0.7"',
@@ -42,14 +42,14 @@ module Exome
     end
     class AnnotateIndels
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :mutect_indels_raw, :interval_bed
+      requires_files :normal_bam, :tumor_bam, :mutect_indels_raw, :interval_list
       outs_file :mutect_indels_anno
       
       def run
 	log_info "Annotating raw indel calls..."
 	gatk :variant_annotator, 
 		:variant => config.mutect_indels_raw,
-		:intervals => config.interval_bed,
+		:intervals => config.interval_list,
 		:"input_file:normal" => config.normal_bam,
 		:"input_file:tumor" => config.tumor_bam,
 		:dbsnp => config.dbsnp_vcf,

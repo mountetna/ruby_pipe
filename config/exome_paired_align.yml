@@ -1,0 +1,15 @@
+# Align paired end sequence for a set of conditions, with normal and tumor samples
+
+:pipe: exome
+:script: paired_align
+:interval_list: /taylorlab/resources/human/hg19/intervals/bastian/bastian_targets_June20_2012.interval_list
+
+:output_dir: ./output
+:metrics_dir: ./metrics
+:scratch_dir: ./scratch
+:log_dir: ./log
+
+# if set to true, temp files will not be deleted after a step is complete.
+#:keep_temp_files: true
+# set to exome to perform additional analysis for full exomes
+#:unit: capture
