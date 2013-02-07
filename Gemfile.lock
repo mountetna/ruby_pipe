@@ -1,0 +1,16 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    colored (1.2)
+    extlib (0.9.16)
+    json (1.7.6)
+    net-http-persistent (2.8)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  colored
+  extlib
+  json
+  net-http-persistent
