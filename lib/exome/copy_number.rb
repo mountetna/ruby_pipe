@@ -5,6 +5,8 @@ module Exome
   class CopyNumber
     include Pipeline::Step
     runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :mut_add_seg, :mut_add_cnv
+    job_list do config.tumor_samples end
+
     class ComputeCoverage
       include Pipeline::Task
       requires_files :tumor_bam, :normal_bam, :interval_list

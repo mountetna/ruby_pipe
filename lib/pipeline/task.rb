@@ -40,7 +40,7 @@ module Pipeline
 
         log_error "Exiting at #{task_name}"
 
-        ensure_dir config.job_scratch
+        ensure_dir config.cohort_scratch
 
         File.open(config.error_pid,"w") do |f|
           f.puts "failed"

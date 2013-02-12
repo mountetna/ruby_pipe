@@ -9,28 +9,37 @@ module Pipeline
 
     def replace_members o
       o.map do |key,value|
-        {
-          key => case value
-          when Hash
-            SampleObject.new(value,self)
-          when Array
-            value.map_index do |h,i|
-              if h.is_a? Hash
-                SampleObject.new(h,self,i)
-              else
-                h
-              end
-            end
-          else
-            value
-          end
-        }
+        set_member key,value
       end.reduce :merge
+    end
+
+    def set_member key,value
+      {
+        key => case value
+        when Hash
+          SampleObject.new(value,self)
+        when Array
+          value.map_index do |h,i|
+            if h.is_a? Hash
+              SampleObject.new(h,self,i)
+            else
+              h
+            end
+          end
+        else
+          value
+        end
+      }
+    end
+
+    def add_member key, value
+      @obj.update set_member(key,value)
     end
 
     def [](key)
       @obj[key]
     end
+    
 
     def []=(key,value)
       @obj[key] = value

@@ -5,6 +5,8 @@ module Exome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :somatic_indels, :annotate_indels, :filter_muts, :flag_inserts
+    resources :threads => 12
+    job_list do config.tumor_samples end
 
     def vacuum
       config.sample_names.each do |s|
@@ -24,10 +26,11 @@ module Exome
           :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
       end
     end
+
     class SomaticIndels
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam, :interval_list
-      outs_file :mutect_indels_raw
+      outs_file :somatic_indels_raw
 
       def run
 	log_info "Running Somatic Indel Detector..."
@@ -37,30 +40,31 @@ module Exome
                 :maxNumberOfReads => 10000,
                 :window_size => 225,
                 :filter_expressions => '"N_COV<8||T_COV<14||T_INDEL_F<0.1||T_INDEL_CF<0.7"',
-		:out => config.mutect_indels_raw or error_exit "Indel detection failed"
+		:out => config.somatic_indels_raw or error_exit "Indel detection failed"
       end
     end
     class AnnotateIndels
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :mutect_indels_raw, :interval_list
-      outs_file :mutect_indels_anno
+      requires_files :normal_bam, :tumor_bam, :somatic_indels_raw, :interval_list
+      outs_file :somatic_indels_anno
       
       def run
 	log_info "Annotating raw indel calls..."
 	gatk :variant_annotator, 
-		:variant => config.mutect_indels_raw,
+		:variant => config.somatic_indels_raw,
 		:intervals => config.interval_list,
 		:"input_file:normal" => config.normal_bam,
 		:"input_file:tumor" => config.tumor_bam,
 		:dbsnp => config.dbsnp_vcf,
 		:group => "StandardAnnotation",
-		:out => config.mutect_indels_anno or error_exit "Indel annotation failed"
+		:out => config.somatic_indels_anno or error_exit "Indel annotation failed"
       end
     end
+
     class FilterMuts
       include Pipeline::Task
-      requires_files :mutect_snvs, :mutect_indels_anno
-      dumps_file :mutect_indels_temp, :mutect_mutations
+      requires_files :mutect_snvs, :somatic_indels_anno
+      dumps_file :somatic_indels_temp, :mutect_mutations
 
       def reorder_vcf(file,tumor_name,normal_name,out_file)
         data = HashTable.new(file,:comment => "##")
@@ -74,12 +78,13 @@ module Exome
         tumor_name = sam_sample_name config.tumor_bam
 
 	log_info "Reordering indel vcf"
-	reorder_vcf config.mutect_indels_anno, tumor_name, normal_name, config.mutect_indels_temp or error_exit "Reordering failed"
+	reorder_vcf config.somatic_indels_anno, tumor_name, normal_name, config.somatic_indels_temp or error_exit "Reordering failed"
 
 	log_info "Filtering mutect and indel output..."
-	filter_muts config.mutect_snvs, config.mutect_indels_temp, config.mutect_mutations or error_exit "Filtering failed"
+	filter_muts config.mutect_snvs, config.somatic_indels_temp, config.mutect_mutations or error_exit "Filtering failed"
       end
     end
+
     class FlagInserts
       include Pipeline::Task
       requires_files :mutect_mutations, :qc_inserts, :tumor_bam

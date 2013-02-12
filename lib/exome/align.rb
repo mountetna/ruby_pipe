@@ -2,6 +2,8 @@ module Exome
   class Align 
     include Pipeline::Step
     runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label, :convert_sam
+    job_list do config.samples.collect(&:inputs).flatten end
+    resources :threads => 12
 
     class AlignFirst 
       include Pipeline::Task
@@ -66,11 +68,11 @@ module Exome
     class ConvertSam 
       include Pipeline::Task
       requires_file :renamed_sam
-      outs_file :renamed_bam
+      outs_file :aligned_bam
 
       def run
         log_info "Convert SAM to BAM..."
-        sam_to_bam config.renamed_sam, config.renamed_bam or error_exit "BAM conversion failed"
+        sam_to_bam config.renamed_sam, config.aligned_bam or error_exit "BAM conversion failed"
       end
     end
   end

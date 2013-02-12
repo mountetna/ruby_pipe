@@ -5,8 +5,12 @@ module Pipeline
       steps.each do |s|
         step = create_step s
 
-        config.splits.times do |i|
-          config.set_config :job_index, i
+        if config.splits
+          config.splits.times do |i|
+            config.set_config :job_index, i
+            step.audit
+          end
+        else
           step.audit
         end
       end

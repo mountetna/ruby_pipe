@@ -27,8 +27,7 @@ class Class
     class_chain.map(&:snake_case).join('_').to_sym
   end
 
-  private
-  def join_chain chain
-    chain.inject(Object) { |m,c| m.const_get(c) }
+  def join_chain ch
+    ch.inject(Object) { |m,c| m.const_get(c) }
   end
 end

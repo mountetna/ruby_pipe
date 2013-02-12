@@ -3,6 +3,7 @@ module Pipeline
   module Script
     include Pipeline::Base
     include Pipeline::Logger
+    include Pipeline::Usage
 
     module ClassMethods 
       attr_reader :steps
@@ -67,62 +68,49 @@ module Pipeline
       create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
     end
 
-    def usage(cmd=nil)
-      puts "Possible commands:"
-      cmds = {
-        :start => {
-          :cmd => "start <config_file.yml> [<step>]" ,
-          :blurb => "Start the pipeline at the beginning or at <step>"
-        },
-        :run_step => {
-          :cmd => "run_step <config_file.yml> <step_name>",
-          :blurb => "Run just the named step"
-        },
-        :audit => {
-          :cmd => "audit <config_file.yml>",
-          :blurb => "Audit the pipeline to see which steps are complete."
-        },
-        :generate => {
-          :cmd => "generate <job_name>",
-          :blurb => "Generate a new config file."
-        }
-      }
-      if cmds[cmd]
-        puts " %-50s" % "#{cmds[cmd][:cmd]}" + "# #{cmds[cmd][:blurb]}".cyan
-      else
-        cmds.each do |a,c|
-          puts " %-50s" % "#{c[:cmd]}" + "# #{c[:blurb]}".cyan
-        end
-      end
-      exit
-    end
+    usage "start <config_file.yml> [<step>]", "Start the pipeline at the beginning or at <step>"
+    usage "run_step <config_file.yml> <step_name>", "Run just the named step"
+    usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
+    usage "stop [please]", "stop the pipeline, optionally waiting for the current step to finish"
+    usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
 
     def generate(args)
-      if args.length < 1
-        usage :generate
-      end
       self.class.daughter_class(:config_generator).new *args
+    end
+
+    def run_step(args)
+    end
+
+    def start(args)
     end
 
     def init(args)
       # do something
-      cmd = args.shift
+      cmd = args.shift.to_sym
 
-      ENV['CONFIG'] = args.shift if [ "start", "run_step", "audit" ].include? cmd
+      if !usages[cmd]
+        usage
+        exit
+      end
+
+      ENV['CONFIG'] = args.shift if [ :start, :run_step, :audit, :stop ].include? cmd
       
       case cmd
-      when "start"
+      when :start
         config.set_config :action, :init
         start_pipe (args[0] || steps.first).to_sym
-      when "run_step"
+      when :run_step
         exit unless args.length == 1
         config.set_config :action, :init
         config.set_config :single_step, :true
         start_pipe args[0].to_sym
-      when "audit"
+      when :audit
         config.set_config :action, :init
         audit(args)
-      when "generate"
+      when :stop
+        config.set_config :action, :init
+        stop(args)
+      when :generate
         generate(args)
       else
         usage

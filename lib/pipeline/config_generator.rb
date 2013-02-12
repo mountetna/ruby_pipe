@@ -2,32 +2,13 @@ require 'readline'
 
 module Pipeline
   module ConfigGenerator
-    # Class methods and variables
-    module ClassMethods
-      attr_reader :usages
-
-      def usage cmd, expln
-        @usages ||= {
-          :reset => [ nil, 0, "create a fresh config file" ],
-          :show =>  [ nil, 0, "list the current config file" ],
-          :print => [ nil, 0, "print the current config to a local file and exit" ],
-          :samples => [ "<list of sample names>", 1, "set the sample names" ]
-        }
-        cmd,args = cmd.split(/ /,2)
-        @usages.update Hash[ cmd.to_sym, [ args, required_args(args), expln ] ]
-      end
-
-      def required_args cmd
-        cmd.gsub(/\[.*?\]/,"").scan(/<.*?>/).size
-      end
-    end
-
-    def self.included(base)
-      base.extend ClassMethods
-    end
-
-    # Instance methods and variables
+    include Pipeline::Usage
     attr_reader :config
+
+    usage "reset", "create a fresh config file"
+    usage "show", "list the current config file"
+    usage "print", "print the currante config file to a local file"
+    usage "samples <list of sample names>", "set the sample names"
 
     def lib_dir
       ENV['LIB_DIR']
@@ -50,7 +31,7 @@ module Pipeline
     end
 
     def default_file
-      "#{@config[:job_name]}.#{parent_class}.yml"
+      "#{@config[:cohort_name]}.#{parent_class}.yml"
     end
 
     def commands
@@ -61,7 +42,7 @@ module Pipeline
       if j =~ /\.(yaml|yml|conf)$/
         @config_file = j
       else
-        @job_name = j
+        @cohort_name = j
       end
 
       reset
@@ -99,17 +80,8 @@ module Pipeline
       puts
     end
 
-    def usage
-      puts "Commands:"
-      self.class.usages.each do |c,u|
-        cmd = [ c, u.first ].compact.join " "
-        puts " %-50s" % cmd.bold + "# #{u.last}".cyan
-      end
-      nil
-    end
-
     def reset(args=nil)
-      @config = { :job_name => @job_name}.update YAML.load( config_text )
+      @config = { :cohort_name => @cohort_name}.update YAML.load( config_text )
     end
 
     def samples(args=nil)
@@ -156,14 +128,6 @@ module Pipeline
         f.puts config.to_yaml
         f.puts
         f.puts config_comments
-      end
-    end
-
-    def check_usage cmd, args
-      required = self.class.usages[cmd][1]
-      if args.size < required
-        usage
-        return true
       end
     end
 

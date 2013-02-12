@@ -14,7 +14,7 @@ module Rna
 
       def run 
         log_info "Filter mutations by frequency"
-        vcf, normal, tumor = VCF::Sample.new(config.ug_filtered_vcf, config.mutations_config), config.normal_name, config.sample_name
+        vcf, normal, tumor = VCF.new(config.ug_filtered_vcf, config.mutations_config), config.normal_name, config.sample_name
         log_info "VCF loaded"
 
         File.open(config.sample_mutations, "w") do |f|

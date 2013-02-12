@@ -6,9 +6,11 @@ module Pipeline
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      def runs_tasks(*tasklist)
+      attr_reader :job_array
+      def runs_task(*tasklist)
         @tasks = tasklist
       end
+      alias :runs_tasks :runs_task
       def tasks
         @tasks
       end
@@ -20,6 +22,10 @@ module Pipeline
       end
       def input
         required - made
+      end
+
+      def job_list &block
+        @job_array = block
       end
 
       def resources(opts = nil)
@@ -34,7 +40,15 @@ module Pipeline
     def initialize(s)
       @script = s
       config.set_opt :step, step_name
+      config.set_opt :job_array, job_array
+      config.set_opt :resources, resources
       setup_logging unless config.action == :audit
+    end
+
+    def job_array
+      if self.class.job_array
+        instance_exec(nil, &self.class.job_array)
+      end
     end
 
     def step_name; self.class.name.split(/::/).last.snake_case.to_sym; end
@@ -54,7 +68,7 @@ module Pipeline
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      if config.splits
+      if config.splits > 0
         job = schedule_job :exec, :splits => config.splits
       else
         job = schedule_job :exec

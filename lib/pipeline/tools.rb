@@ -1,7 +1,7 @@
 module Pipeline
   module Tools
     def bwa_aln(params)
-      params = { :threads => 12 }.merge(params)
+      params = { :threads => config.resources[:threads] }.merge(params)
       bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
     end
 
@@ -14,8 +14,8 @@ module Pipeline
     end
 
     def picard(jar,params)
-      params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.scratch }.merge(params)
-      java :mem => 2, :tmp => config.scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :args => format_opts(params){ |k,v| "#{k}=#{v}" }
+      params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.cohort_scratch }.merge(params)
+      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :args => format_opts(params){ |k,v| "#{k}=#{v}" }
     end
 
     def java(params)
@@ -75,26 +75,26 @@ module Pipeline
 
     def gatk(tool,opts)
       opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.hg19_fa, :logging_level => "DEBUG" }.merge(opts)
-      java :tmp => config.scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
+      java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
     end
 
     def mutect(opts)
       opts = { :logging_level => "WARN", :analysis_type => "MuTect", :baq => "CALCULATE_AS_NECESSARY", :reference_sequence => config.hg19_fa }.merge(opts)
-      java :mem => 2, :tmp => config.scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
+      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
     end
 
     def tophat(params)
-      params = { :threads => 12, :scratch => config.scratch, :gtf => config.hg19_ucsc_gtf }.merge(params)
+      params = { :threads => config.resources[:threads], :scratch => config.cohort_scratch, :gtf => config.hg19_ucsc_gtf }.merge(params)
       system "#{config.tophat_dir}/tophat -G #{params[:gtf]} -o #{params[:scratch]} -r #{params[:frag_size]} -p #{params[:threads]} #{config.bowtie2_idx} #{params[:fq1]} #{params[:fq2]}"
     end
 
     def cufflinks(params)
-      params = { :threads => 12, :gtf => config.hg19_ucsc_gtf }.merge(params)
+      params = { :threads => config.resources[:threads], :gtf => config.hg19_ucsc_gtf }.merge(params)
       system "#{config.cufflinks_dir}/cufflinks -q -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
     end
 
     def cuffmerge(params)
-      params = { :gtf => config.hg19_ucsc_gtf, :fa => config.hg19_fa, :out => "./merged_asm", :threads => 12 }.merge(params)
+      params = { :gtf => config.hg19_ucsc_gtf, :fa => config.hg19_fa, :out => "./merged_asm", :threads => config.resources[:threads] }.merge(params)
       system "#{config.cufflinks_dir}/cuffmerge -o #{params[:out]} -g #{params[:gtf]} -s #{params[:fa]} -p #{params[:threads]} #{params[:list]}"
     end
 
@@ -116,7 +116,7 @@ module Pipeline
 
     def filter_muts(snvs,indels,out_file)
       filter_config ="#{config.lib_dir}/FilterMutations/mutationConfig.cfg"
-      system "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
+      system "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
     end
 
     def hash_table(file,headers=nil)

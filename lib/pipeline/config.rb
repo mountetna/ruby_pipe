@@ -14,18 +14,61 @@ module Pipeline
     def_var :pipe do @script.class.name.sub(/::.*/,"").snake_case.to_sym end
     def_var :script do @script.class.name.snake_case.to_sym end
     def_var :pipe_script do "#{pipe}_#{script}" end
-    def_var :step_log do "#{log_dir}/#{pipe}.#{job_name}.#{step}.#{job_index}.log" end
-    def_var :main_log do "#{log_dir}/#{pipe}.#{job_name}.#{script}.log" end
-    def_var :job_scratch do "#{scratch_dir}/#{job_name}" end
-    def_var :sample_scratch do |s| "#{scratch_dir}/#{s || sample_name}" end
-    def_var :error_pid do "#{job_scratch}/error.pid" end
-    def_var :error_file do "ERROR.#{job_name}" end
-    def_var :verbose? do verbose == "yes" || verbose == "true" end
-    def_var :job_index do job_number ? job_number - 1 : 0 end
+    def_var :step_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{step}.#{job_index}.log" end
+    def_var :main_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{script}.log" end
 
+    def_var :error_pid do "#{cohort_scratch}/error.pid" end
+    def_var :error_file do "ERROR.#{cohort_name}" end
+    def_var :verbose? do verbose == "yes" || verbose == "true" end
     def_var :config_dir do "#{lib_dir}/config" end
     def_var :tools_config do "#{config_dir}/tools.yml" end
 
+    def_var :job_index do job_number ? job_number - 1 : 0 end
+    def_var :job_item do job_array[job_index] end
+
+    def_var :cohort_dir do |dir,s| File.join dir, cohort_name end
+    def_var :cohort_scratch do cohort_dir scratch_dir end
+    def_var :cohort_scratch_file do |affix| File.join cohort_scratch, affix end 
+    def_var :cohort_output do cohort_dir output_dir end
+    def_var :cohort_output_file do |affix| File.join cohort_output, affix end 
+    def_var :cohort_metrics do cohort_dir metrics_dir end
+    def_var :cohort_metrics_file do |affix| File.join metrics_dir, "#{cohort_name}.#{affix}" end 
+
+    def_var :sample_dir do |dir,s| File.join dir, (s || sample_name) end
+    def_var :sample_scratch do |s| sample_dir scratch_dir, s end
+    def_var :sample_scratch_file do |affix,s| File.join sample_scratch(s), affix end 
+    def_var :sample_output do |s| sample_dir output_dir, s end
+    def_var :sample_output_file do |affix,s| File.join sample_output(s), affix end 
+    def_var :sample_metrics do |s| sample_dir metrics_dir, s end
+    def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
+    def_var :sample_name do sample.sample_name end
+
+    def splits
+      job_array ? job_array.size : nil
+    end
+
+    def sample(name=nil)
+      return samples.find { |s| s[:sample_name] == name } if name
+      if job_array
+        obj = job_array[job_index]
+        while obj
+          return obj if obj[:sample_name]
+          obj = obj.parent
+        end
+      end
+    end
+
+    def tumor_samples
+      n = samples.select { |s| s[:normal_name] }
+      n.empty? ? samples[1..-1] : n
+    end
+
+    def chroms
+      # read chromosomes from the fasta dict
+      @chroms ||= File.foreach("/taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict").map do |s|
+        s.match(/@SQ.*SN:(\w+)\s/) { |m| m[1] }
+      end.compact
+    end
 
     # This creates a new step in a pipeline
     def initialize(script,opts=nil)

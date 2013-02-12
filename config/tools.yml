@@ -1,5 +1,5 @@
 
-:java: /usr/bin/java
+:java: /opt/java/jdk1.6.0_latest/bin/java
 
 :tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
 
