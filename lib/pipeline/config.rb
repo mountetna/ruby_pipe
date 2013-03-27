@@ -25,6 +25,8 @@ module Pipeline
 
     def_var :job_index do job_number ? job_number - 1 : 0 end
     def_var :job_item do job_array[job_index] end
+    def_var :threads do resources[:threads] end
+    def_var :qual_type do "phred64" end
 
     def_var :cohort_dir do |dir,s| File.join dir, cohort_name end
     def_var :cohort_scratch do cohort_dir scratch_dir end
@@ -40,8 +42,15 @@ module Pipeline
     def_var :sample_output do |s| sample_dir output_dir, s end
     def_var :sample_output_file do |affix,s| File.join sample_output(s), affix end 
     def_var :sample_metrics do |s| sample_dir metrics_dir, s end
+    def_var :sample_metrics_base do |s| File.join metrics_dir, "#{s || sample_name}" end 
     def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
     def_var :sample_name do sample.sample_name end
+
+    def_var :reference_fa do hg19_fa end
+    def_var :reference_name do :hg19 end
+    def_var :reference_date do :feb_2009 end
+    def_var :reference_gtf do hg19_ucsc_gtf end
+
 
     def splits
       job_array ? job_array.size : nil
@@ -49,13 +58,7 @@ module Pipeline
 
     def sample(name=nil)
       return samples.find { |s| s[:sample_name] == name } if name
-      if job_array
-        obj = job_array[job_index]
-        while obj
-          return obj if obj[:sample_name]
-          obj = obj.parent
-        end
-      end
+      job_item.parent_with_property :sample_name if job_array
     end
 
     def tumor_samples
@@ -66,7 +69,10 @@ module Pipeline
     def chroms
       # read chromosomes from the fasta dict
       @chroms ||= File.foreach("/taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict").map do |s|
-        s.match(/@SQ.*SN:(\w+)\s/) { |m| m[1] }
+        s.match(/@SQ.*SN:(\w+)\s/) do |m| 
+          next if m[1] == "chrM"
+          { :contig => m[1] }
+        end
       end.compact
     end
 
@@ -85,7 +91,7 @@ module Pipeline
       @config = {}
 
       # also include the script config
-      self.class.send(:include, script.class.daughter_class(:config))
+      #self.class.send(:include, script.class.daughter_class(:config))
 
       load_procs
       load_env_vars

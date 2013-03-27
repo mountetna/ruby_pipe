@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# Create a merged BAM file from the partitioned alignment output
+#
+#PBS -l nodes=1:ppn=24
+#PBS -V
+#PBS -o $OUTFILE.log
+#
+
+# reads from: TMP_BAMS
+# working files: UNALIGNED_SAM
+# writes to: GENOME_BAM, METRICS_DIR/BASE__genome.flagstat, UNALIGNED_FASTQ, ALIGNED_BAM
+
+cd $PBS_O_WORKDIR
+
+. $LIB_DIR/load_opts $CONFIG
+
+
+BAMCOUNT=$(ls $SCRATCH/*__TMP.bam | wc -l)
+
+log_info "Temporary BAM file directory: $SCRATCH"
+log_info "Processing $BAMCOUNT total BAM files for merge"
+log_info "Starting the merge..."
+
+TMP_BAMS=$(find $SCRATCH -name "*__TMP.bam" | sed '{:q;N;s/\n/ I=/g;t q}')
+# Merge all of your BAM files into a single group
+p_picard MergeSamFiles CREATE_INDEX=true O=$GENOME_BAM I=$TMP_BAMS || { error_exit "BAM file merge failed"; }
+# Get metrics for the merged file
+log_output "Writing metrics for $GENOMEFLAG_FILE"
+samtools flagstat $GENOME_BAM > $GENOMEFLAG_FILE
+# Separate out the unaligned reads
+log_info "Culling unaligned reads"
+p_picard ViewSam I=$GENOME_BAM ALIGNMENT_STATUS=Unaligned QUIET=true > $UNALIGNED_SAM
+# Convert unaligned reads to FastQ (for Tophat)
+p_picard SamToFastq I=$UNALIGNED_SAM FASTQ=$UNALIGNED_FASTQ QUIET=true
+# Separate out the aligned reads
+log_info "Culling aligned reads"
+samtools view -bh -F 4 $GENOME_BAM > $ALIGNED_BAM
+
+# delete any working files
+rm -f $UNALIGNED_SAM
+log_info "Done!"

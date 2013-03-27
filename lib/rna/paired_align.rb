@@ -16,7 +16,7 @@ module Rna
     runs_steps :tophat_align, :qc, :count_transcripts, :assemble_transcripts, :univ_geno, :filter_muts
 
     module Config
-      include Pipeline::SampleConfig
+      include Pipeline::Config
       # this is config stuff that is particular to this sample
 
       def replicate_index

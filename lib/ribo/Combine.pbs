@@ -1,0 +1,39 @@
+#!/bin/bash
+#PBS -o $OUTFILE.log
+
+#reads from: GENOME_BAM, TOPHAT_BAM, ALIGNED_BAM
+#working files: GENOME_HEADER, TOPHAT_HEADER, COMBINED_HEADER, TOPHAT_EDIT_BAM
+#writes to: OUTPUT_BAM, METRICS_FILE, RNAMETRICS_FILE, PDF_FILE
+
+
+cd $PBS_O_WORKDIR
+
+. $LIB_DIR/load_opts $CONFIG
+
+GENOME_HEADER=${GENOME_BAM%%.[a-z.]*}".header"
+TOPHAT_HEADER=${TOPHAT_BAM%%.[a-z.]*}".header"
+COMBINED_HEADER="$SCRATCH.header"
+TOPHAT_EDIT_BAM=${TOPHAT_BAM%%.[a-z.]*}"__reHeader.bam"
+
+log_info "Enforced common headers"
+samtools view -H $GENOME_BAM > $GENOME_HEADER
+samtools view -H $TOPHAT_BAM | grep "ID:TopHat" > $TOPHAT_HEADER
+cat $GENOME_HEADER $TOPHAT_HEADER > $COMBINED_HEADER
+p_picard ReplaceSamHeader HEADER=$COMBINED_HEADER I=$TOPHAT_BAM O=$TOPHAT_EDIT_BAM
+
+log_output "Merge genome and spliced alignments to $OUTPUT_BAM"
+p_picard MergeSamFiles O=$OUTPUT_BAM I=$ALIGNED_BAM I=$TOPHAT_EDIT_BAM MSD=true  || { echo "Merge failed"; exit 1; }
+samtools index $OUTPUT_BAM
+
+log_output "Writing summary metrics to $METRICS_FILE"
+p_picard CollectAlignmentSummaryMetrics R=$HG19_FA I=$OUTPUT_BAM O=$METRICS_FILE
+
+log_output "Writing RNA metrics to $RNAMETRICS_FILE"
+p_picard CollectRnaSeqMetrics ASSUME_SORTED=true REF_FLAT=$HG19_REFFLAT RIBOSOMAL_INTERVALS=$HG19_RRNA STRAND_SPECIFICITY=NONE CHART_OUTPUT=$PDF_FILE INPUT=$OUTPUT_BAM OUTPUT=$RNAMETRICS_FILE
+
+log_info "Done!"
+
+rm -f $GENOME_HEADER
+rm -f $TOPHAT_HEADER
+rm -f $COMBINED_HEADER
+rm -f $TOPHAT_EDIT_BAM

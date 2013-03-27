@@ -4,6 +4,7 @@ module Pipeline
     include Pipeline::Base
     include Pipeline::Logger
     include Pipeline::Usage
+    include Pipeline::Scheduling
 
     module ClassMethods 
       attr_reader :steps
@@ -71,50 +72,59 @@ module Pipeline
     usage "start <config_file.yml> [<step>]", "Start the pipeline at the beginning or at <step>"
     usage "run_step <config_file.yml> <step_name>", "Run just the named step"
     usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
-    usage "stop [please]", "stop the pipeline, optionally waiting for the current step to finish"
+    usage "stop <config_file.yml> [please]", "stop the pipeline, optionally waiting for the current step to finish"
     usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
+    usage "clean <config_file.yml> <scratch|output|list> <step|all> [<task>]", "Clean up files from a given run"
 
     def generate(args)
       self.class.daughter_class(:config_generator).new *args
     end
 
+    def set_config args, act = nil
+      ENV['CONFIG'] = args.shift
+      config.set_config :action, (act || :init)
+      args
+    end
+
     def run_step(args)
+      args = set_config args
+      config.set_config :single_step, :true
+      start_pipe args[0].to_sym
     end
 
     def start(args)
+      args = set_config args
+      start_pipe (args[0] || steps.first).to_sym
+    end
+
+    def stop(args)
+      args = set_config args, :stop
+      config.set_config :scheduler, scheduler_type
+      cancel_job(args.first == "please")
+    end
+
+    def audit(args)
+      args = set_config args, :audit
+      audit_job(args)
+    end
+
+    def clean(args)
+      args = set_config args, :clean
+      clean_job(args)
     end
 
     def init(args)
       # do something
-      cmd = args.shift.to_sym
 
-      if !usages[cmd]
+      if !args.first || !usages[args.first.to_sym]
         usage
         exit
       end
 
-      ENV['CONFIG'] = args.shift if [ :start, :run_step, :audit, :stop ].include? cmd
-      
-      case cmd
-      when :start
-        config.set_config :action, :init
-        start_pipe (args[0] || steps.first).to_sym
-      when :run_step
-        exit unless args.length == 1
-        config.set_config :action, :init
-        config.set_config :single_step, :true
-        start_pipe args[0].to_sym
-      when :audit
-        config.set_config :action, :init
-        audit(args)
-      when :stop
-        config.set_config :action, :init
-        stop(args)
-      when :generate
-        generate(args)
-      else
-        usage
-      end
+      cmd = args.shift.to_sym
+
+      return if check_usage cmd, args
+      send cmd, args
     end
   end
 end

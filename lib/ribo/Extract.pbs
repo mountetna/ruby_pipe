@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -V
+#PBS -o $OUTFILE.$MOAB_JOBARRAYINDEX.log
+
+#reads from: INPUT_FASTQ
+#writes to: SPLIT_FQ
+
+cd $PBS_O_WORKDIR
+
+. $LIB_DIR/load_opts $CONFIG
+
+log_info "Writing to $SPLIT_FQ"
+
+zcat $INPUT_FASTQ | $LIB_DIR/extractFastQ2FastaQ.py $PBS_ARRAYID $PBS_ARRAYRANGE | gzip -c > $SPLIT_FQ

@@ -4,7 +4,7 @@ require 'fileutils'
 module Exome
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :mut_add_seg, :mut_add_cnv
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg #, :mut_add_seg, :mut_add_cnv
     job_list do config.tumor_samples end
 
     class ComputeCoverage
@@ -28,7 +28,7 @@ module Exome
     class ComputeRatio
       include Pipeline::Task
       requires_files :normal_cov, :tumor_cov
-      outs_files :tumor_exon_cnr, :tumor_mutations
+      outs_files :tumor_exon_cnr
 
       def exon_coverage(cov)
         tot = cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
@@ -66,7 +66,15 @@ module Exome
 
       def run
         # just pass these arguments to the R script
-        system "#{config.lib_dir}/bin/segment.R #{config.tumor_exon_cnr} #{config.tumor_cnr_rdata} #{config.tumor_cnr_seg} #{config.sample_name}" or error_exit "segment.R failed"
+        r_script :segment, config.tumor_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
+      end
+    end
+    class ComputePurityPloidy
+      include Pipeline::Task
+      requires_file :tumor_cnr_seg
+
+      def run
+        r_script :absolute, config.sample_name, config.tumor_cnr_seg, config.tumor_maf, config.absolute_scratch
       end
     end
     class MutAddCnv

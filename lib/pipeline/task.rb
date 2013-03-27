@@ -40,6 +40,8 @@ module Pipeline
 
         log_error "Exiting at #{task_name}"
 
+        log_main "#{config.step} trial #{config.job_index} failed to complete at #{task_name}.".red.bold
+
         ensure_dir config.cohort_scratch
 
         File.open(config.error_pid,"w") do |f|
@@ -55,6 +57,7 @@ module Pipeline
     include Pipeline::Logger
     include Pipeline::Task::ErrorHandling
     include Pipeline::Task::Auditing
+    include Pipeline::Task::Cleaning
     include Pipeline::Base
 
     def self.included(base)

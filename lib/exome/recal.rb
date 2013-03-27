@@ -22,6 +22,7 @@ module Exome
       include Pipeline::Task
       requires_file :merged_library_bam
       dumps_file :raw_library_bam
+      outs_file :recal_metrics
 
       def run
 	log_info "Mark duplicates"
@@ -131,7 +132,7 @@ module Exome
     include Pipeline::Step
     runs_task :sort_sample
     resources :threads => 12
-    job_list do samples end
+    job_list do config.samples end
 
     class SortSample
       include Pipeline::Task

@@ -1,7 +1,16 @@
 module Pipeline
   module Tools
+    def run_cmd cmd
+      log_command cmd
+      system cmd
+    end
+
+    def r_script script, *args
+      run_cmd "#{config.lib_dir}/bin/#{script}.R #{args.join(" ")}"
+    end
+
     def bwa_aln(params)
-      params = { :threads => config.resources[:threads] }.merge(params)
+      params = { :threads => config.threads }.merge(params)
       bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
     end
 
@@ -9,13 +18,17 @@ module Pipeline
       bwa "sampe #{config.bwa_idx} #{params[:m1]} #{params[:m2]} #{params[:fq1]} #{params[:fq2]}", params[:out]
     end
 
+    def bwa_single(params)
+      bwa "samse #{config.bwa_idx} #{params[:map]} #{params[:fq]}", params[:out]
+    end
+
     def bwa(cmd,out)
-      system "#{config.bwa_dir}/bwa #{cmd} > #{out}"
+      run_cmd "#{config.bwa_dir}/bwa #{cmd} > #{out}"
     end
 
     def picard(jar,params)
       params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.cohort_scratch }.merge(params)
-      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :args => format_opts(params){ |k,v| "#{k}=#{v}" }
+      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
     end
 
     def java(params)
@@ -25,11 +38,12 @@ module Pipeline
         :jar => "-jar #{params[:jar]}",
         :args => params[:args]
       }
-      params.keys.each do |p|
-        params[p] = opts[p]
-      end
 
-      system "#{config.java} #{ params.values.join(" ") }"
+      if params[:out]
+        run_cmd "#{config.java} #{ opts.values.join(" ") } > #{params[:out]}"
+      else
+        run_cmd "#{config.java} #{ opts.values.join(" ") }"
+      end
     end
 
     def sam_to_bam(infile,outfile)
@@ -63,9 +77,9 @@ module Pipeline
 
     def samtools(cmd,infile,outfile=nil)
       if outfile
-        system "#{config.samtools_dir}/samtools #{cmd} #{infile} > #{outfile}"
+        run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile} > #{outfile}"
       else
-        system "#{config.samtools_dir}/samtools #{cmd} #{infile}"
+        run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile}"
       end
     end
 
@@ -74,49 +88,86 @@ module Pipeline
     end
 
     def gatk(tool,opts)
-      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.hg19_fa, :logging_level => "DEBUG" }.merge(opts)
-      java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
+      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => "DEBUG" }.merge(opts)
+      java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
     end
 
     def mutect(opts)
-      opts = { :logging_level => "WARN", :analysis_type => "MuTect", :baq => "CALCULATE_AS_NECESSARY", :reference_sequence => config.hg19_fa }.merge(opts)
-      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts){ |k,v| "--#{k} #{v}" }
+      opts = { :logging_level => "WARN",
+        :analysis_type => "MuTect",
+        :baq => "CALCULATE_AS_NECESSARY",
+        :reference_sequence => config.reference_fa,
+        :dbsnp => config.dbsnp_vcf,
+        :cosmic => config.cosmic_vcf
+      }.merge(opts)
+      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
     end
 
-    def tophat(params)
-      params = { :threads => config.resources[:threads], :scratch => config.cohort_scratch, :gtf => config.hg19_ucsc_gtf }.merge(params)
-      system "#{config.tophat_dir}/tophat -G #{params[:gtf]} -o #{params[:scratch]} -r #{params[:frag_size]} -p #{params[:threads]} #{config.bowtie2_idx} #{params[:fq1]} #{params[:fq2]}"
+    def pindel(opts)
+      opts = { :fasta => config.reference_fa }.merge(opts)
+
+      tempfile = opts.delete :tempfile
+      File.open(tempfile,"w") do |f| 
+        opts[:bams].each do |b|
+          f.puts "#{b[:bam]} #{config.frag_size} #{b[:name]}"
+        end
+      end
+      opts[:config_file] = tempfile
+      opts.delete :bams
+
+      run_cmd "#{config.pindel_dir}/pindel #{format_opts(opts,true)}"
+    ensure
+      File.unlink(tempfile) if tempfile && File.exists?(tempfile)
+    end
+
+    def pindel_to_vcf(opts)
+      opts = { :reference => config.reference_fa, :reference_name => config.reference_name, :reference_date => config.reference_date }.merge(opts)
+      run_cmd "#{config.pindel_dir}/pindel2vcf #{format_opts(opts)}"
+    end
+
+    def tophat(opts)
+      opts = { :num_threads => config.threads,
+        :output_dir => config.sample_scratch }.merge(opts)
+      fq1 = opts.delete :fq1
+      fq2 = opts.delete :fq2
+      run_cmd "#{config.tophat_dir}/tophat #{format_opts(opts,true)} #{config.bowtie2_idx} #{fq1} #{fq2}"
     end
 
     def cufflinks(params)
-      params = { :threads => config.resources[:threads], :gtf => config.hg19_ucsc_gtf }.merge(params)
-      system "#{config.cufflinks_dir}/cufflinks -q -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
+      params = { :threads => config.threads, :gtf => config.reference_gtf }.merge(params)
+      run_cmd "#{config.cufflinks_dir}/cufflinks -q -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
     end
 
     def cuffmerge(params)
-      params = { :gtf => config.hg19_ucsc_gtf, :fa => config.hg19_fa, :out => "./merged_asm", :threads => config.resources[:threads] }.merge(params)
-      system "#{config.cufflinks_dir}/cuffmerge -o #{params[:out]} -g #{params[:gtf]} -s #{params[:fa]} -p #{params[:threads]} #{params[:list]}"
+      params = { :gtf => config.reference_gtf, :fa => config.reference_fa, :out => "./merged_asm", :threads => config.threads }.merge(params)
+      run_cmd "#{config.cufflinks_dir}/cuffmerge -o #{params[:out]} -g #{params[:gtf]} -s #{params[:fa]} -p #{params[:threads]} #{params[:list]}"
     end
 
     def cuffcompare(params)
-      system "#{config.cufflinks_dir}/cuffcompare #{params.map{ |o,a| " -#{o} #{a}"}.join(" ") }"
+      run_cmd "#{config.cufflinks_dir}/cuffcompare #{params.map{ |o,a| " -#{o} #{a}"}.join(" ") }"
     end
 
     def cuffdiff(params)
-      system "#{config.cufflinks_dir}/cuffdiff -o #{params[:out]} #{params[:gtf]} $BAM1 $BAM2"
+      run_cmd "#{config.cufflinks_dir}/cuffdiff -o #{params[:out]} #{params[:gtf]} $BAM1 $BAM2"
     end
 
-    def fastx_clipper(args)
-      system "#{config.fastx_dir}/fastx_clipper #{args}"
+    def fastx_clipper(params)
+      params = { :min_length => 24, 
+        :quals => (config.qual_type == "solexa" ? "-Q33" : nil) }.merge(params)
+      if params[:in] =~ /.gz$/
+        run_cmd "zcat #{params[:in]} | #{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -o #{params[:out]}"
+      else
+        run_cmd "#{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -i #{params[:in]} -o #{params[:out]}"
+      end
     end
 
-    def htseq_count(args)
-      system "python -m HTSeq.scripts.count #{ args }"
+    def htseq_count(params)
+      run_cmd "python -m HTSeq.scripts.count #{params[:input]} #{params[:gtf]} --type=#{params[:type]} -s no -q > #{params[:out]}"
     end
 
     def filter_muts(snvs,indels,out_file)
       filter_config ="#{config.lib_dir}/FilterMutations/mutationConfig.cfg"
-      system "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
+      run_cmd "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
     end
 
     def hash_table(file,headers=nil)
@@ -126,16 +177,25 @@ module Pipeline
     end
 
     def coverage_bed(bam,intervals,outfile)
-      system "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
+      run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
     end
 
     private
-    def format_opts(o,&block)
+    def format_opts(o,fix_score=nil,&block)
       o.map do |key,value| 
-        value.is_a?(Array) ? value.map do |v| 
-          yield key,v
-        end.join(" ") : yield(key,value)
-      end.join(" ")
+        key = key.to_s.gsub(/_/,"-") if fix_score
+        if value.is_a?(Array) 
+          value.map do |v| 
+            block ?  block.call(key,v) : "--#{key} #{v}"
+          end.join(" ")
+        elsif value == true
+          block ?  block.call(key,nil) : "--#{key}"
+        elsif value == nil
+          nil
+        else
+          block ?  block.call(key,value) : "--#{key} #{value}"
+        end
+      end.compact.join(" ")
     end
   end
 end

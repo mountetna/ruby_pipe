@@ -28,6 +28,8 @@ class Class
   end
 
   def join_chain ch
-    ch.inject(Object) { |m,c| m.const_get(c) }
+    ch.inject(Object) { |m,c|
+      m.const_get(c)
+    }
   end
 end

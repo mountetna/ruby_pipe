@@ -42,7 +42,7 @@ module Pipeline
       config.set_opt :step, step_name
       config.set_opt :job_array, job_array
       config.set_opt :resources, resources
-      setup_logging unless config.action == :audit
+      setup_logging unless config.action == :audit || config.action == :clean
     end
 
     def job_array
@@ -68,11 +68,7 @@ module Pipeline
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      if config.splits > 0
-        job = schedule_job :exec, :splits => config.splits
-      else
-        job = schedule_job :exec
-      end
+      job = schedule_job :exec, :splits => config.splits, :walltime => 3, :threads => resources[:threads]
       [ job, config.splits ]
     end
 
@@ -88,6 +84,9 @@ module Pipeline
         end
         exit
       end
+
+      # You're good, let them know.
+      log_main "Step #{config.step} completed successfully.".green.bold
     end
 
     def vacuum
@@ -112,21 +111,15 @@ module Pipeline
     end
 
     def exec
+      log_info "Starting #{step_name} trial #{config.job_index}".magenta.bold
       self.class.tasks.each do |t|
         task = create_task t
 
         task.exec if task.should_run
       end
+      log_info "#{step_name} completed trial #{config.job_index} successfully".magenta.bold
       log_main "#{step_name} completed trial #{config.job_index} successfully".magenta.bold
       return true
-    end
-
-    def audit
-      log_info "Auditing #{self.class.name.snake_case} trial #{config.job_index}".yellow.bold
-
-      self.class.tasks.each do |t|
-        create_task(t).audit
-      end
     end
 
     def create_task(t)

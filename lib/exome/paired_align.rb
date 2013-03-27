@@ -10,7 +10,7 @@ require 'exome/copy_number'
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :hybrid_qc, :mut_det, :copy_number
+    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :mut_det, :mut_filter, :copy_number
 
     def exclude_task? task
       case task
@@ -40,6 +40,11 @@ module Exome
         config[:interval_list] = args.first
       end
       usage "intervals <interval list>", "Set the interval list file for the given sample."
+
+      def frag_size(args)
+        config[:frag_size] = args.first
+      end
+      usage "frag_size <size in bp>", "Set the fragment size for the given sample (reads+insert)."
 
       def normal(args)
         sample = find_sample args[0]

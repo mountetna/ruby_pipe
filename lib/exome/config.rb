@@ -2,7 +2,6 @@ module Exome
   class Config
     extend Pipeline::Config
     include Pipeline::BaseConfig
-    include Pipeline::SampleConfig
 
     def platform; "Illumina"; end
     def platform_unit; "Exome"; end
@@ -11,12 +10,12 @@ module Exome
     def_var :sample_names do samples.collect(&:sample_name) end
     def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
     def_var :sample_bams do sample_names.map{ |s| sample_bam(s) } end
-    def_var :bam_label do "bwa.realigned.rmDups.recal" end
+    def_var :bam_label do "bwa.realigned.dedup.recal" end
     def_var :input_bam do |s| s ? sample(s)[:input_bam] : nil end
-    def_var :output_bam do |s| sample_output_file "#{s || sample_name}.#{bam_label}.bam" end
+    def_var :output_bam do |s| sample_output_file "#{s || sample_name}.#{bam_label}.bam", s end
     def_var :output_bams do sample_names.map{|s| output_bam(s) } end
     def_var :normal_bam do sample_bam(normal_name) end
-    def_var :normal_name do sample_names.first end
+    def_var :normal_name do sample.normal_name || sample_names.first end
     def_var :tumor_bam do sample_bam(sample_name) end
 
     # Align
@@ -43,7 +42,7 @@ module Exome
     def_var :recal_metrics do cohort_metrics_file "recal.metrics" end
 
     # Recal
-    def_var :chrom do job_item end
+    def_var :chrom do job_item[:contig] end
     def_var :chrom_file do |affix,c| cohort_scratch_file "#{c || chrom}.#{affix}" end
     def_var :merged_intervals do chrom_file "merged.intervals" end
     def_var :realigned_bam do chrom_file "realigned.bam" end
@@ -52,9 +51,9 @@ module Exome
     def_var :recal_bai do chrom_file "recal.bam.bai" end
 
     # Library Split
-    def_var :recal_bams do chroms.map{ |c| recal_bam c } end
+    def_var :recal_bams do chroms.map{ |c| recal_bam c[:contig] } end
     def_var :split_bam_root do |e| cohort_scratch_file "_splitbam_#{e}" end
-    def_var :split_bam do |s| split_bam_root(s || sample_name) end
+    def_var :split_bam do |s| split_bam_root(s || sample_name) + ".bam" end
     def_var :split_bams do sample_names.map{ |s| split_bam(s) } end
 
     # Hybrid qc
@@ -64,16 +63,21 @@ module Exome
     def_var :qc_hybrid do |s| sample_metrics_file "hybrid_selection_metrics", s end
     def_var :qc_align_metrics do |s| sample_metrics_file "alignment_metrics", s end
     def_var :qc_inserts do |s| sample_metrics_file "insert_sizes", s end
+    def_var :qc_coverage_metrics do |s| sample_metrics_file "sample_summary", s end
 
     # mut_det
-    def_var :mutect_snvs do sample_output_file "snvs.raw.mutect.txt" end
-    def_var :somatic_indels_anno do sample_output_file "indels.annotated.vcf" end
-    def_var :somatic_indels_raw do sample_output_file "indels.raw.vcf" end
-    def_var :somatic_indels_temp do sample_scratch_file "indels.temp.vcf" end
-    def_var :mutect_mutations do sample_output_file "mutations" end
-    def_var :mutect_coverage do sample_output_file "snvs.coverage.mutect.wig" end
-    def_var :insert_mutations do sample_scratch_file "insert_mutations" end
+    def_var :mutect_snvs do |c| sample_scratch_file "#{c||chrom}.snvs.raw.mutect.txt" end
+    def_var :sample_mutations do sample_output_file "mutations" end
+    def_var :mutect_coverage do sample_scratch_file "#{chrom}.snvs.coverage.mutect.wig" end
+    def_var :insert_mutations do sample_scratch_file "#{chrom}.insert_mutations" end
+    def_var :pindel_snvs do sample_scratch_file "#{chrom}.snvs.pindel" end
+    def_var :pindel_snv_d do sample_scratch_file "#{chrom}.snvs.pindel_D" end
+    def_var :pindel_list do sample_scratch_file "#{chrom}.pindel.conf" end
+    def_var :pindel_vcf do |c| sample_scratch_file "#{c || chrom}.indels.raw.pindel.vcf" end
 
+    #mut_filter
+    def_var :pindel_vcfs do chroms.map{|c| pindel_vcf c[:contig] } end
+    def_var :mutect_snvses do chroms.map{|c| mutect_snvs c[:contig] } end
 
     # copy_number
     def_var :interval_bed do cohort_scratch_file "intervals.bed" end
@@ -84,5 +88,7 @@ module Exome
     def_var :tumor_cnr_rdata do sample_output_file "cnr.Rdata" end
     def_var :tumor_cnr_seg do sample_output_file "cnr.seg" end
     def_var :tumor_mutations do sample_output_file "mutations" end
+
+    def_var :mutations_config do "#{config_dir}/exome_mutations.yml" end
   end
 end

@@ -1,0 +1,12 @@
+:pindel:
+  :normal:
+    :max_ref_count: 0
+  :tumor:
+    :min_ref_count: 2
+:mutect:
+  :has_judgement: KEEP
+  :include_dbsnp_site: [ COSMIC, NOVEL ]
+  :has_covered: COVERED
+:oncotator:
+  :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank ]
+  #:is_snp: false

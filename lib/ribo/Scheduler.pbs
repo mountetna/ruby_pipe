@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+#PBS -j oe
+#PBS -o $OUTFILE.log
+
+
+cd $PBS_O_WORKDIR
+
+. $LIB_DIR/load_opts $CONFIG
+
+. $PIPELINE_DIR/schedulekit
+
+. $PIPELINE_DIR/load_steps $STEP
+
+# Step Extract - compute the number of reads you need. You can do this right here in the scheduler.
+# Then split the file into FastQ chunks.
+
+setup_Extract()
+{
+	log_info "Counting reads."
+	maxreads=2000000
+	readcount=$(($(zcat $INPUT_FASTQ | wc -l)/4 + 1))
+	splits=$((readcount/maxreads + 1))
+
+	log_info "Splitting fastq file: $INPUT_FASTQ" "SplitFQ"
+	log_info "Found $readcount reads in fastq" "SplitFQ"
+	log_info "Performing $splits splits" "SplitFQ"
+
+	JOPTS="$JOPTS -t $splits"
+}
+
+# Step BWA - Align the files with BWA
+
+setup_BWA()
+{
+	splits=$(ls $SCRATCH/*.fq.gz|wc -l)
+	JOPTS="$JOPTS -t $splits"
+}
+
+# Step Merge - Merge the aligned bam files into a single file
+
+setup_Merge()
+{
+}
+
+# Step 4 - Run tophat on unaligned reads against a transcriptome
+
+setup_Tophat()
+{
+	JOPTS="$JOPTS -l nodes=1:ppn=$TOPHAT_THREADS"
+}
+
+# Step 5 - Combine your data into a single file and run some metrics
+
+setup_Combine()
+{
+}
+
+## Step 6 - Run some coverage analysis on this guy
+
+setup_Cov()
+{
+}
+
+setup_Complete()
+{
+	clean "all"
+	log_info "Pipeline complete."
+}
+
+run_step

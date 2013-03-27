@@ -3,8 +3,11 @@ GEM
   specs:
     colored (1.2)
     extlib (0.9.16)
+    humanize (1.1.0)
     json (1.7.6)
     net-http-persistent (2.8)
+    nokogiri (1.5.6)
+    sequel (3.45.0)
 
 PLATFORMS
   ruby
@@ -12,5 +15,8 @@ PLATFORMS
 DEPENDENCIES
   colored
   extlib
+  humanize
   json
   net-http-persistent
+  nokogiri
+  sequel

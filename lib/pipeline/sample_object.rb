@@ -36,6 +36,23 @@ module Pipeline
       @obj.update set_member(key,value)
     end
 
+    def parent_with_property prop
+      if @obj[prop]
+        self
+      elsif parent
+        parent.parent_with_property(prop) 
+      else
+        nil
+      end
+    end
+
+    def extend_with opts
+      key, value = opts.first
+
+      add_member key, value
+      @obj[key]
+    end
+
     def [](key)
       @obj[key]
     end
@@ -49,7 +66,7 @@ module Pipeline
       if @obj[meth.to_sym]
         return @obj[meth.to_sym]
       end
-      super
+      nil
     end
   end
 end

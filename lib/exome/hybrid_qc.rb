@@ -2,7 +2,7 @@
 module Exome
   class HybridQc
     include Pipeline::Step
-    runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes, :collect_align_metrics
+    runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes, :collect_align_metrics, :coverage_metrics
     job_list do config.samples end
 
     class CalcFlags
@@ -46,6 +46,20 @@ module Exome
       def run
         log_info "Calculating alignment metrics"
         picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics
+      end
+    end
+
+    class CoverageMetrics
+      include Pipeline::Task
+      requires_file :qc_bam
+      outs_file :qc_coverage_metrics
+
+      def run
+        gatk :depth_of_coverage, :out => config.sample_metrics_base, :input_file =>  config.qc_bam,
+          :omitDepthOutputAtEachBase => true,
+          :omitIntervalStatistics => true,
+          :omitLocusTable => true,
+          :intervals => config.interval_list or error_exit "Coverage computation failed"
       end
     end
   end

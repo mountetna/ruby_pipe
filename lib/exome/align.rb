@@ -1,9 +1,9 @@
 module Exome
   class Align 
     include Pipeline::Step
-    runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label, :convert_sam
+    runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label
     job_list do config.samples.collect(&:inputs).flatten end
-    resources :threads => 12
+    resources :threads => 6
 
     class AlignFirst 
       include Pipeline::Task
@@ -53,26 +53,16 @@ module Exome
     class EnforceLabel 
       include Pipeline::Task
       requires_file :mated_sam
-      dumps_file :renamed_sam
+      dumps_file :aligned_bam
 
       def run
         log_info "Enforce read group assignments"
         picard :add_or_replace_read_groups, :INPUT => config.mated_sam,
-                :OUTPUT => config.renamed_sam,
+                :OUTPUT => config.aligned_bam,
+                :CREATE_INDEX => :true,
                   :RGID => config.sample_name, :RGLB => config.sample_name,
                   :RGPL => config.platform, :RGPU => config.platform_unit, :RGSM => config.sample_name,
                   :VALIDATION_STRINGENCY => "LENIENT" or error_exit "Relabel failed"
-      end
-    end
-
-    class ConvertSam 
-      include Pipeline::Task
-      requires_file :renamed_sam
-      outs_file :aligned_bam
-
-      def run
-        log_info "Convert SAM to BAM..."
-        sam_to_bam config.renamed_sam, config.aligned_bam or error_exit "BAM conversion failed"
       end
     end
   end

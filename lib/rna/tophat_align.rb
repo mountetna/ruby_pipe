@@ -4,6 +4,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :tophat_align, :merge_reads, :sort_seq, :relabel_bam
     resources :threads => 12
+    job_list do replicates end
 
     class TophatAlign
       include Pipeline::Task
@@ -12,7 +13,11 @@ module Rna
 
       def run
         log_info "Running tophat"
-        tophat :scratch => config.tophat_scratch, :fq1 => config.input_fastq1s.join(","), :fq2 => config.input_fastq2s.join(","), :frag_size => config.frag_size or error_exit "Tophat failed."
+        tophat :output_dir => config.tophat_scratch,
+          :GTF => config.reference_gtf,
+          :fq1 => config.input_fastq1s.join(","),
+          :fq2 => config.input_fastq2s.join(","),
+          :mate_inner_dist => config.frag_size or error_exit "Tophat failed."
       end
     end
     class MergeReads

@@ -9,6 +9,7 @@ module Pipeline
     usage "show", "list the current config file"
     usage "print", "print the currante config file to a local file"
     usage "samples <list of sample names>", "set the sample names"
+    usage "quit", "quit the config generator"
 
     def lib_dir
       ENV['LIB_DIR']
@@ -30,12 +31,16 @@ module Pipeline
       File.join lib_dir, "config", "#{parent_class}.yml"
     end
 
-    def default_file
+    def output_file
+      @config_file || default_output
+    end
+
+    def default_output
       "#{@config[:cohort_name]}.#{parent_class}.yml"
     end
 
     def commands
-      [ :samples, :show, :print, :reset ] + public_methods(nil)
+      usages.keys
     end
 
     def initialize j
@@ -121,8 +126,12 @@ module Pipeline
       puts config_comments.map(&:green)
     end
 
+    def quit args=nil
+      exit
+    end
+
     def print args=nil
-      File.open(args.first || default_file, "w") do |f|
+      File.open(args.first || default_output, "w") do |f|
         f.puts config_header
         f.puts
         f.puts config.to_yaml
@@ -132,6 +141,10 @@ module Pipeline
     end
 
     def start_generator
+      Readline.completion_append_character = " "
+      Readline.completion_proc = Proc.new do |str|
+          Dir[str+'*'].grep( /^#{Regexp.escape(str)}/ )
+      end
       while buf = Readline.readline("> ",true)
         exit if !buf
         buf = buf.split

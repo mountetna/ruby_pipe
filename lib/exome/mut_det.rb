@@ -1,12 +1,14 @@
 #!/usr/bin/env ruby
 require 'hash_table'
 require 'fileutils'
+require 'mutect'
+require 'vcf'
 module Exome
   class MutDet
     include Pipeline::Step
-    runs_tasks :mutect, :somatic_indels, :annotate_indels, :filter_muts, :flag_inserts
+    runs_tasks :mutect, :pindel, :pindel_vcf
     resources :threads => 12
-    job_list do config.tumor_samples end
+    job_list do config.tumor_samples.map{|s| s.extend_with( :chroms => config.chroms ) }.flatten end
 
     def vacuum
       config.sample_names.each do |s|
@@ -17,104 +19,75 @@ module Exome
     class Mutect
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam, :interval_list
-      outs_files :mutect_snvs, :mutect_coverage
+      dumps_files :mutect_snvs, :mutect_coverage
 
       def run
-	log_info "Running muTect..."
+	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
-          :intervals => config.interval_list,
+          :intervals => config.chrom,
           :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
       end
     end
 
-    class SomaticIndels
+    class Pindel
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam, :interval_list
-      outs_file :somatic_indels_raw
+      dumps_files :pindel_snv_d
 
       def run
-	log_info "Running Somatic Indel Detector..."
-	gatk :somatic_indel_detector, :"input_file:normal" => config.normal_bam,
-		:"input_file:tumor" => config.tumor_bam,
-		:intervals => config.interval_list,
-                :maxNumberOfReads => 10000,
-                :window_size => 225,
-                :filter_expressions => '"N_COV<8||T_COV<14||T_INDEL_F<0.1||T_INDEL_CF<0.7"',
-		:out => config.somatic_indels_raw or error_exit "Indel detection failed"
+        log_info "Running pindel"
+        pindel :bams => [ 
+            { :bam => config.tumor_bam, :name => config.sample_name},
+            { :bam => config.normal_bam, :name => config.normal_name } ],
+          :tempfile => config.pindel_list,
+          :chromosome => config.chrom, :output_prefix => config.pindel_snvs or error_exit "Pindel failed"
       end
     end
-    class AnnotateIndels
+    class PindelVcf
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :somatic_indels_raw, :interval_list
-      outs_file :somatic_indels_anno
-      
+      requires_files :pindel_snv_d
+      dumps_file :pindel_vcf
+
       def run
-	log_info "Annotating raw indel calls..."
-	gatk :variant_annotator, 
-		:variant => config.somatic_indels_raw,
-		:intervals => config.interval_list,
-		:"input_file:normal" => config.normal_bam,
-		:"input_file:tumor" => config.tumor_bam,
-		:dbsnp => config.dbsnp_vcf,
-		:group => "StandardAnnotation",
-		:out => config.somatic_indels_anno or error_exit "Indel annotation failed"
+        pindel_to_vcf :pindel_output_root => config.pindel_snvs, :vcf => config.pindel_vcf or error_exit "Pindel2VCF failed"
       end
     end
+  end
+  class MutFilter
+    include Pipeline::Step
+    runs_tasks :filter_muts
+    resources :threads => 12
+    job_list do config.tumor_samples end
 
     class FilterMuts
       include Pipeline::Task
-      requires_files :mutect_snvs, :somatic_indels_anno
-      dumps_file :somatic_indels_temp, :mutect_mutations
-
-      def reorder_vcf(file,tumor_name,normal_name,out_file)
-        data = HashTable.new(file,:comment => "##")
-        data.header[9] = tumor_name.to_sym
-        data.header[10] = normal_name.to_sym
-        data.print(out_file)
-      end
+      requires_files :pindel_vcfs, :mutect_snvses
+      outs_file :tumor_maf
 
       def run
-        normal_name = sam_sample_name config.normal_bam
-        tumor_name = sam_sample_name config.tumor_bam
-
-	log_info "Reordering indel vcf"
-	reorder_vcf config.somatic_indels_anno, tumor_name, normal_name, config.somatic_indels_temp or error_exit "Reordering failed"
-
-	log_info "Filtering mutect and indel output..."
-	filter_muts config.mutect_snvs, config.somatic_indels_temp, config.mutect_mutations or error_exit "Filtering failed"
-      end
-    end
-
-    class FlagInserts
-      include Pipeline::Task
-      requires_files :mutect_mutations, :qc_inserts, :tumor_bam
-      dumps_file :insert_mutations
-
-      def count_bad_inserts(chr, pos, low, high)
-        reads = sam_reads(config.tumor_bam, chr, pos, pos)
-        reads.count do |r|
-          r[:insert_size].to_i.abs < low || r[:insert_size].to_i.abs > high || (r[:mate_contig] != '=' && r[:contig] != r[:mate_contig])
+        File.open(config.tumor_maf, "w") do |f|
+          f.puts [ :gene, :chrom, :pos, :ref_allele, :alt_allele, :tumor_ref_count, :tumor_alt_count, :normal_ref_count, :normal_alt_count, :variant_classification, :protein_change, :class ].join("\t")
+          config.chroms.each do |chrom|
+            m = MuTect.new config.mutect_snvs(chrom[:contig]), config.mutations_config
+            m.each do |l|
+              next if l.skip_mutect?
+              next if l.skip_oncotator?
+              f.puts [ l.onco.txp_gene, l.chrom, l.pos, l.ref, l.alt, 
+                l.tumor_ref_count, l.tumor_alt_count, l.normal_ref_count, l.normal_alt_count, 
+                l.onco.txp_variant_classification, l.onco.txp_protein_change, 
+                l.onco.pph2_class ].join("\t")
+            end
+            v = VCF.new config.pindel_vcf(chrom[:contig]), config.mutations_config
+            v.each do |l|
+              next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
+              next if l.skip_oncotator?
+              f.puts [ l.onco.txp_gene, l.chrom, l.pos, l.ref, l.alt, 
+                "-", l.genotype(config.normal_name).approx_depth, "-", l.genotype(config.sample_name).approx_depth, 
+                l.onco.txp_variant_classification, l.onco.txp_protein_change, 
+                l.onco.pph2_class ].join("\t")
+            end
+          end
         end
-      end
-
-      def run
-        # calculate insert size 5 and 95 percent intervals
-        inserts = File.foreach(config.qc_inserts).select{ |s| s =~ /^[0-9]+\t[0-9]+$/ }.map{|s| s.chomp.split(/\t/).map(&:to_i)}
-
-        total = inserts.inject(0) { |o,a| o += a.last }
-        cumu_hist = inserts.each_with_object([0]).map { |a,o| [ a.first, o[0] += a.last] }
-        i05 = cumu_hist.find{ |a| a.last > 0.05 * total }.first
-        i95 = cumu_hist.find{ |a| a.last > 0.95 * total }.first
-
-        # read the mutations into a damn data structure
-        muts = HashTable.new(config.mutect_mutations)
-        muts.header.insert( muts.header.index(:n_ref_count), :t_bad_inserts)
-
-        muts.each do |l|
-          l[:t_bad_inserts] = count_bad_inserts(l[:contig], l[:position], i05, i95)
-        end
-
-        muts.print(config.insert_mutations)
       end
     end
   end
