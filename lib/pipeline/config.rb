@@ -5,6 +5,26 @@ module Pipeline
       class_procs.update name => block
     end
     def class_procs; @class_procs ||= {}; end
+    def dir_tree tree
+      @the_tree ||= {}
+      @the_tree.deep_merge! tree
+      get_procs_from_tree tree
+    end
+    def get_procs_from_tree tree, ancestor=nil
+      tree.each do |file,blob|
+        full_name = [ ancestor, file ].compact.join("/")
+        case blob
+        when Hash
+          get_procs_from_tree blob, full_name
+        when Symbol
+          self.instance_eval <<-EOT
+            def_var blob do |obj|
+              unescape_dir_string "#{full_name}", obj
+            end
+          EOT
+        end
+      end
+    end
   end
   module BaseConfig
     extend Pipeline::Config
@@ -24,7 +44,7 @@ module Pipeline
     def_var :tools_config do "#{config_dir}/tools.yml" end
 
     def_var :job_index do job_number ? job_number - 1 : 0 end
-    def_var :job_item do job_array[job_index] end
+    def_var :job_item do job_array ? job_array[job_index] : @config end
     def_var :threads do resources[:threads] end
     def_var :qual_type do "phred64" end
 
@@ -39,6 +59,7 @@ module Pipeline
     def_var :sample_dir do |dir,s| File.join dir, (s || sample_name) end
     def_var :sample_scratch do |s| sample_dir scratch_dir, s end
     def_var :sample_scratch_file do |affix,s| File.join sample_scratch(s), affix end 
+    
     def_var :sample_output do |s| sample_dir output_dir, s end
     def_var :sample_output_file do |affix,s| File.join sample_output(s), affix end 
     def_var :sample_metrics do |s| sample_dir metrics_dir, s end
@@ -49,8 +70,7 @@ module Pipeline
     def_var :reference_fa do hg19_fa end
     def_var :reference_name do :hg19 end
     def_var :reference_date do :feb_2009 end
-    def_var :reference_gtf do hg19_ucsc_gtf end
-
+    def_var :reference_gtf do "#{reference_name}_ucsc_gtf" end
 
     def splits
       job_array ? job_array.size : nil
@@ -66,12 +86,12 @@ module Pipeline
       n.empty? ? samples[1..-1] : n
     end
 
-    def chroms
+    def chromosomes
       # read chromosomes from the fasta dict
       @chroms ||= File.foreach("/taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict").map do |s|
         s.match(/@SQ.*SN:(\w+)\s/) do |m| 
           next if m[1] == "chrM"
-          { :contig => m[1] }
+          { :chrom_name => m[1] }
         end
       end.compact
     end
@@ -100,6 +120,11 @@ module Pipeline
       set_dir
 
       load_config
+
+      init_hook
+    end
+
+    def init_hook
     end
 
     def load_procs
@@ -156,6 +181,17 @@ module Pipeline
 
     def load_config
       @config=Pipeline::SampleObject.new YAML.load_file(config_file), self
+    end
+
+    def unescape_dir_string str, obj
+      obj ||= job_item
+      str.gsub(/:(\w+)/) do |s|
+        # send it with the appropriate argument
+        send $1.to_sym, obj
+      end.gsub(/@(\w+)/) do |s|
+        m = $1.to_sym
+        obj.parent_with_property(m).send m
+      end
     end
 
     def method_missing(meth,*args,&block)

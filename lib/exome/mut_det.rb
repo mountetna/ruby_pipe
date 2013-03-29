@@ -8,7 +8,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf
     resources :threads => 12
-    job_list do config.tumor_samples.map{|s| s.extend_with( :chroms => config.chroms ) }.flatten end
+    job_list do config.tumor_samples.collect(&:chroms).flatten end
 
     def vacuum
       config.sample_names.each do |s|
