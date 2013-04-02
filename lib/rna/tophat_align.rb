@@ -4,7 +4,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :tophat_align, :merge_reads, :sort_seq, :relabel_bam
     resources :threads => 12
-    job_list do replicates end
+    job_list do config.replicates end
 
     class TophatAlign
       include Pipeline::Task

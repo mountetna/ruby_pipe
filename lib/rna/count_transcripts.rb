@@ -5,15 +5,16 @@ module Rna
     include Pipeline::Step
     runs_tasks :cufflink #, :format_transcript
     resources :threads => 12
+    job_list do config.replicates end
 
     class Cufflink
       include Pipeline::Task
-      requires_files :output_bam
+      requires_files :replicate_bam
       outs_file :transcripts_gtf
 
       def run
-        log_info "Cufflinking"
-        cufflinks :bam => config.output_bam, :out => config.cufflinks_scratch or error_exit "Cufflinks failed."
+        log_info "Running cufflinks"
+        cufflinks :bam => config.replicate_bam, :out => config.cufflinks_scratch or error_exit "Cufflinks failed."
       end
     end
 

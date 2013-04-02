@@ -13,51 +13,43 @@ require 'rna/config'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :tophat_align, :qc, :count_transcripts, :assemble_transcripts, :univ_geno, :filter_muts
+    runs_steps :tophat_align, :qc, :count_transcripts, :assemble_transcripts #, :univ_geno, :filter_muts
 
-    module Config
-      include Pipeline::Config
-      # this is config stuff that is particular to this sample
+    class ConfigGenerator
+      include Pipeline::ConfigGenerator
+      include Pipeline::Usage
 
-      def replicate_index
-        case step
-        when :tophat_align, :count_transcripts, :qc
-          key_index_list(:replicates)[job_index]
+      def input(args)
+        sample = get_sample args.first
+        inputs = []
+        getlines "your fastq files" do |l|
+          inputs += l.strip.split
         end
+        sample[:replicates] ||= []
+        sample[:replicates].push :inputs => pair_fastqs(inputs)
       end
+      usage "input <sample name>", "Input fastqs for the given sample"
 
-      def sample_index
-        case step
-        # runs on every replicate
-        when :tophat_align, :count_transcripts, :qc
-          sample_index_list(:replicates)[job_index]
-        # runs on every tumor sample
-        when :filter_muts
-          job_index+1
+      def normal(args)
+        sample = find_sample args[0]
+        normal = find_sample args[1]
+        if !sample || !normal
+          puts "No sample of that name.".red
+          return
         end
-      end
+        if sample == normal
+          puts "Sample and normal are the same".red
+          return
+        end
 
-      def splits
-        case step
-        when :tophat_align, :count_transcripts, :qc
-          replicates.size
-        when :assemble_transcripts, :univ_geno
-          1
-        when :filter_muts
-          samples.size - 1
-        end
+        sample[:normal_name] = normal[:sample_name]
       end
+      usage "normal <sample name> <normal sample name>", "Set the normal name for the given sample (the first sample is assumed to be the normal)"
 
-      def scratch
-        case step
-        when :tophat_align, :count_transcripts, :qc
-          replicate_scratch
-        when :filter_muts
-          sample_scratch
-        when :univ_geno, :assemble_transcripts
-          job_scratch
-        end
+      def frag_size(args)
+        config[:frag_size] = args.first
       end
+      usage "frag_size <size in bp>", "Set the fragment size for the given sample (reads+insert)."
     end
   end
 end

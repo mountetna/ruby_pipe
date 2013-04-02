@@ -62,7 +62,13 @@ module Pipeline
 
         def count
           @count ||= @files.count do |f|
-            filename = @config.send f
+            begin
+              filename = @config.send f
+            rescue => e
+              puts e, e.backtrace
+              puts "Could not successfully retrieve symbol :#{f}".red.bold
+              exit
+            end
             if filename && filename.is_a?(Array)
               filename.all? do |fn|
                 fn && File.size?(fn) && File.readable?(fn)

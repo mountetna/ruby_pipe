@@ -67,10 +67,11 @@ module Pipeline
     def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
     def_var :sample_name do sample.sample_name end
 
-    def_var :reference_fa do hg19_fa end
     def_var :reference_name do :hg19 end
     def_var :reference_date do :feb_2009 end
-    def_var :reference_gtf do "#{reference_name}_ucsc_gtf" end
+    def_var :reference_fa do send "#{reference_name}_fa".to_sym end
+    def_var :reference_dict do send "#{reference_name}_dict".to_sym end
+    def_var :reference_gtf do send "#{reference_name}_ucsc_gtf".to_sym end
 
     def splits
       job_array ? job_array.size : nil
@@ -81,6 +82,10 @@ module Pipeline
       job_item.parent_with_property :sample_name if job_array
     end
 
+    def cohort
+      return @config
+    end
+
     def tumor_samples
       n = samples.select { |s| s[:normal_name] }
       n.empty? ? samples[1..-1] : n
@@ -88,7 +93,7 @@ module Pipeline
 
     def chromosomes
       # read chromosomes from the fasta dict
-      @chroms ||= File.foreach("/taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict").map do |s|
+      @chroms ||= File.foreach(reference_dict).map do |s|
         s.match(/@SQ.*SN:(\w+)\s/) do |m| 
           next if m[1] == "chrM"
           { :chrom_name => m[1] }

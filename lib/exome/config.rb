@@ -12,7 +12,6 @@ module Exome
     def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
     def_var :bam_label do "bwa.realigned.dedup.recal" end
     def_var :input_bam do |s| s ? s.input_bam : nil end
-    #def_var :output_bam do |s| sample_output_file "#{s || sample_name}.#{bam_label}.bam", s end
     def_var :output_bams do samples.map{|s| output_bam(s) } end
     def_var :normal_bam do sample_bam(normal) end
     def_var :normal_name do sample.normal_name || samples.first.sample_name end
