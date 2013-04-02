@@ -85,5 +85,7 @@ module Rna
     def_var :qc_bam do replicate_bam end
     
     def_var :mutations_config do "#{config_dir}/rna_mutations.yml" end
+
+    def_var :find_novel_transcripts do nil end
   end
 end

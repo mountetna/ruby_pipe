@@ -135,7 +135,8 @@ module Pipeline
 
     def cufflinks(params)
       params = { :threads => config.threads, :gtf => config.reference_gtf }.merge(params)
-      run_cmd "#{config.cufflinks_dir}/cufflinks -q -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
+      gtf = config.find_novel_transcripts ?  nil : "-G #{params[:gtf]}"
+      run_cmd "#{config.cufflinks_dir}/cufflinks -q #{gtf} -p #{params[:threads]} -o #{params[:out]} #{params[:bam]}"
     end
 
     def cuffmerge(params)
