@@ -97,7 +97,7 @@ module Pipeline
         :analysis_type => "MuTect",
         :baq => "CALCULATE_AS_NECESSARY",
         :reference_sequence => config.reference_fa,
-        :dbsnp => config.dbsnp_vcf,
+        :dbsnp => config.reference_snp_vcf,
         :num_threads => config.threads,
         :cosmic => config.cosmic_vcf
       }.merge(opts)

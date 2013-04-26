@@ -18,6 +18,8 @@ module Exome
     def_var :normal do samples.find{|s| s.sample_name == normal_name} end
     def_var :tumor_bam do sample_bam(sample) end
 
+    empty_var :cosmic_vcf
+
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {

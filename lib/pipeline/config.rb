@@ -4,6 +4,10 @@ module Pipeline
     def def_var name, &block
       class_procs.update name => block
     end
+    def empty_var *symbols
+      class_opts.update(symbols.map{|s| { s => nil } }.reduce :merge)
+    end
+    def class_opts; @class_opts ||= {}; end
     def class_procs; @class_procs ||= {}; end
     def dir_tree tree
       @the_tree ||= {}
@@ -109,23 +113,18 @@ module Pipeline
       end.compact
     end
 
+    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step
+
     # This creates a new step in a pipeline
     def initialize(script,opts=nil)
       @script = script
       # stuff that should default to nil goes here, rather than using method_missing
-      @opts = {
-        :work_dir => nil,
-        :verbose => nil,
-        :job_number => nil,
-        :keep_temp_files => nil,
-        :single_step => nil
-      }.merge(opts || {})
-
       @config = {}
 
       # also include the script config
       #self.class.send(:include, script.class.daughter_class(:config))
 
+      load_opts
       load_procs
       load_env_vars
       load_tools_config
@@ -140,6 +139,13 @@ module Pipeline
     end
 
     def init_hook
+    end
+
+    def load_opts
+      @opts = {}
+      self.class.ancestors.each do |a|
+        @opts.update a.class_opts if a.respond_to? :class_opts
+      end
     end
 
     def load_procs
