@@ -3,7 +3,7 @@ require 'hash_table'
 module Rna
   class CountTranscripts
     include Pipeline::Step
-    runs_tasks :cufflink #, :format_transcript
+    runs_tasks :cufflink, :count_coverage #, :format_transcript
     resources :threads => 12
     job_list do config.replicates end
 
@@ -37,6 +37,19 @@ module Rna
         end
       end
     end
+
+    class CountCoverage
+      include Pipeline::Task
+      requires_file :replicate_bam
+      outs_file :transcripts_cov
+
+      def run
+        log_info "Mapping coverage to reference genes"
+        samtools "view -h -q 1 -F 4", config.replicate_bam, config.coverage_sam
+        htseq_count :input => config.coverage_sam, :gtf => config.reference_gtf, :type => "rnaseq", :out => config.transcripts_cov or error_exit "Computing normal coverage failed."
+        File.unlink config.coverage_sam
+        #coverage_bed config.sample_bam, config.reference_gtf, config.normal_cov or error_exit "Computing normal coverage failed."
+      end
+    end
   end
 end
-

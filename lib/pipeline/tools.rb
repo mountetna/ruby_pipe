@@ -88,7 +88,7 @@ module Pipeline
     end
 
     def gatk(tool,opts)
-      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => "DEBUG" }.merge(opts)
+      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => "DEBUG", :num_threads => config.threads }.merge(opts)
       java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
     end
 
@@ -98,13 +98,14 @@ module Pipeline
         :baq => "CALCULATE_AS_NECESSARY",
         :reference_sequence => config.reference_fa,
         :dbsnp => config.dbsnp_vcf,
+        :num_threads => config.threads,
         :cosmic => config.cosmic_vcf
       }.merge(opts)
       java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
     end
 
     def pindel(opts)
-      opts = { :fasta => config.reference_fa }.merge(opts)
+      opts = { :number_of_threads => config.threads, :fasta => config.reference_fa }.merge(opts)
 
       tempfile = opts.delete :tempfile
       File.open(tempfile,"w") do |f| 
@@ -112,10 +113,10 @@ module Pipeline
           f.puts "#{b[:bam]} #{config.frag_size} #{b[:name]}"
         end
       end
-      opts[:config_file] = tempfile
+      opts[:"config-file"] = tempfile
       opts.delete :bams
 
-      run_cmd "#{config.pindel_dir}/pindel #{format_opts(opts,true)}"
+      run_cmd "#{config.pindel_dir}/pindel #{format_opts(opts)}"
     ensure
       File.unlink(tempfile) if tempfile && File.exists?(tempfile)
     end
@@ -181,17 +182,28 @@ module Pipeline
       run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
     end
 
+    def create_interval_bed
+      return if File.exists? config.interval_bed
+      File.open(config.interval_bed, "w") do |f|
+        File.foreach(config.interval_list) do |g|
+          next if g =~ /^\@/
+          f.print g
+        end
+      end
+    end
+
     private
     def format_opts(o,fix_score=nil,&block)
       o.map do |key,value| 
         key = key.to_s.gsub(/_/,"-") if fix_score
-        if value.is_a?(Array) 
+        case value
+        when Array
           value.map do |v| 
             block ?  block.call(key,v) : "--#{key} #{v}"
           end.join(" ")
-        elsif value == true
+        when true
           block ?  block.call(key,nil) : "--#{key}"
-        elsif value == nil
+        when nil
           nil
         else
           block ?  block.call(key,value) : "--#{key} #{value}"

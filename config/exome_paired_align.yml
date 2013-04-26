@@ -2,7 +2,6 @@
 
 :pipe: exome
 :script: paired_align
-:interval_list: /taylorlab/resources/human/hg19/intervals/bastian/bastian_targets_June20_2012.interval_list
 :frag_size: 300
 
 :output_dir: ./output

@@ -18,8 +18,12 @@ module Pipeline
           get_procs_from_tree blob, full_name
         when Symbol
           self.instance_eval <<-EOT
-            def_var blob do |obj|
-              unescape_dir_string "#{full_name}", obj
+            def_var :#{blob} do |obj|
+              if obj && obj.#{blob}
+                obj.#{blob}
+              else
+                unescape_dir_string "#{full_name}", obj
+              end
             end
           EOT
         end
@@ -42,6 +46,7 @@ module Pipeline
     def_var :verbose? do verbose == "yes" || verbose == "true" end
     def_var :config_dir do "#{lib_dir}/config" end
     def_var :tools_config do "#{config_dir}/tools.yml" end
+    def_var :genome_config do "#{config_dir}/#{genome}.yml" end
 
     def_var :job_index do job_number ? job_number - 1 : 0 end
     def_var :job_item do job_array ? job_array[job_index] : @config end
@@ -67,11 +72,14 @@ module Pipeline
     def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
     def_var :sample_name do sample.sample_name end
 
-    def_var :reference_name do :hg19 end
-    def_var :reference_date do :feb_2009 end
-    def_var :reference_fa do send "#{reference_name}_fa".to_sym end
-    def_var :reference_dict do send "#{reference_name}_dict".to_sym end
-    def_var :reference_gtf do send "#{reference_name}_ucsc_gtf".to_sym end
+    def_var :genome do :hg19 end
+    def_var :reference_name do genome end
+    def_var :reference_date do send "#{genome}_date".to_sym end
+    def_var :reference_fa do send "#{genome}_fa".to_sym end
+    def_var :reference_dict do send "#{genome}_dict".to_sym end
+    def_var :reference_snp_vcf do send "#{genome}_snp_vcf".to_sym end
+    def_var :reference_indel_vcf do send "#{genome}_indel_vcf".to_sym end
+    def_var :reference_gtf do send "#{genome}_ucsc_gtf".to_sym end
 
     def splits
       job_array ? job_array.size : nil
@@ -126,6 +134,8 @@ module Pipeline
 
       load_config
 
+      load_genome_config
+
       init_hook
     end
 
@@ -170,6 +180,10 @@ module Pipeline
 
       # update the path
       ENV['PATH'] = ( tools_path.map{ |t| send t.to_sym } + ENV['PATH'].split(/:/) ).join ":" 
+    end
+
+    def load_genome_config
+      @opts.update( YAML.load_file( genome_config ) )
     end
 
     def set_opt(o,v)

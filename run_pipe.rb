@@ -11,4 +11,8 @@ require pipe + '/' + script
 
 s = Kernel.const_get( pipe.camel_case).const_get( script.camel_case).new
 
-s.init ARGV
+begin
+  s.init ARGV
+rescue Errno::EPIPE
+  exit
+end

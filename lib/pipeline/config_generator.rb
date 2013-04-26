@@ -71,7 +71,7 @@ module Pipeline
     def getlines txt
       comment "List #{txt} separated by space or newline."
       comment "End with a . on a line by itself or ctrl-d to finish."
-      while l = Readline.readline(":".red,false)
+      while l = Readline.readline(":".red,true)
         break if l == "."
         if l =~ /^\!/
           cmd = l.sub(/^\!/,"")

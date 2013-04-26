@@ -6,7 +6,6 @@ module Rna
     include Pipeline::Step
     runs_tasks :compare, :merge
     resources :threads => 12
-    job_list do [ config.cohort ] end
 
     class Compare
       include Pipeline::Task

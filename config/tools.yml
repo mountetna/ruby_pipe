@@ -18,31 +18,3 @@
 :bedtools_dir: /taylorlab/lib/bedtools/bedtools-latest/bin
 :fastqc_dir: /taylorlab/lib/fastqc/fastqc-latest
 :bwa_dir: /taylorlab/lib/bwa/bwa-latest
-
-# The BWA index
-:bwa_idx: /taylorlab/resources/human/hg19/bwa_index/bwa-latest/hg19.fa
-#:bwa_idx: /home/GenomeData/bwa_indices/hg19.bwa
-
-# The Bowtie index
-#:bowtie_idx: /home/GenomeData/bowtie_indices/hg19
-:bowtie2_idx: /taylorlab/resources/human/hg19/bowtie2_index/hg19
-
-# Some resource files
-:transcriptome_idx: /taylorlab/resources/human/hg19/gencode/gencode.v11.tophat2
-:hg19_dict: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict
-:hg19_fa: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.fa
-:hg19_ucsc_gtf: /taylorlab/resources/human/hg19/ucsc_feb_2009/knownGene.gtf
-:hg19_ucsc_gene_names: /taylorlab/resources/human/hg19/ucsc_feb_2009/kgXref.txt
-:hg19_gencode_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.gtf
-:hg19_unified_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.highQ.ccds.unified_model.gtf
-:hg19_features_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.highQ.ccds.features.gtf
-:hg19_refflat_gtf: /taylorlab/resources/human/hg19/refSeq/refFlat.hg19.gtf
-:hg19_null_gtf: /taylorlab/resources/human/hg19/null_candidate_genomic_regions.gtf
-:hg19_refflat: /taylorlab/resources/human/hg19/refSeq/refFlat.hg19.20111003.txt
-
-:thousand_genomes_indels: /taylorlab/resources/human/hg19/1000G/1000G_biallelic.indels.hg19.sorted.vcf
-:dbsnp_vcf: /taylorlab/resources/human/hg19/dbSNP/dbsnp_132.hg19.sorted.vcf
-:cosmic_vcf: /taylorlab/resources/human/hg19/cosmic/CosmicMutantExport_v56_151111.vcf
-
-:hg19_rrna_intervals: /taylorlab/resources/human/hg19/intervals/rrna/Homo_sapiens_assembly19.rRNA,1-25,BST20120223.interval_list
-:agilent_intervals: /taylorlab/resources/human/hg19/intervals/agilent/029720_D_BED_20101013_agilent_50mb_exon_hg19.interval_list

@@ -21,7 +21,7 @@ module Exome
     class MarkDuplicates
       include Pipeline::Task
       requires_file :merged_library_bam
-      dumps_file :raw_library_bam
+      outs_file :raw_library_bam
       outs_file :recal_metrics
 
       def run
@@ -37,7 +37,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :create_intervals, :realign_indels, :count_covariates, :table_recal, :recal_index
     job_list do config.chroms end
-    resources :threads => 12
+    resources :threads => 1
 
     class CreateIntervals
       include Pipeline::Task
@@ -47,9 +47,9 @@ module Exome
       def run
 	log_info "Creating intervals for indel detection"
 	gatk :realigner_target_creator,
-          :known => config.thousand_genomes_indels,
+          :known => config.reference_indel_vcf,
           :intervals => config.chrom,
-          :num_threads => 24,
+          :num_threads => nil,
           :input_file => config.raw_library_bam,
           :out => config.merged_intervals or error_exit "Interval creation failed"
       end
@@ -63,10 +63,11 @@ module Exome
       def run
 	log_info "Indel realignment"
 	gatk :indel_realigner,
-			:knownAlleles => config.thousand_genomes_indels,
+			:knownAlleles => config.reference_indel_vcf,
                         :consensusDeterminationModel => :USE_READS,
                         :intervals => config.chrom,
 			:input_file => config.raw_library_bam,
+                        :num_threads => nil,
 			:targetIntervals => config.merged_intervals,
 			:out => config.realigned_bam or error_exit "Indel realignment failed"
       end
@@ -79,8 +80,9 @@ module Exome
 
       def run
 	log_info "Base-quality recalibration: Count covariates"
-	gatk :base_recalibrator, :knownSites => config.dbsnp_vcf, 
+	gatk :base_recalibrator, :knownSites => config.reference_snp_vcf, 
 		:input_file => config.realigned_bam,
+                :num_threads => nil,
 		:out => config.recal_grp or error_exit "First CountCovariates failed"
       end
     end
@@ -95,6 +97,7 @@ module Exome
 	gatk :print_reads,
 		:BQSR => config.recal_grp,
 		:input_file => config.realigned_bam,
+                :num_threads => nil,
 		:out => config.recal_bam or error_exit "TableRecalibration failed"
       end
     end
@@ -114,7 +117,7 @@ module Exome
   class LibrarySplit
     include Pipeline::Step
     runs_tasks :split_bam 
-    resources :threads => 12
+    resources :threads => 1
 
     class SplitBam
       include Pipeline::Task

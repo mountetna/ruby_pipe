@@ -55,11 +55,12 @@ module Exome
       outs_file :qc_coverage_metrics
 
       def run
+        create_interval_bed
         gatk :depth_of_coverage, :out => config.sample_metrics_base, :input_file =>  config.qc_bam,
           :omitDepthOutputAtEachBase => true,
           :omitIntervalStatistics => true,
           :omitLocusTable => true,
-          :intervals => config.interval_list or error_exit "Coverage computation failed"
+          :intervals => config.interval_bed or error_exit "Coverage computation failed"
       end
     end
   end

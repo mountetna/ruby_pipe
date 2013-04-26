@@ -81,7 +81,7 @@ module Pipeline
 
       def run vars, opts
         run_job vars,opts do |res,fields|
-          #fields[:o] = "/dev/null"
+          fields[:o] = "/dev/null"
           `qsub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1`
         end
       end

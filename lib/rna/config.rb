@@ -36,10 +36,13 @@ module Rna
               "unmapped.bam" => :unmapped_bam,
               "merged.bam" => :merged_bam,
               "merged.sorted.bam" => :sorted_bam,
-              "sorted_header.txt" => :sorted_header
+              "sorted_header.txt" => :sorted_header,
+              "coverage.sam" => :coverage_sam,
+              "transcripts.cov" => :transcripts_cov
             },
             "cufflinks" => {
-              "transcripts.gtf" => :transcripts_gtf,
+              "." => :cufflinks_scratch,
+              "transcripts.gtf" => :transcripts_gtf
             }
           }
         },

@@ -53,7 +53,7 @@ module Exome
     class EnforceLabel 
       include Pipeline::Task
       requires_file :mated_sam
-      dumps_file :aligned_bam
+      outs_file :aligned_bam
 
       def run
         log_info "Enforce read group assignments"

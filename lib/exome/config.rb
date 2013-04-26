@@ -39,7 +39,7 @@ module Exome
           "@chrom_name.pindel.conf" => :pindel_list,
           "@chrom_name.indels.raw.pindel.vcf" => :pindel_vcf,
 
-          "@normal_name.cov" => :normal_cov,
+          ":normal_name.cov" => :normal_cov,
           "@sample_name.cov" => :tumor_cov
         },
         "@cohort_name" => {
@@ -84,13 +84,17 @@ module Exome
     def init_hook
       # add various bells and whistles here
       samples.each do |s|
-        s.inputs.each do |i|
-          i.add_member :input_name, i.index
+        if s.inputs
+          s.inputs.each do |i|
+            i.add_member :input_name, i.index
+          end
         end
         s.extend_with :chroms => chromosomes
       end
       @config.extend_with :chroms => chromosomes
     end
+
+    def_var :chrom do job_item.chrom_name end
 
     # Align
     def_var :input_fastq1 do job_item.fq1 end

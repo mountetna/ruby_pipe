@@ -1,0 +1,5 @@
+:mm10_dict: /taylorlab/resources/mouse/mm10/ucsc_dec_2011/mm10.dict
+:mm10_fa: /taylorlab/resources/mouse/mm10/ucsc_dec_2011/mm10.fa
+:mm10_date: dec_2011
+:mm10_snp_vcf: /taylorlab/resources/mouse/mm10/snps/snps.vcf
+:mm10_indel_vcf: /taylorlab/resources/mouse/mm10/snps/snps.vcf
