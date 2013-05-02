@@ -113,7 +113,7 @@ module Pipeline
       end.compact
     end
 
-    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step
+    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config
 
     # This creates a new step in a pipeline
     def initialize(script,opts=nil)

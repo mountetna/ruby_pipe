@@ -141,54 +141,54 @@ class SomaticIndelLine:
 				self.ourJudgment = "no"
 				self.ourJudgmentReasons += "counts above maxNormalVarFreq"
 				return False
-			if self.t_alt_mismatch_avg() > indelRemovalFilters['maxAvgTumorAltMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatch"
-				return False
-			if self.t_ref_mismatch_avg() > indelRemovalFilters['maxAvgTumorRefMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatch"
-				return False
-			if self.n_alt_mismatch_avg() > indelRemovalFilters['maxAvgNormalAltMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatch"
-				return False
-			if self.n_ref_mismatch_avg() > indelRemovalFilters['maxAvgNormalRefMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalRefMismatch"
-				return False
-			if self.t_alt_basequal_nqs() < indelRemovalFilters['minAvgTumorAltBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgTumorAltBaseQualInNQS"
-				return False
-			if self.t_ref_basequal_nqs() < indelRemovalFilters['minAvgTumorRefBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgTumorRefBaseQualInNQS"
-				return False
-			if self.n_alt_basequal_nqs() < indelRemovalFilters['minAvgNormalAltBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgNormalAltBaseQualInNQS"
-				return False
-			if self.n_ref_basequal_nqs() < indelRemovalFilters['minAvgNormalRefBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgNormalRefBaseQualInNQS"
-				return False
-			if self.t_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorAltMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatchInNQS"
-				return False
-			if self.t_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorRefMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatchInNQS"
-				return False
-			if self.n_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalAltMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
-				return False
-			if self.n_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalRefMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
-				return False
+			#if self.t_alt_mismatch_avg() > indelRemovalFilters['maxAvgTumorAltMismatch']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatch"
+				#return False
+			#if self.t_ref_mismatch_avg() > indelRemovalFilters['maxAvgTumorRefMismatch']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatch"
+				#return False
+			#if self.n_alt_mismatch_avg() > indelRemovalFilters['maxAvgNormalAltMismatch']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatch"
+				#return False
+			#if self.n_ref_mismatch_avg() > indelRemovalFilters['maxAvgNormalRefMismatch']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgNormalRefMismatch"
+				#return False
+			#if self.t_alt_basequal_nqs() < indelRemovalFilters['minAvgTumorAltBaseQualInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts below minAvgTumorAltBaseQualInNQS"
+				#return False
+			#if self.t_ref_basequal_nqs() < indelRemovalFilters['minAvgTumorRefBaseQualInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts below minAvgTumorRefBaseQualInNQS"
+				#return False
+			#if self.n_alt_basequal_nqs() < indelRemovalFilters['minAvgNormalAltBaseQualInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts below minAvgNormalAltBaseQualInNQS"
+				#return False
+			#if self.n_ref_basequal_nqs() < indelRemovalFilters['minAvgNormalRefBaseQualInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts below minAvgNormalRefBaseQualInNQS"
+				#return False
+			#if self.t_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorAltMismatchInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatchInNQS"
+				#return False
+			#if self.t_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorRefMismatchInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatchInNQS"
+				#return False
+			#if self.n_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalAltMismatchInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
+				#return False
+			#if self.n_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalRefMismatchInNQS']:
+				#self.ourJudgment = "no"
+				#self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
+				#return False
 			if self.n_var_freq() >= self.t_var_freq():
 				self.ourJudgment = "no"
 				self.ourJudgmentReasons += "normal var freq exceeds tumor var freq"

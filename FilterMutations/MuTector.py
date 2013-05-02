@@ -3,7 +3,7 @@ from pykent.common.Sanity import errAbort, canBeInt, canBeNum, roughlyEqual
 from pykent.common.DNAUtil import isDNA
 
 MuTectorVersion = "## muTector v1.0.27200"
-MuTectorColumns = "contig position ref_allele alt_allele tumor_name normal_name score dbsnp_site covered power tumor_power normal_power total_pairs improper_pairs map_Q0_reads t_lod_fstar tumor_f contaminant_fraction contaminant_lod t_ref_count t_alt_count t_ref_sum t_alt_sum t_ins_count t_del_count normal_best_gt init_n_lod n_ref_count n_alt_count n_ref_sum n_alt_sum judgement"
+MuTectorColumns = "contig position context ref_allele alt_allele tumor_name normal_name score dbsnp_site covered power tumor_power normal_power total_pairs improper_pairs map_Q0_reads t_lod_fstar tumor_f contaminant_fraction contaminant_lod t_ref_count t_alt_count t_ref_sum t_alt_sum t_ref_max_mapq t_alt_max_mapq t_ins_count t_del_count normal_best_gt init_n_lod n_ref_count n_alt_count n_ref_sum n_alt_sum judgement"
 NumMuTectorCols = len(MuTectorColumns.split(' '))
 MuTectorAlgorithm = "MuTect"
 
@@ -16,40 +16,44 @@ class MuTectorLine:
 			line = line[:-1]
 		line = line.split('\t')
 		if len(line) != NumMuTectorCols:
-			errAbort("MuTectorLine has %d columns (not %d): %s" % (len(line), self.NumCols, "\t".join(line)))
+			errAbort("MuTectorLine has %d columns (not %d): %s" % (len(line), NumMuTectorCols, "\t".join(line)))
+
 
 		self.contig = line[0]          # Chromosome
 		self.position = int(line[1])   # Chrom position
-		self.ref_allele = line[2]      # DNA
-		self.alt_allele = line[3]      # DNA
-		self.tumor_name = line[4]
-		self.normal_name = line[5]
-		self.score = int(line[6])
-		self.dbsnp_site = line[7]
-		self.covered = line[8]
-		self.power = float(line[9])
-		self.tumor_power = float(line[10])
-		self.normal_power = float(line[11])
-		self.total_pairs = int(line[12])
-		self.improper_pairs = int(line[13])
-		self.map_Q0_reads = int(line[14])
-		self.t_lod_fstar = float(line[15])
-		self.tumor_f = float(line[16])
-		self.contaminant_fraction = float(line[17])
-		self.contaminant_lod = float(line[18])
-		self.t_ref_count = int(line[19])
-		self.t_alt_count = int(line[20])
-		self.t_ref_sum = int(line[21])
-		self.t_alt_sum = int(line[22])
-		self.t_ins_count = int(line[23])
-		self.t_del_count = int(line[24])
-		self.normal_best_gt = line[25]   # DNA
-		self.init_n_lod = float(line[26])
-		self.n_ref_count = int(line[27])
-		self.n_alt_count = int(line[28])
-		self.n_ref_sum = int(line[29])
-		self.n_alt_sum = int(line[30])
-		self.judgement = line[31]
+		#self.context
+		self.ref_allele = line[3]      # DNA
+		self.alt_allele = line[4]      # DNA
+		self.tumor_name = line[5]
+		self.normal_name = line[6]
+		self.score = int(line[7])
+		self.dbsnp_site = line[8]
+		self.covered = line[9]
+		self.power = float(line[10])
+		self.tumor_power = float(line[11])
+		self.normal_power = float(line[12])
+		self.total_pairs = int(line[13])
+		self.improper_pairs = int(line[14])
+		self.map_Q0_reads = int(line[15])
+		self.t_lod_fstar = float(line[16])
+		self.tumor_f = float(line[17])
+		self.contaminant_fraction = float(line[18])
+		self.contaminant_lod = float(line[19])
+		self.t_ref_count = int(line[20])
+		self.t_alt_count = int(line[21])
+		self.t_ref_sum = int(line[22])
+		self.t_alt_sum = int(line[23])
+		#self.t_ref_max_mapq
+		#self.t_alt_max_mapq
+		self.t_ins_count = int(line[26])
+		self.t_del_count = int(line[27])
+		self.normal_best_gt = line[28]   # DNA
+		self.init_n_lod = float(line[29])
+		self.n_ref_count = int(line[30])
+		self.n_alt_count = int(line[31])
+		self.n_ref_sum = int(line[32])
+		self.n_alt_sum = int(line[33])
+		self.judgement = line[34]
 		self.algo = MuTectorAlgorithm
 		self.validateMuTectorLine()
 		self.makeOurJudgment(snpAnnotationFilters)
