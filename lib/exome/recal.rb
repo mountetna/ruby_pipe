@@ -28,7 +28,7 @@ module Exome
 	log_info "Mark duplicates"
 	picard :mark_duplicates, :INPUT => config.merged_library_bam,
           :OUTPUT => config.raw_library_bam, :METRICS_FILE => config.recal_metrics, 
-          :REMOVE_DUPLICATES => :true, :CREATE_INDEX => :true or error_exit "Mark duplicates failed"
+          :REMOVE_DUPLICATES => :false, :CREATE_INDEX => :true or error_exit "Mark duplicates failed"
       end
     end
   end
