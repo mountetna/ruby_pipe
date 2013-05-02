@@ -34,12 +34,15 @@ module Exome
           "raw_sample.bai" => :raw_sample_bai,
 
           "@chrom_name.snvs.raw.mutect.txt" => :mutect_snvs,
+          "@sample_name.snvs.raw.mutect.txt" => :mutect_all_snvs,
           "@chrom_name.snvs.coverage.mutect.wig" => :mutect_coverage,
           "@chrom_name.insert_mutations" => :insert_mutations,
           "@chrom_name.snvs.pindel" => :pindel_snvs,
           "@chrom_name.snvs.pindel_D" => :pindel_snv_d,
           "@chrom_name.pindel.conf" => :pindel_list,
+          "@chrom_name.indels.unpatched.pindel.vcf" => :pindel_unpatched_vcf,
           "@chrom_name.indels.raw.pindel.vcf" => :pindel_vcf,
+          "@sample_name.indels.raw2.pindel.vcf" => :pindel_all_vcf,
 
           ":normal_name.cov" => :normal_cov,
           "@sample_name.cov" => :tumor_cov
@@ -72,7 +75,7 @@ module Exome
       ":output_dir" => {
         "@sample_name" => {
           "@sample_name.:bam_label.bam" => :output_bam,
-          "@sample_name.maf" => :tumor_maf,
+          "@sample_name.mut.txt" => :tumor_muts,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :tumor_exon_cnr,

@@ -10,6 +10,7 @@
 :bowtie_dir: /taylorlab/lib/bowtie/bowtie-latest
 :bowtie2_dir: /taylorlab/lib/bowtie/bowtie2-latest
 :samtools_dir: /taylorlab/lib/samtools/samtools-latest
+:vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
 :mutect_dir: /taylorlab/lib/mutect/mutect-latest
 :mutect_jar: muTect.jar
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest

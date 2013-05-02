@@ -168,8 +168,12 @@ module Pipeline
     end
 
     def filter_muts(snvs,indels,out_file)
-      filter_config ="#{config.lib_dir}/FilterMutations/mutationConfig.cfg"
+      filter_config ="#{config.config_dir}/#{config.genome}_mutationConfig.cfg"
       run_cmd "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
+    end
+
+    def vcf_concat files, outfile
+      run_cmd "PERL5LIB=#{config.vcftools_dir}/perl #{config.vcftools_dir}/bin/vcf-concat #{files.join(" ")} > #{outfile}"
     end
 
     def hash_table(file,headers=nil)
@@ -180,6 +184,12 @@ module Pipeline
 
     def coverage_bed(bam,intervals,outfile)
       run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
+    end
+
+    def count_depth bam, chr, pos, pos2=nil
+      # get the depth at a particular site
+      depth = `samtools mpileup -r #{chr}:#{pos}-#{pos2 || pos} #{bam} 2>/dev/null | awk '{print $4}'`
+      return depth.to_i
     end
 
     def create_interval_bed
