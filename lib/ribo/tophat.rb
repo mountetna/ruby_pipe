@@ -3,7 +3,7 @@ module Ribo
     include Pipeline::Step
     runs_tasks :cull_unaligned, :cull_aligned, :make_unaligned_fastq, :tophat_align, :merge_reads, :enforce_label
     resources :threads => 12
-    job_list do config.samples end
+    runs_on :samples
 
     class CullUnaligned
       include Pipeline::Task

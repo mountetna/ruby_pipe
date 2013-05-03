@@ -2,7 +2,7 @@ module Ribo
   class Align
     include Pipeline::Step
     runs_tasks :clip_fastq, :align_single, :map_reads, :enforce_label
-    job_list do config.samples end
+    runs_on :samples
     resources :threads => 6
 
     class ClipFastq

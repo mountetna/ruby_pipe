@@ -69,11 +69,12 @@ module Pipeline
       create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
     end
 
+    usage "list_steps", "List steps for this pipeline."
+    usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
+    usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
     usage "start <config_file.yml> [<step>]", "Start the pipeline at the beginning or at <step>"
     usage "run_step <config_file.yml> <step_name>", "Run just the named step"
-    usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
     usage "stop <config_file.yml> [please]", "stop the pipeline, optionally waiting for the current step to finish"
-    usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
     usage "clean <config_file.yml> <scratch|output|list> <step|all> [<task>]", "Clean up files from a given run"
 
     def generate(args)
@@ -111,6 +112,17 @@ module Pipeline
     def clean(args)
       args = set_config args, :clean
       clean_job(args)
+    end
+
+    def list_steps(args)
+      args = set_config args, :audit
+      puts "Steps for #{config.script}".red.bold
+      steps.each do |s|
+        step = create_step s
+        puts "step #{config.step}".green.bold
+        puts "  runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+        puts "  default tasks #{step.tasks.join(", ")}".blue.bold
+      end
     end
 
     def init(args)

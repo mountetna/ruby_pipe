@@ -3,7 +3,7 @@ module Exome
   class HybridQc
     include Pipeline::Step
     runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes, :collect_align_metrics, :coverage_metrics
-    job_list do config.samples end
+    runs_on :samples
 
     class CalcFlags
       include Pipeline::Task

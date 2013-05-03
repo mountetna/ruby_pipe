@@ -5,7 +5,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :cufflink, :count_coverage #, :format_transcript
     resources :threads => 12
-    job_list do config.replicates end
+    runs_on :replicates
 
     class Cufflink
       include Pipeline::Task

@@ -2,7 +2,7 @@ module Ribo
   class Coverage
     include Pipeline::Step
     runs_tasks :normal_coverage, :random_coverage
-    job_list do config.samples end
+    runs_on :samples
 
     class NormalCoverage
       include Pipeline::Task

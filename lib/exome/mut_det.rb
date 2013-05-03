@@ -8,7 +8,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
     resources :threads => 12
-    job_list do config.tumor_samples.collect(&:chroms).flatten end
+    runs_on :tumor_samples, :chroms
 
     def vacuum
       config.sample_names.each do |s|
@@ -98,7 +98,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :filter_muts
     resources :threads => 12
-    job_list do config.tumor_samples end
+    runs_on :tumor_samples
 
     class FilterMuts
       include Pipeline::Task

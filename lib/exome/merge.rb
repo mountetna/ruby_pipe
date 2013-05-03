@@ -3,7 +3,7 @@ module Exome
   class Merge
     include Pipeline::Step
     runs_tasks :merge_sam_files, :index_bam
-    job_list do config.samples end
+    runs_on :samples
     resources :threads => 12
 
     class MergeSamFiles

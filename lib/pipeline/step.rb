@@ -2,18 +2,22 @@ require 'fileutils'
 
 module Pipeline
   module Step
+    include Pipeline::Base
     include Pipeline::Logger
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      attr_reader :job_array
+      attr_reader :job_items, :tasks, :available_tasks
       def runs_task(*tasklist)
         @tasks = tasklist
       end
       alias :runs_tasks :runs_task
-      def tasks
-        @tasks
+
+      def has_task *tasklist
+        @available_tasks = tasklist
       end
+      alias :has_tasks :has_task
+
       def required
         @required ||= @tasks.map{ |t| self.class.daughter_class(t).required_files }.flatten
       end
@@ -26,6 +30,10 @@ module Pipeline
 
       def job_list &block
         @job_array = block
+      end
+
+      def runs_on *job_item_keys
+        @job_items = job_item_keys
       end
 
       def resources(opts = nil)
@@ -45,16 +53,21 @@ module Pipeline
       setup_logging unless config.action == :audit || config.action == :clean
     end
 
+    class_var :job_items, :tasks, :available_tasks, :resources
+
     def job_array
-      if self.class.job_array
-        instance_exec(nil, &self.class.job_array)
+      if job_items
+        obj = config.send job_items.first
+        if job_items.size > 1
+          obj = obj.collect(&job_items[1]).flatten
+        end
+        return obj
       end
     end
 
     def step_name; self.class.name.split(/::/).last.snake_case.to_sym; end
     def script; @script; end
     def config; @script.config; end
-    def resources; self.class.resources; end
 
     def setup_scheduler(prevjob, splits)
       # setup the scheduler to run this task.
@@ -96,7 +109,7 @@ module Pipeline
       # run the vacuum script
       vacuum
       return if config.keep_temp_files
-      self.class.tasks.each do |t|
+      tasks.each do |t|
         self.class.daughter_class(t).dump_files.each do |f|
           filename = config.send(f)
           if filename && filename.is_a?(Array)
@@ -112,7 +125,7 @@ module Pipeline
 
     def exec
       log_info "Starting #{step_name} trial #{config.job_index}".magenta.bold
-      self.class.tasks.each do |t|
+      tasks.each do |t|
         task = create_task t
 
         task.exec if task.should_run

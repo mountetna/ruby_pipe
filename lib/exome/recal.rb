@@ -36,7 +36,7 @@ module Exome
   class Recal
     include Pipeline::Step
     runs_tasks :create_intervals, :realign_indels, :count_covariates, :table_recal, :recal_index
-    job_list do config.chroms end
+    runs_on :chroms
     resources :threads => 1
 
     class CreateIntervals
@@ -135,7 +135,7 @@ module Exome
     include Pipeline::Step
     runs_task :sort_sample
     resources :threads => 12
-    job_list do config.samples end
+    runs_on :samples
 
     class SortSample
       include Pipeline::Task

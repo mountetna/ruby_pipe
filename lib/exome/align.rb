@@ -2,7 +2,7 @@ module Exome
   class Align 
     include Pipeline::Step
     runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label
-    job_list do config.samples.collect(&:inputs).flatten end
+    runs_on :samples, :inputs
     resources :threads => 6
 
     class AlignFirst 

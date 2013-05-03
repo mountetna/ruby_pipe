@@ -3,7 +3,7 @@ module Ribo
     include Pipeline::Step
     runs_tasks :sort_seq, :enforce_headers, :merge_bams
     resources :threads => 12
-    job_list do config.samples end
+    runs_on :samples
 
     class SortSeq
       include Pipeline::Task
