@@ -10,15 +10,9 @@ require 'exome/copy_number'
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :mut_det, :mut_filter, :copy_number_prep, :copy_number
+    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :mut_det, :mut_filter
 
     def exclude_task? task
-      case task
-      when Exome::CopyNumber::CopySeg, Exome::CopyNumber::MutAddSeg
-        return true if config.unit != "exome"
-      when Exome::CopyNumber::MutAddCnv
-        return true if config.unit == "exome"
-      end
       return nil
     end
 

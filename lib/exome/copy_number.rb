@@ -25,7 +25,7 @@ module Exome
   end
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg #, :mut_add_seg, :mut_add_cnv
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg
     runs_on :tumor_samples
 
     class ComputeCoverage
@@ -90,32 +90,6 @@ module Exome
 
       def run
         r_script :absolute, config.sample_name, config.tumor_cnr_seg, config.tumor_maf, config.absolute_scratch
-      end
-    end
-    class MutAddCnv
-      include Pipeline::Task
-      requires_file :insert_mutations, :tumor_exon_cnr
-      outs_file :tumor_mutations
-
-      def run
-        muts = HashTable.new(config.insert_mutations)
-
-        muts.header.insert( muts.header.index(:t_ref_count), :log_cnr )
-
-        muts.print(config.tumor_mutations)
-      end
-    end
-    class MutAddSeg
-      include Pipeline::Task
-      requires_file :insert_mutations, :tumor_cnr_seg
-      outs_file :tumor_mutations
-
-      def run
-        muts = HashTable.new(config.insert_mutations)
-
-        muts.header.insert( muts.header.index(:t_ref_count), :log_cnr_seg )
-
-        muts.print(config.tumor_mutations)
       end
     end
   end
