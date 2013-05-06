@@ -1,8 +1,10 @@
 :pindel:
   :normal:
-    :max_ref_count: 0
+    :max_alt_count: 0
+    :min_depth: 8
   :tumor:
-    :min_ref_count: 2
+    :min_alt_count: 2
+    :min_depth: 14
 :mutect:
   :has_judgement: KEEP
   :include_dbsnp_site: [ COSMIC, NOVEL ]

@@ -2,16 +2,15 @@
 require 'hash_table'
 require 'fileutils'
 module Exome
-  class CopyNumber
+  class CopyNumberPrep
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg #, :mut_add_seg, :mut_add_cnv
-    runs_on :tumor_samples
+    runs_task :create_intervals_bed
 
-    class ComputeCoverage
+    class CreateIntervalsBed
       include Pipeline::Task
-      requires_files :tumor_bam, :normal_bam, :interval_list
-      dumps_files :tumor_cov, :normal_cov
-
+      requires_file :interval_list
+      dumps_file :interval_bed
+      
       def run
         if !File.exists? config.interval_bed
           File.open(config.interval_bed,"w") do |f|
@@ -21,10 +20,25 @@ module Exome
             end
           end
         end
+      end
+    end
+  end
+  class CopyNumber
+    include Pipeline::Step
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg #, :mut_add_seg, :mut_add_cnv
+    runs_on :tumor_samples
+
+    class ComputeCoverage
+      include Pipeline::Task
+      requires_files :tumor_bam, :normal_bam, :interval_bed
+      dumps_files :tumor_cov, :normal_cov
+
+      def run
         coverage_bed config.normal_bam, config.interval_bed, config.normal_cov or error_exit "Computing normal coverage failed."
         coverage_bed config.tumor_bam, config.interval_bed, config.tumor_cov or error_exit "Computing tumor coverage failed."
       end
     end
+
     class ComputeRatio
       include Pipeline::Task
       requires_files :normal_cov, :tumor_cov
@@ -38,9 +52,10 @@ module Exome
       end
 
       def run
-        normal_cov = HashTable.new(config.normal_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
-        tumor_cov = HashTable.new(config.tumor_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
-        tumor_logr = HashTable.new(config.tumor_cov, :header => [ :chr, :start, :stop, :strand, :name, :count ])
+        header = [ :chr, :start, :stop, :strand, :name, :count ]
+        normal_cov = HashTable.new(config.normal_cov, :header => header)
+        tumor_cov = HashTable.new(config.tumor_cov, :header => header)
+        tumor_logr = HashTable.new(config.tumor_cov, :header => header)
 
         n_tot = normal_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
         t_tot = tumor_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
