@@ -12,9 +12,10 @@ module Rna
       def run
 	log_info "Running Unified Genotyper"
 	gatk :unified_genotyper,
-		:genotype_likelihoods_model => :BOTH, :genotyping_mode => :DISCOVERY,
+		:genotype_likelihoods_model => :BOTH, 
+                :genotyping_mode => :DISCOVERY,
 		:input_file => config.output_bams,
-		:dbsnp => config.dbsnp_vcf, :logging_level => :WARN,
+		:dbsnp => config.dbsnp_vcf,
 		:intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
 		:standard_min_confidence_threshold_for_calling => 30.0,
 		:standard_min_confidence_threshold_for_emitting => 10.0,

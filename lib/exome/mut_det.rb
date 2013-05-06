@@ -25,7 +25,6 @@ module Exome
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
           :intervals => config.chrom,
-          :logging_level => :DEBUG,
           :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
       end
     end

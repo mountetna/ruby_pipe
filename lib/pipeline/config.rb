@@ -44,6 +44,7 @@ module Pipeline
     def_var :pipe_script do "#{pipe}_#{script}" end
     def_var :step_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{step}.#{job_index}.log" end
     def_var :main_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{script}.log" end
+    def_var :log_level do :WARN end
 
     def_var :error_pid do "#{cohort_scratch}/error.pid" end
     def_var :error_file do "ERROR.#{cohort_name}" end
