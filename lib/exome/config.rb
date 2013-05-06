@@ -69,8 +69,10 @@ module Exome
           "@sample_name.hybrid_selection_metrics" => :qc_hybrid,
           "@sample_name.alignment_metrics" => :qc_align_metrics,
           "@sample_name.insert_sizes" => :qc_inserts,
-          "@sample_name.sample_summary" => :qc_coverage_metrics
-        }
+          "@sample_name.sample_summary" => :qc_coverage_metrics,
+          "@sample_name" => :qc_coverage_base
+        },
+        "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
         "@sample_name" => {

@@ -56,11 +56,58 @@ module Exome
 
       def run
         create_interval_bed
-        gatk :depth_of_coverage, :out => config.sample_metrics_base, :input_file =>  config.qc_bam,
+        gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.qc_bam,
           :omitDepthOutputAtEachBase => true,
           :omitIntervalStatistics => true,
           :omitLocusTable => true,
           :intervals => config.interval_bed or error_exit "Coverage computation failed"
+      end
+    end
+  end
+
+  class HybridQcSummary
+    include Pipeline::Step
+    runs_tasks :summarize_qc
+
+    class SummarizeQc
+      include Pipeline::Task
+      outs_file :qc_summary
+      
+      def run
+        qc = {}
+        config.samples.each do |s|
+          # read in each file name and build up a hash of interesting information
+          sample_qc = {}
+          flags = Hash[[ :total, :duplicates, :mapped, :paired_in_sequence, :read1, :read2, :properly_paired, :both_mapped, :singletons, :mate_mapped_chr, :mate_mapped_chr_highq ].zip File.foreach(config.qc_flag s).map(&:split).map(&:first)]
+          sample_qc.update flags
+
+          hybrid = File.foreach(config.qc_hybrid s).reject{|i| i=~ /^(#|$)/}.map(&:split)
+          hybrid = Hash[hybrid.first.map(&:downcase).map(&:to_sym).zip hybrid.last]
+          sample_qc.update hybrid
+
+          #config.qc_align_metrics - these are maybe redundant?
+          
+          inserts = File.foreach(config.qc_inserts s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
+          inserts = Hash[inserts.first.map(&:downcase).map(&:to_sym).zip inserts.last]
+          sample_qc[:median_insert_size] = inserts[:median_insert_size]
+          sample_qc[:mean_insert_size] = inserts[:mean_insert_size]
+
+          coverage = File.foreach(config.qc_coverage_metrics s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
+          coverage = Hash[coverage.first.map(&:downcase).map(&:to_sym).zip coverage.last]
+          sample_qc[:mean_coverage] = coverage[:mean]
+
+          qc[s.sample_name] = sample_qc
+        end
+        if qc.size > 1
+          File.open(config.qc_summary, "w") do |f|
+            metrics = qc.first.last.keys
+            samples = qc.keys
+            f.puts "\t" + samples.join("\t")
+            metrics.each do |metric|
+              f.puts "#{metric}\t#{samples.map{|s| qc[s][metric]}.join("\t")}"
+            end
+          end
+        end
       end
     end
   end

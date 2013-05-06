@@ -72,7 +72,6 @@ module Pipeline
     def_var :sample_output do |s| sample_dir output_dir, s end
     def_var :sample_output_file do |affix,s| File.join sample_output(s), affix end 
     def_var :sample_metrics do |s| sample_dir metrics_dir, s end
-    def_var :sample_metrics_base do |s| File.join metrics_dir, "#{s || sample_name}" end 
     def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
     def_var :sample_name do sample.sample_name end
 
