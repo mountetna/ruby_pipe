@@ -2,19 +2,19 @@
 from pykent.common.Sanity import errAbort, canBeInt, canBeNum, roughlyEqual
 from pykent.common.DNAUtil import isDNA
 
-SomaticIndelRequiredColumns = '#CHROM POS ID REF ALT QUAL FILTER INFO'
-SomaticIndelNumRequiredColumns = len(SomaticIndelRequiredColumns.split(' '))
-SomaticIndelAlgorithm = "SomaticIndelDetector"
+PindelRequiredColumns = '#CHROM POS ID REF ALT QUAL FILTER INFO'
+PindelNumRequiredColumns = len(PindelRequiredColumns.split(' '))
+PindelAlgorithm = "Pindel"
 NA = "NA"
 
-class SomaticIndelLine:
+class PindelLine:
 
 	def __init__(self, line, tumorName, normalName, indelAnnotationFilters):
-		''' Initialize a SomaticIndelLine '''
+		''' Initialize a PindelLine '''
 		if line.endswith('\n'):
 			line = line[:-1]
 		line = line.split('\t')
-		if len(line) < SomaticIndelNumRequiredColumns:
+		if len(line) < PindelNumRequiredColumns:
 			errAbort("Improperly formatted .vcf line: %s" % " ".join(line))
 		self.contig = line[0]
 		self.position = int(line[1])
@@ -32,10 +32,10 @@ class SomaticIndelLine:
 		self.normal_power = NA
 		self.improper_pairs = NA
 		self.addlInfo = None
-		self.algo = SomaticIndelAlgorithm
+		self.algo = PindelAlgorithm
 
-		if len(line) > SomaticIndelNumRequiredColumns:
-			if len(line) != SomaticIndelNumRequiredColumns+3:
+		if len(line) > PindelNumRequiredColumns:
+			if len(line) != PindelNumRequiredColumns+3:
 				errAbort("Do not know how to handle non-3-extra-column .vcf files.")
 			dataCols = line[8].split(':')
 			firstData = line[9].split(':')
@@ -48,13 +48,13 @@ class SomaticIndelLine:
 				self.addlInfo["tumor"][col] = firstData[idx]
 				self.addlInfo["normal"][col] = secondData[idx]
 
-		self.validateSomaticIndelLine()
+		self.validatePindelLine()
 		self.convertToAnnovar()
 		self.makeOurJudgment(indelAnnotationFilters)
 
 
-	def validateSomaticIndelLine(self):
-		''' Make sure all SomaticIndel fields make sense '''
+	def validatePindelLine(self):
+		''' Make sure all Pindel fields make sense '''
 		if self.position < 0:
 			errAbort("Position must be non-negative: %s" % self.__str__())
 		if not isDNA(self.ref_allele):
@@ -140,54 +140,6 @@ class SomaticIndelLine:
 			if self.n_var_freq() > indelRemovalFilters['maxNormalVarFreq']:
 				self.ourJudgment = "no"
 				self.ourJudgmentReasons += "counts above maxNormalVarFreq"
-				return False
-			if self.t_alt_mismatch_avg() > indelRemovalFilters['maxAvgTumorAltMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatch"
-				return False
-			if self.t_ref_mismatch_avg() > indelRemovalFilters['maxAvgTumorRefMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatch"
-				return False
-			if self.n_alt_mismatch_avg() > indelRemovalFilters['maxAvgNormalAltMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatch"
-				return False
-			if self.n_ref_mismatch_avg() > indelRemovalFilters['maxAvgNormalRefMismatch']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalRefMismatch"
-				return False
-			if self.t_alt_basequal_nqs() < indelRemovalFilters['minAvgTumorAltBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgTumorAltBaseQualInNQS"
-				return False
-			if self.t_ref_basequal_nqs() < indelRemovalFilters['minAvgTumorRefBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgTumorRefBaseQualInNQS"
-				return False
-			if self.n_alt_basequal_nqs() < indelRemovalFilters['minAvgNormalAltBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgNormalAltBaseQualInNQS"
-				return False
-			if self.n_ref_basequal_nqs() < indelRemovalFilters['minAvgNormalRefBaseQualInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts below minAvgNormalRefBaseQualInNQS"
-				return False
-			if self.t_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorAltMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorAltMismatchInNQS"
-				return False
-			if self.t_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgTumorRefMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgTumorRefMismatchInNQS"
-				return False
-			if self.n_alt_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalAltMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
-				return False
-			if self.n_ref_mismatch_avg_nqs() > indelRemovalFilters['maxAvgNormalRefMismatchInNQS']:
-				self.ourJudgment = "no"
-				self.ourJudgmentReasons += "counts above maxAvgNormalAltMismatchInNQS"
 				return False
 			if self.n_var_freq() >= self.t_var_freq():
 				self.ourJudgment = "no"

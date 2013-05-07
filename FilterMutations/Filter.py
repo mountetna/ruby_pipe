@@ -26,7 +26,7 @@ import glob
 from pykent.common.Sanity import errAbort, canBeInt, canBeNum, roughlyEqual
 from pykent.common.DNAUtil import isDNA
 from MuTector import *
-from SomaticIndel import *
+from Pindel import *
 from AnnoVar import *
 
 # Global variables
@@ -194,12 +194,12 @@ def filterIndels(indelFn, retList):
 			if inDataLine:
 				errAbort("Invalid format for .vcf, should not have any comments after initial headers: %s" % line)
 			spaceLine = line.strip().replace('\t', ' ')
-			if not spaceLine.startswith(SomaticIndelRequiredColumns):
+			if not spaceLine.startswith(PindelRequiredColumns):
 				errAbort("Expecting .vcf to have different columns than: %s" % line)
 			tumorName, normalName = line.strip().split('\t')[-2:]
 		else:
 			inDataLine = True
-			mutation = SomaticIndelLine(line, tumorName, normalName, indelAnnotationFilters)
+			mutation = PindelLine(line, tumorName, normalName, indelAnnotationFilters)
 			if mutation.shouldBeKept(indelRemovalFilters):
 				retList.append(mutation)
 
@@ -238,7 +238,7 @@ def writeMutations(outFn, retval, annovars):
 	annoVarRemovalFilters = AllFilters['AnnoVarRemovalFilters']
 
 	for idx, m in enumerate(retval):
-		# We've already filtered the MuTect and SomaticIndel data based on reads
+		# We've already filtered the MuTect and Pindel data based on reads
 		# and variant frequency.  Now do the final filters to make sure it's a type
 		# of mutation we care about reporting.
 		a = annovars[idx]
@@ -247,7 +247,7 @@ def writeMutations(outFn, retval, annovars):
 		assert (a.chrom == m.contig) and (a.startPos == m.position) and (a.ref_allele == m.ref_allele) and (a.alt_allele == m.alt_allele)
 
 		if a.shouldBeKept(annoVarRemovalFilters): # and getOurFinalJudgment(m.ourJudgment,a.ourJudgment) == "yes":
-			if m.algo == SomaticIndelAlgorithm:
+			if m.algo == PindelAlgorithm:
 				f.write("\t".join([a.genes, a.chrom, str(a.startPos), a.ref_allele, a.alt_allele, a.nucleotide, a.protein, a.context, a.exonMutTypeStr(), m.tumor_name, m.normal_name, str(m.score), str(m.power), str(m.tumor_power), str(m.normal_power), str(m.t_total_depth()+m.n_total_depth()), str(m.improper_pairs), str(m.map_Q0_reads()), "0", NA, str(m.t_ref_count()), str(m.t_alt_count()), str(m.n_ref_count()), str(m.n_alt_count()), str(m.t_var_freq()), str(m.n_var_freq()), a.accession, a.exon, joinText(m.getKnownVariantStatus(), a.getKnownVariantStatus(), defaultText="NOVEL", joinerText="_"), m.algo, getOurFinalJudgment(m.ourJudgment, a.ourJudgment), joinText(m.ourJudgmentReasons, a.ourJudgmentReasons)]) + '\n')
 			else:
 				f.write("\t".join([a.genes, a.chrom, str(a.startPos), a.ref_allele, a.alt_allele, a.nucleotide, a.protein, a.context, a.exonMutTypeStr(), m.tumor_name, m.normal_name, str(m.score), str(m.power), str(m.tumor_power), str(m.normal_power), str(m.total_pairs), str(m.improper_pairs), str(m.map_Q0_reads), str(m.contaminant_fraction), str(m.contaminant_lod), str(m.t_ref_count), str(m.t_alt_count), str(m.n_ref_count), str(m.n_alt_count), str(m.t_var_freq()), str(m.n_var_freq()), a.accession, a.exon, joinText(m.getKnownVariantStatus(), a.getKnownVariantStatus(), defaultText="NOVEL", joinerText="_"), m.algo, getOurFinalJudgment(m.ourJudgment, a.ourJudgment), joinText(m.ourJudgmentReasons, a.ourJudgmentReasons)]) + '\n')
