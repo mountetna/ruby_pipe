@@ -69,7 +69,7 @@ module Pipeline
       create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
     end
 
-    usage "list_steps", "List steps for this pipeline."
+    usage "list_steps <config_file.yml>", "List steps for this pipeline."
     usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
     usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
     usage "start <config_file.yml> [<step>]", "Start the pipeline at the beginning or at <step>"
