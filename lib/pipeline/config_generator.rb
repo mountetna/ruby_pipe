@@ -86,7 +86,7 @@ module Pipeline
     end
 
     def reset(args=nil)
-      @config = { :cohort_name => @cohort_name}.update YAML.load( config_text )
+      @config = { :cohort_name => @cohort_name}.update(YAML.load( config_text ) || {})
     end
 
     def samples(args=nil)
@@ -141,9 +141,14 @@ module Pipeline
     end
 
     def start_generator
-      Readline.completion_append_character = " "
       Readline.completion_proc = Proc.new do |str|
-          Dir[str+'*'].grep( /^#{Regexp.escape(str)}/ )
+          opts = Dir[str+'*'].grep( /^#{Regexp.escape(str)}/ )
+          if opts.length == 1 && File.directory?(opts.first)
+            Readline.completion_append_character = "/"
+          else
+            Readline.completion_append_character = " "
+          end
+          opts
       end
       while buf = Readline.readline("> ",true)
         exit if !buf
