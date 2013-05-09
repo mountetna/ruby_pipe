@@ -135,8 +135,11 @@ module Exome
               :pos => l.pos,
               :ref_allele =>              l.ref,
               :alt_allele =>              l.alt,
-              :tumor_var_freq =>          l.genotype(config.normal_name).approx_depth,
-              :normal_alt_count =>        l.genotype(config.sample_name).approx_depth,
+              :tumor_ref_count => l.genotype(config.sample_name).ref_count,
+              :tumor_alt_count => l.genotype(config.sample_name).alt_count,
+              :tumor_var_freq => l.genotype(config.sample_name).alt_freq,
+              :normal_ref_count => l.genotype(config.normal_name).ref_count,
+              :normal_alt_count => l.genotype(config.normal_name).alt_count,
               :variant_classification =>  l.onco.txp_variant_classification,
               :protein_change =>          l.onco.txp_protein_change,
               :class  =>                  l.onco.pph2_class
@@ -144,7 +147,7 @@ module Exome
         end
         File.open(config.tumor_muts, "w") do |f|
           f.puts headers.join("\t")
-          muts.each do |m|
+          muts.sort_by{|m| -1 * m[:tumor_var_freq]}.each do |m|
             f.puts headers.map{|h| m[h] || "-" }.join("\t")
           end
         end
