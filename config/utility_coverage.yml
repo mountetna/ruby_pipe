@@ -1,0 +1,8 @@
+# Coverage for a set of BAM files and a given GTF
+
+:pipe: utility
+:script: coverage
+
+:output_dir: ./output
+:log_dir: ./log
+
