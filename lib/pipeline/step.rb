@@ -37,7 +37,7 @@ module Pipeline
       end
 
       def resources(opts = nil)
-        @resources ||= {}
+        @resources ||= {:walltime => 3}
         @resources.update(opts || {})
       end
     end
@@ -81,7 +81,7 @@ module Pipeline
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      job = schedule_job :exec, :splits => config.splits, :walltime => 3, :threads => resources[:threads]
+      job = schedule_job :exec, :splits => config.splits, :walltime => resources[:walltime], :threads => resources[:threads]
       [ job, config.splits ]
     end
 
