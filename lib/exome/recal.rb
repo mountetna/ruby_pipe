@@ -21,8 +21,7 @@ module Exome
     class MarkDuplicates
       include Pipeline::Task
       requires_file :merged_library_bam
-      outs_file :raw_library_bam
-      outs_file :recal_metrics
+      outs_file :raw_library_bam, :recal_metrics
 
       def run
 	log_info "Mark duplicates"
