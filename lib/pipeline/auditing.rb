@@ -15,6 +15,11 @@ module Pipeline
     end
 
     def audit_job(args)
+      if args.last == "verbose"
+        args.pop
+        config.set_config :verbose, true
+      end
+        
       if args.first
         step = args.first.to_sym
         abort "No such step!".red.bold if !steps.include? step
@@ -78,15 +83,15 @@ module Pipeline
             end
           end
         end
-        def print_missing
+        def print_files
           @files.each do |f|
             filename = @config.send f
             if filename && filename.is_a?(Array)
               filename.each do |fn|
-                yield(f,fn) if !fn || !File.size?(fn) || !File.readable?(fn)
+                yield(f,fn)
               end
             else
-              yield(f,filename) if !filename || !File.size?(filename) || !File.readable?(filename)
+              yield(f,filename)
             end
           end
         end
@@ -101,6 +106,10 @@ module Pipeline
         return aud + [ "(#{aud.first}/#{aud.last})".green ] #.bold.color( aud.first == aud.last ? c1 : c2 ) ]
       end
 
+      def empty? fn
+        !fn || !File.size?(fn) || !File.readable?(fn)
+      end
+
       def audit
         return if step.script.exclude_task? self
         log_console "task #{task_name}:".blue.bold
@@ -112,19 +121,28 @@ module Pipeline
         log_console "out files: #{out.summary}" if out.total > 0
         if req.missing?
           log_console "won't run, required files are missing".red
-          req.print_missing { |f, filename| log_console "#{f} => #{filename}".red }
+          req.print_files do |f,fn| 
+            log_console "#{f} => #{fn}".red if empty? fn
+          end
           return
         end
         if dump.missing?
           log_console "will run, needs to make dump files".green
-          dump.print_missing { |f, filename| log_console "#{f} => #{filename}".red }
+          dump.print_files do |f,fn| 
+            log_console "#{f} => #{fn}".red if empty? fn
+          end
         end
         if out.missing?
           log_console "will run, needs to make out files".green
-          out.print_missing { |f, filename| log_console "#{f} => #{filename}".red }
+          out.print_files do |f,fn|
+            log_console "#{f} => #{fn}".red if empty? fn
+          end
         end
         if !dump.missing? && !out.missing?
           log_console "won't run, all files are present".blue
+          out.print_files do |f,fn|
+            log_console "#{f} => #{fn}".green
+          end if config.verbose
         end
       end
     end
