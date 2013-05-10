@@ -83,6 +83,7 @@ module Pipeline
 
     def set_config args, act = nil
       ENV['CONFIG'] = args.shift
+      abort "Config file not found.".red.bold if !File.exists? ENV['CONFIG']
       config.set_config :action, (act || :init)
       args
     end
