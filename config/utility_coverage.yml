@@ -5,4 +5,4 @@
 
 :output_dir: ./output
 :log_dir: ./log
-
+:scratch_dir: ./scratch
