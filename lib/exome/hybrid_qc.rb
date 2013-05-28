@@ -12,7 +12,7 @@ module Exome
 
       def run
 	log_info "Calculate flag statistics"
-        sam_flags config.qc_bam, config.qc_flag
+        sam_flags config.qc_bam, config.qc_flag or error_exit "Collecting flag statistics failed"
       end
     end
 
@@ -23,7 +23,7 @@ module Exome
 
       def run
 	log_info "Calculate hybrid selection metrics"
-        picard :calculate_hs_metrics, :BAIT_INTERVALS => config.interval_list, :TARGET_INTERVALS => config.interval_list, :INPUT => config.qc_bam, :OUTPUT => config.qc_hybrid
+        picard :calculate_hs_metrics, :BAIT_INTERVALS => config.interval_list, :TARGET_INTERVALS => config.interval_list, :INPUT => config.qc_bam, :OUTPUT => config.qc_hybrid or error_exit "Calculating metrics failed"
       end
     end
 
@@ -34,7 +34,7 @@ module Exome
 
       def run
         log_info "Calculating insert metrics"
-        picard :collect_insert_size_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram
+        picard :collect_insert_size_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram or error_exit "Collecting insert sizes failed"
       end
     end
 
@@ -45,7 +45,7 @@ module Exome
 
       def run
         log_info "Calculating alignment metrics"
-        picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics
+        picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics or error_exit "Collecting alignment metrics failed"
       end
     end
 
