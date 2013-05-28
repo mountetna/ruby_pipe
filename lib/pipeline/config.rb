@@ -85,6 +85,10 @@ module Pipeline
     def_var :reference_indel_vcf do send "#{genome}_indel_vcf".to_sym end
     def_var :reference_gtf do send "#{genome}_ucsc_gtf".to_sym end
 
+    def_var :modules do [ :default ] end
+
+    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config
+
     def splits
       job_array ? job_array.size : nil
     end
@@ -112,8 +116,6 @@ module Pipeline
         end
       end.compact
     end
-
-    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config
 
     # This creates a new step in a pipeline
     def initialize(script,opts=nil)

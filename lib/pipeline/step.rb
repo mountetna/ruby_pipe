@@ -7,7 +7,7 @@ module Pipeline
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      attr_reader :job_items, :tasks, :available_tasks
+      attr_reader :job_items, :tasks
       def runs_task(*tasklist)
         @tasks = tasklist
       end
@@ -18,12 +18,18 @@ module Pipeline
       end
       alias :has_tasks :has_task
 
+      def available_tasks
+        @available_tasks || tasks
+      end
+
       def required
-        @required ||= @tasks.map{ |t| self.class.daughter_class(t).required_files }.flatten
+        @required ||= tasks.map{ |t| self.class.daughter_class(t).required_files }.flatten
       end
+
       def made
-        @made ||= @tasks.map{ |t| self.class.daughter_class(t).made_files }.flatten
+        @made ||= tasks.map{ |t| self.class.daughter_class(t).made_files }.flatten
       end
+
       def input
         required - made
       end
@@ -45,8 +51,9 @@ module Pipeline
       base.extend(ClassMethods)
     end
 
-    def initialize(s)
+    def initialize(s,tasks)
       @script = s
+      set_tasks tasks if tasks.is_a? Array
       config.set_opt :step, step_name
       config.set_opt :job_array, job_array
       config.set_opt :resources, resources
@@ -54,6 +61,16 @@ module Pipeline
     end
 
     class_var :job_items, :tasks, :available_tasks, :resources
+
+    def set_tasks t
+      @tasks = self.class.available_tasks.map{|e|
+        t.include?(e) ? e : nil
+      }.compact
+    end
+
+    def tasks
+      @tasks ||= self.class.tasks
+    end
 
     def job_array
       if job_items

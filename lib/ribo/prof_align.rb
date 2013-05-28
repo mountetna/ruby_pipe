@@ -11,6 +11,12 @@ module Ribo
   class ProfAlign 
     include Pipeline::Script
     runs_steps :align, :tophat, :combine, :coverage, :qc
+    def_module :default, :align => true,
+      :tophat => true,
+      :combine => true,
+      :coverage => true,
+      :qc => true
+
     class ConfigGenerator
       include Pipeline::ConfigGenerator
       include Pipeline::Usage

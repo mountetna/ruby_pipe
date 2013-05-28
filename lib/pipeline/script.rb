@@ -7,9 +7,20 @@ module Pipeline
     include Pipeline::Scheduling
 
     module ClassMethods 
-      attr_reader :steps
+      attr_reader :steps, :modules
       def runs_steps(*step_list)
         @steps = step_list
+      end
+
+      def def_module mod, steps
+        @modules ||= {}
+        @modules[mod] = steps
+      end
+
+      def expand_module m
+        modules[m].map do |n,disp|
+          modules[n] ? expand_module(n) : { n => disp }
+        end.reduce :merge
       end
     end
 
@@ -17,7 +28,15 @@ module Pipeline
       base.extend(ClassMethods) if ClassMethods
     end
 
-    class_var :steps
+    def modules
+      @modules ||= config.modules.inject({}) do |mods,m|
+        mods.update self.class.expand_module m.to_sym
+      end
+    end
+
+    def steps
+      @steps ||= self.class.steps.map{ |s| modules[s] ? s : nil }.compact
+    end
 
     def exclude_task? task
       nil
@@ -52,7 +71,7 @@ module Pipeline
     end
 
     def create_step(s)
-      self.class.sister_class(s).new(self)
+      self.class.sister_class(s).new(self, modules[s])
     end
 
     def exec(args)
@@ -117,12 +136,27 @@ module Pipeline
 
     def list_steps(args)
       args = set_config args, :audit
-      puts "Steps for #{config.script}".red.bold
-      steps.each do |s|
-        step = create_step s
-        puts "step #{config.step}".green.bold
-        puts "  runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
-        puts "  default tasks #{step.tasks.join(", ")}".blue.bold
+      if args.first == "available"
+        puts "Available steps for #{config.script}".red.bold
+        self.class.steps.each do |s|
+          step = create_step s
+          puts "step #{config.step},".green.bold + " runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+          puts "  runs tasks #{step.class.tasks.join(", ")}".blue.bold
+          puts "  has tasks #{step.class.available_tasks.join(", ")}".yellow.bold if (step.class.available_tasks - step.class.tasks).size > 0
+        end
+        puts "Available modules for #{config.script}".red.bold
+        self.class.modules.each do |m,h|
+          puts "module #{m} => ".magenta.bold + h.map{|s,d|
+            (self.class.modules[s] ? "#{s}".magenta.bold : "#{s}".green.bold) + (d == true ? "" : "[#{d.join(", ")}]".blue.bold)
+          }.join(", ")
+        end
+      else
+        puts "Steps for #{config.script}".red.bold
+        steps.each do |s|
+          step = create_step s
+          puts "step #{config.step},".green.bold + " runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+          puts "  runs tasks #{step.tasks.join(", ")}".blue.bold
+        end
       end
     end
 

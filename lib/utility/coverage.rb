@@ -34,6 +34,7 @@ module Utility
   class Coverage
     include Pipeline::Script
     runs_steps :compute_coverage
+    def_module :default, :compute_coverage => true
     class ConfigGenerator
       include Pipeline::ConfigGenerator
       include Pipeline::Usage

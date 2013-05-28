@@ -12,6 +12,42 @@ module Exome
     include Pipeline::Script
     runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :mut_det, :mut_filter
 
+    def_module :create_bams, {
+      :align => true,
+      :merge => true,
+      :library_merge => true,
+      :recal => true,
+      :library_split => true,
+      :make_samples => true, 
+    }
+
+    def_module :calculate_qc, {
+      :hybrid_qc => true,
+      :hybrid_qc_summary => true,
+    }
+
+    def_module :compute_copy_number, {
+      :copy_number_prep => true,
+      :copy_number => true,
+    }
+
+    def_module :find_mutations, {
+      :mut_det => true,
+      :mut_filter => true
+    }
+
+    def_module :mut_filter_annovar, {
+      :mut_filter => [ :concat_chroms, :filter_muts_annovar ]
+    }
+
+    def_module :default, {
+      # the default sequence of events. The order is dictated by runs_steps
+      :create_bams => true,
+      :calculate_qc => true,
+      :compute_copy_number => true,
+      :find_mutations => true
+    }
+
     def exclude_task? task
       return nil
     end
