@@ -5,6 +5,8 @@
   :tumor:
     :min_alt_count: 2
     :min_depth: 14
+    :max_alt_length: 15
+    :max_ref_length: 15
 :mutect:
   :has_judgement: KEEP
   :include_dbsnp_site: [ COSMIC, NOVEL ]

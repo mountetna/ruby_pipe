@@ -43,7 +43,7 @@ AllFilters = {'SNPRemovalFilters': {'muTectJudgmentsAllowed':"KEEP"}, \
               'IndelRemovalFilters': {'minTumorReads':0, 'minTumorAltReads':0, 'minTumorVarFreq':0.0, 'minNormalReads':0, 'maxNormalAltReads':BIG_INT, 'maxNormalVarFreq':1.0, \
                 'maxAvgTumorAltMismatch':BIG_FLOAT, 'maxAvgTumorRefMismatch':BIG_FLOAT, 'maxAvgNormalAltMismatch':BIG_FLOAT, 'maxAvgNormalRefMismatch':BIG_FLOAT, 'minAvgTumorAltBaseQualInNQS':0.0, 'minAvgTumorRefBaseQualInNQS':0.0, \
                 'minAvgNormalAltBaseQualInNQS':0.0, 'minAvgNormalRefBaseQualInNQS':0.0, 'maxAvgTumorAltMismatchInNQS':BIG_FLOAT, 'maxAvgTumorRefMismatchInNQS':BIG_FLOAT, 'maxAvgNormalAltMismatchInNQS':BIG_FLOAT, 'maxAvgNormalRefMismatchInNQS':BIG_FLOAT, \
-                'normalVariantFreq': '>= tumorVariantFreq'}, \
+		'normalVariantFreq': '>= tumorVariantFreq', 'maxTumorRefLength':BIG_INT, 'maxTumorAltLength':BIG_INT}, \
 			  'IndelAnnotationFilters': {'maxHomopolymerRuns':BIG_INT}, \
               'AnnoVarRemovalFilters': {}, \
 	      'AnnoVarAnnotationFilters': {'contextsToOmit':"",'mutTypesToOmit':""}}
@@ -221,7 +221,7 @@ def writeMutations(outFn, retval, annovars):
 	global AllFilters
 	assert len(retval) == len(annovars)
 	f = open(outFn, "w")
-	f.write("#gene\tcontig\tposition\tref_allele\talt_allele\tnucleotide\tprotein\tcontext\ttype\ttumor_name\tnormal_name\tscore\tpower\ttumor_power\tnormal_power\ttotal_pairs\timproper_pairs\tmap_Q0_reads\tcontaminant_fraction\tcontaminant_lod\tt_ref_count\tt_alt_count\tn_ref_count\tn_alt_count\ttumor_variant_freq\tnormal_variant_freq\taccession\texon\tknown_variant_status\talgorithm\tourJudgment\tourReason\n")
+	f.write("gene\tcontig\tposition\tref_allele\talt_allele\tnucleotide\tprotein\tcontext\ttype\ttumor_name\tnormal_name\tscore\tpower\ttumor_power\tnormal_power\ttotal_pairs\timproper_pairs\tmap_Q0_reads\tcontaminant_fraction\tcontaminant_lod\tt_ref_count\tt_alt_count\tn_ref_count\tn_alt_count\ttumor_variant_freq\tnormal_variant_freq\taccession\texon\tknown_variant_status\talgorithm\tourJudgment\tourReason\n")
 	
 	def getOurFinalJudgment(j1, j2):
 		if j1 == "yes" and j2 == "yes":

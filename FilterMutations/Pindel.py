@@ -145,6 +145,14 @@ class PindelLine:
 				self.ourJudgment = "no"
 				self.ourJudgmentReasons += "normal var freq exceeds tumor var freq"
 				return False
+			if self.t_ref_length() > indelRemovalFilters['maxTumorRefLength']:
+				self.ourJudgment = "no"
+				self.ourJudgmentReasons += "length above maxTumorRefLength"
+				return False
+			if self.t_alt_length() > indelRemovalFilters['maxTumorAltLength']:
+				self.ourJudgment = "no"
+				self.ourJudgmentReasons += "length above maxTumorAltLength"
+				return False
 		return True
 
 	def t_genotype(self):
@@ -180,7 +188,12 @@ class PindelLine:
 			return 0
 		return self.t_alt_count() * 1./self.t_total_depth()
 
+	def t_alt_length(self):
+		return len(self.alt_allele)
 	
+	def t_ref_length(self):
+		return len(self.ref_allele)
+
 	def n_genotype(self):
 		''' Return the normal genotype '''
 		if self.addlInfo == None:
