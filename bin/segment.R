@@ -28,5 +28,14 @@ cna=CNA(tumor_logr$logr,tumor_logr$chr,as.integer((tumor_logr$start+tumor_logr$s
 smCNA=smooth.CNA(cna)
 cbs_seg=segCBS(smCNA)
 
+# fix sorting of chromosomes
+library(gtools)
+cbs_seg$data = cbs_seg$data[ mixedorder(cbs_seg$data$chrom), ]
+cbs_seg$output = cbs_seg$output[ mixedorder(cbs_seg$output$chrom), ]
+
+# recenter the chromosome segments by estimating the mode
+z = density(cbs_seg$output$seg.mean,bw="SJ")
+cbs_seg$output$seg.mean = cbs_seg$output$seg.mean - z$x[z$y == max(z$y)]
+
 save(cbs_seg,file=rdata_file)
 write.table(cbs_seg$output,file=seg_file,sep="\t",eol="\n",quote=F,row.names=F)

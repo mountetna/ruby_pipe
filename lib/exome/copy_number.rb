@@ -74,6 +74,7 @@ module Exome
         tumor_logr.print config.tumor_exon_cnr
       end
     end
+
     class CopySeg
       include Pipeline::Task
       requires_file :tumor_exon_cnr
