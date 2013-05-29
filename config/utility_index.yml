@@ -1,0 +1,8 @@
+# Index a set of bam files
+
+:pipe: utility
+:script: index
+
+:output_dir: ./output
+:log_dir: ./log
+:scratch_dir: ./scratch

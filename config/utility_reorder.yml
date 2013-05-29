@@ -1,0 +1,8 @@
+# Reorder a set of bam files according to a specified reference
+
+:pipe: utility
+:script: reorder
+
+:output_dir: ./output
+:log_dir: ./log
+:scratch_dir: ./scratch
