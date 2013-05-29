@@ -59,7 +59,7 @@ module Exome
           "_splitbam_" => :split_bam_root,
           "_splitbam_@sample_name.bam" => :split_bam,
 
-          "intervals.bed" => :interval_bed
+          "@cohort_name.interval_bed" => :interval_bed
         }
       },
       ":metrics_dir" => {
