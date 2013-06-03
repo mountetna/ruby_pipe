@@ -32,6 +32,7 @@ module Rna
         "@sample_name" => {
           "@replicate_name" => {
             "tophat" => {
+              "." => :tophat_scratch,
               "accepted_hits.bam" => :accepted_bam,
               "unmapped.bam" => :unmapped_bam,
               "merged.bam" => :merged_bam,
