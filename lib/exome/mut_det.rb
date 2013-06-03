@@ -25,7 +25,10 @@ module Exome
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
           :intervals => config.chrom,
-          :out => config.mutect_snvs, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
+          :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
+
+        # kludge to make sure mutect completes before ensuring this step
+        FileUtils.mv config.mutect_snvs_tmp, config.mutect_snvs
       end
     end
 
@@ -46,7 +49,6 @@ module Exome
 
     class PindelVcf
       include Pipeline::Task
-      requires_files :pindel_snv_d
       dumps_file :pindel_unpatched_vcf
 
       def run
@@ -102,18 +104,21 @@ module Exome
 
     class FilterMuts
       include Pipeline::Task
-      requires_files :pindel_vcfs, :mutect_snvses
+      requires_files :pindel_vcfs, :mutect_snvses, :tumor_cnr_seg
       outs_file :tumor_muts
 
       def run
         muts = []
-        headers = [ :gene, :chrom, :pos, :ref_allele, :alt_allele, :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :variant_classification, :protein_change, :class ]
+        segs = HashTable.new config.tumor_cnr_seg
+        headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr, :dbSNP_RS ]
         config.sample.chroms.each do |chrom|
           m = MuTect.read config.mutect_snvs(chrom), config.mutations_config
           m.each do |l|
             next if l.skip_mutect?
             next if l.skip_oncotator?
+            seg = segs.find{|seg| seg[:chrom] == l.contig && seg[:"loc.start"].to_i < l.position.to_i && seg[:"loc.end"].to_i > l.position.to_i}
             muts.push :gene => l.onco.txp_gene,
+              :sample => config.sample_name,
               :chrom => l.contig,
               :pos => l.position,
               :ref_allele => l.ref_allele,
@@ -125,13 +130,19 @@ module Exome
               :normal_alt_count => l.n_alt_count, 
               :variant_classification => l.onco.txp_variant_classification,
               :protein_change => l.onco.txp_protein_change, 
-              :class => l.onco.pph2_class 
+              :transcript_change => l.onco.txp_transcript_change, 
+              :polyphen2_class => l.onco.pph2_class,
+              :cosmic_mutations => l.onco.cosmic_mutations,
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end
           v = VCF.read config.pindel_vcf(chrom), config.mutations_config
           v.each do |l|
             next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
             next if l.skip_oncotator?
+            seg = segs.find{|seg| seg[:chrom] == l.contig && seg[:"loc.start"].to_i < l.pos.to_i && seg[:"loc.end"].to_i > l.pos.to_i}
             muts.push :gene =>           l.onco.txp_gene,
+              :sample => config.sample_name,
               :chrom =>                   l.chrom,
               :pos => l.pos,
               :ref_allele =>              l.ref,
@@ -143,7 +154,11 @@ module Exome
               :normal_alt_count => l.genotype(config.normal_name).alt_count,
               :variant_classification =>  l.onco.txp_variant_classification,
               :protein_change =>          l.onco.txp_protein_change,
-              :class  =>                  l.onco.pph2_class
+              :transcript_change => l.onco.txp_transcript_change, 
+              :polyphen2_class  =>                  l.onco.pph2_class,
+              :cosmic_mutations => l.onco.cosmic_mutations,
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end
         end
         File.open(config.tumor_muts, "w") do |f|

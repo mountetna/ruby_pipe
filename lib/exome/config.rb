@@ -34,6 +34,7 @@ module Exome
           "raw_sample.bai" => :raw_sample_bai,
 
           "@chrom_name.snvs.raw.mutect.txt" => :mutect_snvs,
+          "@chrom_name.snvs.raw.mutect.tmp.txt" => :mutect_snvs_tmp,
           "@sample_name.snvs.raw.mutect.txt" => :mutect_all_snvs,
           "@chrom_name.snvs.coverage.mutect.wig" => :mutect_coverage,
           "@chrom_name.insert_mutations" => :insert_mutations,
