@@ -45,6 +45,10 @@ module Exome
           "@chrom_name.indels.raw.pindel.vcf" => :pindel_vcf,
           "@sample_name.indels.raw2.pindel.vcf" => :pindel_all_vcf,
 
+          "@sample_name.ug.raw.vcf" => :ug_raw_vcf,
+          "@sample_name.ug.annotated.vcf" => :ug_annotated_vcf,
+          "@sample_name.ug.filtered.vcf" => :ug_filtered_vcf,
+
           ":normal_name.cov" => :normal_cov,
           "@sample_name.cov" => :tumor_cov
         },
@@ -85,6 +89,7 @@ module Exome
           "@sample_name.cnr.Rdata" => :tumor_cnr_rdata,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.mutations" => :tumor_mutations,
+          "@sample_name.normal_mut.txt" => :normal_muts,
         }
       }
     })

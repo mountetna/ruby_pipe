@@ -132,7 +132,7 @@ module Exome
               :protein_change => l.onco.txp_protein_change, 
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class => l.onco.pph2_class,
-              :cosmic_mutations => l.onco.cosmic_mutations,
+              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
               :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
               :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end
@@ -156,7 +156,7 @@ module Exome
               :protein_change =>          l.onco.txp_protein_change,
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class  =>                  l.onco.pph2_class,
-              :cosmic_mutations => l.onco.cosmic_mutations,
+              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
               :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
               :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end

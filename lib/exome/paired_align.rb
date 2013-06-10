@@ -4,13 +4,14 @@ require 'exome/merge'
 require 'exome/recal'
 require 'exome/hybrid_qc'
 require 'exome/mut_det'
+require 'exome/univ_geno'
 require 'exome/config'
 require 'exome/copy_number'
 
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :mut_det, :mut_filter
+    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :mut_det, :mut_filter, :univ_geno_normals
 
     def_module :create_bams, {
       :align => true,
@@ -34,6 +35,10 @@ module Exome
     def_module :find_mutations, {
       :mut_det => true,
       :mut_filter => true
+    }
+
+    def_module :find_normal_mutations, {
+      :univ_geno_normals => true
     }
 
     def_module :mut_filter_annovar, {

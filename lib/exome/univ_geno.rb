@@ -1,112 +1,103 @@
 #!/bin/bash
+module Exome
+  class UnivGenoNormals
+    include Pipeline::Step
+    runs_tasks :unified_genotyper, :annotate_muts, :quality_filter, :filter_muts
+    runs_on :normal_samples
+    resources :threads => 12
 
-# This script generates Universal Genotyper annotations from a NORMAL/BAM pair
+    class UnifiedGenotyper
+      include Pipeline::Task
+      requires_files :sample_bam, :interval_list
+      outs_files :ug_raw_vcf
 
-#PBS -o $OUTFILE.log
+      def run
+	log_info "Running Unified Genotyper"
+	gatk :unified_genotyper,
+		:genotype_likelihoods_model => :BOTH, 
+                :genotyping_mode => :DISCOVERY,
+		:input_file => config.sample_bam,
+		:dbsnp => config.dbsnp_vcf,
+		:intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
+		:standard_min_confidence_threshold_for_calling => 30.0,
+		:standard_min_confidence_threshold_for_emitting => 10.0,
+		:min_base_quality_score => 20, :output_mode => :EMIT_VARIANTS_ONLY,
+		:out => config.ug_raw_vcf or error_exit "Unified Genotyper SNP calling failed"
 
-. $LIB_DIR/base_opts $CONFIG
+      end
+    end
+    class AnnotateMuts
+      include Pipeline::Task
+      requires_files :sample_bam, :ug_raw_vcf
+      dumps_file :ug_annotated_vcf
 
-require_var MUTECT_MUTATIONS NORMAL_BAM TUMOR_BAM
+      def run
+	log_info "Annotating Unified Genotyper SNPs"
+	gatk :variant_annotator,
+		:input_file => config.sample_bam,
+                :num_threads => 1,
+		:dbsnp => config.dbsnp_vcf,
+		:intervals => config.ug_raw_vcf,
+		:variant => config.ug_raw_vcf,
+		:baq =>  :CALCULATE_AS_NECESSARY,
+		:annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, :ReadPosRankSumTest, :DepthOfCoverage ],
+		:out => config.ug_annotated_vcf or error_exit "Unified Genotyper SNP annotation failed"
+      end
+    end
 
-log_info "Annotating mutations"
+    class QualityFilter
+      include Pipeline::Task
+      requires_files :ug_annotated_vcf
+      dumps_file :ug_filtered_vcf
 
-task_generate_bed() {
-	log_info "Generate bed file from mutations..."
-	l_annotate_bed_ug $MUTECT_MUTATIONS > $annovar_temp_bed || error_exit "Bed file creation failed"
-}
-run_task generate_bed "$annovar_temp_bed" "$MUTECT_MUTATIONS"
+      def run
+	log_info "Filtering Unified Genotyper SNPs"
+	gatk :variant_filtration,
+		:variant => config.ug_annotated_vcf,
+                :num_threads => 1,
+		:baq => :CALCULATE_AS_NECESSARY,
+		:filterExpression => [ '"QD < 2.0"', '"MQ < 40.0"', '"FS > 60.0"', '"HaplotypeScore > 13.0"', '"MQRankSum < -12.5"', '"ReadPosRankSum < -8.0"' ],
+		:filterName => [ :QDFilter, :MQFilter, :FSFilter, :HaplotypeScoreFilter, :MQRankSumFilter, :ReadPosFilter ],
+		:out => config.ug_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
 
-task_generate_UG() {
-	log_info "Generate Unified Genotyper data..."
-	p_gatk UnifiedGenotyper \
-		--genotype_likelihoods_model SNP \
-		--genotyping_mode DISCOVERY \
-		--input_file $NORMAL_BAM \
-		--input_file $TUMOR_BAM \
-		--dbsnp $DBSNP_VCF \
-		--logging_level WARN \
-		--intervals $annovar_temp_bed \
-		-baq CALCULATE_AS_NECESSARY \
-		--noSLOD \
-		--standard_min_confidence_threshold_for_calling 30.0 \
-		--standard_min_confidence_threshold_for_emitting 10.0 \
-		--min_base_quality_score 20 \
-		--output_mode EMIT_VARIANTS_ONLY \
-		--out $ug_raw_snps_vcf || error_exit "Unified Genotyper SNP calling failed"
-}
-run_task generate_UG "$ug_raw_snps_vcf" "$NORMAL_BAM $TUMOR_BAM $annovar_temp_bed"
+      end
+    end
+    class FilterMuts
+      include Pipeline::Task
+      requires_files :ug_filtered_vcf
+      outs_file :normal_muts
 
-task_annotate_UG() {
-	log_info "Annotating Unified Genotyper SNPs..."
-	p_gatk VariantAnnotator \
-		--input_file $NORMAL_BAM \
-		--input_file $TUMOR_BAM \
-		--dbsnp $DBSNP_VCF \
-		--intervals $ug_raw_snps_vcf \
-		--variant $ug_raw_snps_vcf \
-		-baq CALCULATE_AS_NECESSARY \
-		--annotation QualByDepth \
-		--annotation RMSMappingQuality \
-		--annotation MappingQualityZero \
-		--annotation LowMQ \
-		--annotation MappingQualityRankSumTest \
-		--annotation FisherStrand \
-		--annotation HaplotypeScore \
-		--annotation ReadPosRankSumTest \
-		--annotation DepthOfCoverage \
-		--out $ug_snps_annotated_vcf || error_exit "Unified Genotyper SNP annotation failed"
-}
-run_task annotate_UG "$ug_snps_annotated_vcf" "$ug_raw_snps_vcf $NORMAL_BAN $TUMOR_BAM"
-
-task_filter_UG() {
-	log_info "Filtering Unified Genotyper SNPs..."
-	p_gatk VariantFiltration \
-		--variant $ug_snps_annotated_vcf \
-		-baq CALCULATE_AS_NECESSARY \
-		--filterExpression "QD < 2.0" \
-		--filterName QDFilter \
-		--filterExpression "MQ < 40.0" \
-		--filterName MQFilter \
-		--filterExpression "FS > 60.0" \
-		--filterName FSFilter \
-		--filterExpression "HaplotypeScore > 13.0" \
-		--filterName HaplotypeScoreFilter \
-		--filterExpression "MQRankSum < -12.5" \
-		--filterName MQRankSumFilter \
-		--filterExpression "ReadPosRankSum < -8.0" \
-		--filterName ReadPosFilter	\
-		--out $ug_snps_filtered_vcf || error_exit "Unified Genotyper SNP filtration failed"
-}
-run_task filter_UG "$ug_snps_filtered_vcf" "$ug_snps_annotated_vcf"
-
-task_add_ug_data() {
-	log_info "Add Unified Genotyper data..."
-	annotate_UG $MUTECT_MUTATIONS $ug_snps_filtered_vcf > $temp1_mutations || error_exit "Unified Genotyper annotation failed"
-}
-run_task add_ug_data "$temp1_mutations" "$MUTECT_MUTATIONS $ug_snps_filtered_vcf"
-
-task_add_cosmic_data() {
-	log_info "Add COSMIC data..."
-
-	annotate_COSMIC $temp1_mutations $COSMIC_FILE > $temp2_mutations || error_exit "COSMIC annotation failed"
-
-	rm -f ${patientID}.${prefix}.temp1.mutations
-
-	echo "[Annotate] Identify kinase genes..."
-	$PYTHON /home/jocostello/shared/LG3_Pipeline/scripts/annotation_KINASE.py \
-		${patientID}.${prefix}.temp2.mutations \
-		$KINASEDATA \
-		> ${patientID}.${prefix}.temp3.mutations || { echo "Kinase gene annotation failed"; exit 1; }
-
-	rm -f ${patientID}.${prefix}.temp2.mutations
-
-	echo "[Annotate] Identify cancer genes..."
-	$PYTHON /home/jocostello/shared/LG3_Pipeline/scripts/annotation_CANCER.py \
-		${patientID}.${prefix}.temp3.mutations \
-		$CANCERDATA \
-		$CONVERT \
-		> ${patientID}.${prefix}.annotated.mutations || { echo "Cancer gene annotation failed"; exit 1; }
-
-	rm -f ${patientID}.${prefix}.temp3.mutations
-
-	echo "[Annotate] Finished!"
+      def run
+        muts = []
+        headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :ref_count, :alt_count, :var_freq, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :dbSNP_RS ]
+        v = VCF.read config.ug_filtered_vcf, config.mutations_config
+        v.each do |l|
+          next if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
+          next if l.skip_oncotator?([:univ_geno_normal, :oncotator])
+          muts.push :gene =>           l.onco.txp_gene,
+            :sample => config.sample_name,
+            :chrom =>                   l.chrom,
+            :pos => l.pos,
+            :ref_allele =>              l.ref,
+            :alt_allele =>              l.alt,
+            :var_freq => l.genotype(config.sample_name).alt_freq,
+            :ref_count => l.genotype(config.sample_name).ref_count,
+            :alt_count => l.genotype(config.sample_name).alt_count,
+            :variant_classification =>  l.onco.txp_variant_classification,
+            :protein_change =>          l.onco.txp_protein_change,
+            :transcript_change => l.onco.txp_transcript_change, 
+            :polyphen2_class  =>                  l.onco.pph2_class,
+            :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
+            :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
+        end
+        File.open(config.normal_muts, "w") do |f|
+          f.puts "#{headers.join("\t")}\n#{
+            muts.sort_by{|m| -1 * m[:var_freq]}.map do |m|
+              headers.map{|h| m[h] || "-" }.join("\t")
+            end.join("\n")
+          }"
+        end
+      end
+    end
+  end
+end

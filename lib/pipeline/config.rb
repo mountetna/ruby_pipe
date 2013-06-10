@@ -94,12 +94,17 @@ module Pipeline
     end
 
     def sample(name=nil)
-      return samples.find { |s| s[:sample_name] == name } if name
+      return samples.find { |s| s.sample_name == name } if name
       job_item.parent_with_property :sample_name if job_array
     end
 
     def cohort
       return @config
+    end
+
+    def normal_samples
+      n = samples.map(&:normal_name).compact
+      n.empty? ? [samples.first] : samples.select{|s| n.include? s.sample_name}
     end
 
     def tumor_samples
