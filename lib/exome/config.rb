@@ -59,7 +59,6 @@ module Exome
         "@cohort_name" => {
           "merged_library.bam" => :merged_library_bam,
           "raw_library.bam" => :raw_library_bam,
-          "recal.metrics" => :recal_metrics,
           "@chrom_name.merged.intervals" => :merged_intervals,
           "@chrom_name.realigned.bam" => :realigned_bam,
           "@chrom_name.recal.grp" => :recal_grp,
@@ -70,9 +69,9 @@ module Exome
           "@cohort_name.interval_bed" => :interval_bed,
           "absolute" => {
             "." => :absolute_review_dir,
-            "@{cohort_name}_summary.PP-calls_tab.txt" => :review_table,
-            "@{cohort_name}_summary.PP-modes.RData" => :absolute_modes,
-            "@{cohort_name}_summary.PP-called_tab.txt" => :reviewed_table
+            "@cohort_name.PP-calls_tab.txt" => :review_table,
+            "@cohort_name.PP-modes.RData" => :absolute_modes,
+            "@cohort_name.PP-called_tab.txt" => :reviewed_table
           }
         }
       },
@@ -86,6 +85,7 @@ module Exome
           "@sample_name.sample_summary" => :qc_coverage_metrics,
           "@sample_name" => :qc_coverage_base
         },
+        "@cohort_name.duplication_metrics" => :duplication_metrics,
         "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {

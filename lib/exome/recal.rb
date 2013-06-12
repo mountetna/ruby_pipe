@@ -21,12 +21,12 @@ module Exome
     class MarkDuplicates
       include Pipeline::Task
       requires_file :merged_library_bam
-      outs_file :raw_library_bam, :recal_metrics
+      outs_file :raw_library_bam, :duplication_metrics
 
       def run
 	log_info "Mark duplicates"
 	picard :mark_duplicates, :INPUT => config.merged_library_bam,
-          :OUTPUT => config.raw_library_bam, :METRICS_FILE => config.recal_metrics, 
+          :OUTPUT => config.raw_library_bam, :METRICS_FILE => config.duplication_metrics, 
           :REMOVE_DUPLICATES => :false, :CREATE_INDEX => :true or error_exit "Mark duplicates failed"
       end
     end
