@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 require 'hash_table'
 require 'fileutils'
+
 module Exome
   class CopyNumberPrep
     include Pipeline::Step
@@ -25,7 +26,7 @@ module Exome
   end
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :compute_purity_ploidy
     runs_on :tumor_samples
 
     class ComputeCoverage
@@ -88,9 +89,33 @@ module Exome
     class ComputePurityPloidy
       include Pipeline::Task
       requires_file :tumor_cnr_seg
+      outs_file :absolute_rdata
 
       def run
-        r_script :absolute, config.sample_name, config.tumor_cnr_seg, config.tumor_maf, config.absolute_scratch
+        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.absolute_scratch
+      end
+    end
+  end
+  class ReviewAbsolute
+    include Pipeline::Step
+    runs_tasks :create_review_object, :extract_review_results
+
+    class CreateReviewObject
+      include Pipeline::Task
+
+      requires_files :absolute_rdatas
+      dumps_file :review_table
+
+      def run
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas
+      end
+    end
+    class ExtractReviewResults
+      include Pipeline::Task
+
+      requires_file :reviewed_table
+      def run
+        r_script :absolute, :extractReview, config.reviewed_table, "Exome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name
       end
     end
   end

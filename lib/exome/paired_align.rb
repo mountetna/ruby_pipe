@@ -11,7 +11,7 @@ require 'exome/copy_number'
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :mut_det, :mut_filter, :univ_geno_normals
+    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :review_absolute, :mut_det, :mut_filter, :univ_geno_normals
 
     def_module :create_bams, {
       :align => true,
@@ -30,6 +30,7 @@ module Exome
     def_module :compute_copy_number, {
       :copy_number_prep => true,
       :copy_number => true,
+      :review_absolute => true
     }
 
     def_module :find_mutations, {

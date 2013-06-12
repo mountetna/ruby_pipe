@@ -217,11 +217,11 @@ module Pipeline
 
     def unescape_dir_string str, obj
       obj ||= job_item
-      str.gsub(/:(\w+)/) do |s|
+      str.gsub(/:(?:(\w+)|\{(\w+)\})/) do |s|
         # send it with the appropriate argument
-        send $1.to_sym, obj
-      end.gsub(/@(\w+)/) do |s|
-        m = $1.to_sym
+        send ($1 || $2).to_sym, obj
+      end.gsub(/@(?:(\w+)|\{(\w+)\})/) do |s|
+        m = ($1 || $2).to_sym
         obj.parent_with_property(m).send m
       end
     end

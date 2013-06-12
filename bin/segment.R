@@ -38,4 +38,7 @@ z = density(cbs_seg$output$seg.mean,bw="SJ")
 cbs_seg$output$seg.mean = cbs_seg$output$seg.mean - z$x[z$y == max(z$y)]
 
 save(cbs_seg,file=rdata_file)
-write.table(cbs_seg$output,file=seg_file,sep="\t",eol="\n",quote=F,row.names=F)
+
+seg_obj = cbs_seg$output
+colnames(seg_obj) = c("ID","Chromosome", "Start","End","Num_Probes","Segment_Mean")
+write.table(seg_obj,file=seg_file,sep="\t",eol="\n",quote=F,row.names=F)

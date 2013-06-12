@@ -50,7 +50,11 @@ module Exome
           "@sample_name.ug.filtered.vcf" => :ug_filtered_vcf,
 
           ":normal_name.cov" => :normal_cov,
-          "@sample_name.cov" => :tumor_cov
+          "@sample_name.cov" => :tumor_cov,
+          "absolute" => {
+            "." => :absolute_scratch,
+            "@sample_name.ABSOLUTE.RData" => :absolute_rdata
+          }
         },
         "@cohort_name" => {
           "merged_library.bam" => :merged_library_bam,
@@ -63,8 +67,13 @@ module Exome
           "@chrom_name.recal.bai" => :recal_bai,
           "_splitbam_" => :split_bam_root,
           "_splitbam_@sample_name.bam" => :split_bam,
-
-          "@cohort_name.interval_bed" => :interval_bed
+          "@cohort_name.interval_bed" => :interval_bed,
+          "absolute" => {
+            "." => :absolute_review_dir,
+            "@{cohort_name}_summary.PP-calls_tab.txt" => :review_table,
+            "@{cohort_name}_summary.PP-modes.RData" => :absolute_modes,
+            "@{cohort_name}_summary.PP-called_tab.txt" => :reviewed_table
+          }
         }
       },
       ":metrics_dir" => {
@@ -129,6 +138,9 @@ module Exome
     #mut_filter
     def_var :pindel_vcfs do sample.chroms.map{|c| pindel_vcf c } end
     def_var :mutect_snvses do sample.chroms.map{|c| mutect_snvs c } end
+
+    # Absolute
+    def_var :absolute_rdatas do tumor_samples.map{|s| absolute_rdata s } end
 
     def_var :mutations_config do "#{config_dir}/exome_mutations.yml" end
   end
