@@ -87,6 +87,16 @@ module Pipeline
       java :jar => config.rnaseqc_jar 
     end
 
+    def rsem type, opts
+      opts = { :reference => config.reference_rsem, :temporary_folder => File.realdirpath(config.rsem_scratch), :num_threads => config.threads }.merge(opts)
+      opts[ "#{config.qual_type}_quals".to_sym ] = true if !opts[:bam] && !opts[:sam]
+      sample, input, reference, output = opts[:sample], File.realdirpath(opts[:input]), opts[:reference], opts[:output]
+      [ :sample, :input, :reference, :output ].each do |k| opts.delete k; end
+      Dir.chdir(output) do
+        run_cmd "#{config.rsem_dir}/rsem-#{type.to_s.gsub(/_/,"-")} #{format_opts(opts,true)} #{input} #{reference} #{sample}"
+      end
+    end
+
     def gatk(tool,opts)
       opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.log_level, :num_threads => config.threads }.merge(opts)
       java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)

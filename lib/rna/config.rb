@@ -44,6 +44,9 @@ module Rna
             "cufflinks" => {
               "." => :cufflinks_scratch,
               "transcripts.gtf" => :transcripts_gtf
+            },
+            "rsem" => {
+              "." => :rsem_scratch
             }
           }
         },
@@ -68,7 +71,13 @@ module Rna
         "@sample_name" => {
           "@sample_name.@replicate_name.transcripts.gtf" => :output_gtf,
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
-          "@sample_name.mutations" => :sample_mutations
+          "@sample_name.mutations" => :sample_mutations,
+          "@replicate_name" => {
+            "rsem" => {
+              "." => :rsem_output_dir,
+              "@sample_name.@replicate_name.genes.results" => :rsem_genes_results
+            }
+          }
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,

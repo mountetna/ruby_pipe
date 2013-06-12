@@ -4,8 +4,19 @@ module Rna
   class CountTranscripts
     include Pipeline::Step
     runs_tasks :cufflink, :count_coverage #, :format_transcript
+    has_tasks :cufflink, :count_coverage, :rsem_count
     resources :threads => 12
     runs_on :replicates
+
+    class RsemCount
+      include Pipeline::Task
+      requires_file :replicate_bam
+      outs_file :rsem_genes_results
+      
+      def run
+        rsem :calculate_expression, :input => config.replicate_bam, :sample => "#{config.sample_name}.#{config.job_item.replicate_name}", :output => config.rsem_output_dir, :bam => true
+      end
+    end
 
     class Cufflink
       include Pipeline::Task

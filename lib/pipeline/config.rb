@@ -84,6 +84,7 @@ module Pipeline
     def_var :reference_snp_vcf do send "#{genome}_snp_vcf".to_sym end
     def_var :reference_indel_vcf do send "#{genome}_indel_vcf".to_sym end
     def_var :reference_gtf do send "#{genome}_ucsc_gtf".to_sym end
+    def_var :reference_rsem do send "#{genome}_rsem_reference".to_sym end
 
     def_var :modules do [ :default ] end
 

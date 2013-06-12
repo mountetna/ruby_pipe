@@ -26,6 +26,7 @@ module Pipeline
         res = []
         res.push "walltime=#{opts[:walltime]}:00:00:00" if opts[:walltime]
         res.push "nodes=1:ppn=#{opts[:threads]}" if opts[:threads]
+        res.push "pmem=1gb"
 
         yield res, fields
       end

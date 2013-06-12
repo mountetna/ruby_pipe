@@ -3,19 +3,20 @@
 
 :tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
 
-:fastx_dir: /taylorlab/lib/fastx/fastx_toolkit_0.0.13
-:picard_dir: /taylorlab/lib/picard/picard-tools-1.79
-:tophat_dir: /taylorlab/lib/tophat/tophat-latest
-:cufflinks_dir: /taylorlab/lib/cufflinks/cufflinks-latest
-:bowtie_dir: /taylorlab/lib/bowtie/bowtie-latest
+:bedtools_dir: /taylorlab/lib/bedtools/bedtools-latest/bin
 :bowtie2_dir: /taylorlab/lib/bowtie/bowtie2-latest
-:samtools_dir: /taylorlab/lib/samtools/samtools-latest
-:vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
+:bowtie_dir: /taylorlab/lib/bowtie/bowtie-latest
+:bwa_dir: /taylorlab/lib/bwa/bwa-latest
+:cufflinks_dir: /taylorlab/lib/cufflinks/cufflinks-latest
+:fastqc_dir: /taylorlab/lib/fastqc/fastqc-latest
+:fastx_dir: /taylorlab/lib/fastx/fastx-latest
+:gatk_dir: /taylorlab/lib/gatk/gatk-latest
+:gatk_jar: GenomeAnalysisTK.jar
 :mutect_dir: /taylorlab/lib/mutect/mutect-latest
 :mutect_jar: muTect.jar
+:picard_dir: /taylorlab/lib/picard/picard-latest
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest
-:gatk_dir: /taylorlab/lib/gatk/GenomeAnalysisTK-2.2-10-gbbafb72
-:gatk_jar: GenomeAnalysisTK.jar
-:bedtools_dir: /taylorlab/lib/bedtools/bedtools-latest/bin
-:fastqc_dir: /taylorlab/lib/fastqc/fastqc-latest
-:bwa_dir: /taylorlab/lib/bwa/bwa-latest
+:rsem_dir: /taylorlab/lib/rsem/rsem-latest
+:samtools_dir: /taylorlab/lib/samtools/samtools-latest
+:tophat_dir: /taylorlab/lib/tophat/tophat-latest
+:vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest

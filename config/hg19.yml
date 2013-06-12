@@ -9,7 +9,7 @@
 :hg19_dict: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict
 :hg19_fa: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.fa
 :hg19_date: feb_2009
-:hg19_ucsc_gtf: /taylorlab/resources/human/hg19/ucsc_feb_2009/knownGene.gtf
+:hg19_ucsc_gtf: /taylorlab/resources/human/hg19/ucsc_feb_2009/knownGene.trimmed.gtf
 :hg19_ucsc_gene_names: /taylorlab/resources/human/hg19/ucsc_feb_2009/kgXref.txt
 :hg19_gencode_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.gtf
 :hg19_unified_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.highQ.ccds.unified_model.gtf
@@ -17,6 +17,7 @@
 :hg19_refflat_gtf: /taylorlab/resources/human/hg19/refSeq/refFlat.hg19.gtf
 :hg19_null_gtf: /taylorlab/resources/human/hg19/null_candidate_genomic_regions.gtf
 :hg19_refflat: /taylorlab/resources/human/hg19/refSeq/refFlat.hg19.20111003.txt
+:hg19_rsem_reference: /taylorlab/resources/human/hg19/rsem/rsem_ucsc
 
 :hg19_indel_vcf: /taylorlab/resources/human/hg19/1000G/1000G_biallelic.indels.hg19.sorted.vcf
 :hg19_snp_vcf: /taylorlab/resources/human/hg19/dbSNP/dbsnp_132.hg19.sorted.vcf

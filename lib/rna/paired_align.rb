@@ -15,6 +15,10 @@ module Rna
     include Pipeline::Script
     runs_steps :tophat_align, :qc, :count_transcripts, :assemble_transcripts #, :univ_geno, :filter_muts
 
+    def_module :rsem, :tophat_align => true,
+      :qc => true,
+      :count_transcripts => [ :rsem_count ]
+
     def_module :default, :tophat_align => true,
       :qc => true,
       :count_transcripts => true,
