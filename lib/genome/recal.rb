@@ -2,32 +2,19 @@
 module Genome
   class LibraryMerge
     include Pipeline::Step
-    runs_tasks :merge_bam, :mark_duplicates
+    runs_tasks :merge_bam
     resources :threads => 12, :walltime => 50
 
     class MergeBam
       include Pipeline::Task
-      requires_files :raw_sample_bams
-      dumps_file :merged_library_bam
+      requires_files :dedup_sample_bams
+      dumps_file :raw_library_bam
 
       def run
 	log_info "Merging per-sample bam files for bulk recalibration"
         picard :merge_sam_files, :CREATE_INDEX => :true,
-          :OUTPUT => config.merged_library_bam, :INPUT => config.raw_sample_bams,
+          :OUTPUT => config.raw_library_bam, :INPUT => config.dedup_sample_bams,
           :SORT_ORDER => :coordinate or error_exit "bam file merge failed."
-      end
-    end
-
-    class MarkDuplicates
-      include Pipeline::Task
-      requires_file :merged_library_bam
-      outs_file :raw_library_bam, :duplication_metrics
-
-      def run
-	log_info "Mark duplicates"
-	picard :mark_duplicates, :INPUT => config.merged_library_bam,
-          :OUTPUT => config.raw_library_bam, :METRICS_FILE => config.duplication_metrics, 
-          :REMOVE_DUPLICATES => :false, :CREATE_INDEX => :true or error_exit "Mark duplicates failed"
       end
     end
   end

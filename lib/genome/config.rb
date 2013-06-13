@@ -29,6 +29,7 @@ module Genome
 
           "mate_fixed.bam" => :mated_bam,
           "raw_sample.bam" => :raw_sample_bam,
+          "dedup_sample.bam" => :dedup_sample_bam,
           "raw_sample.bai" => :raw_sample_bai,
 
           "@chrom_name.snvs.raw.mutect.txt" => :mutect_snvs,
@@ -60,7 +61,6 @@ module Genome
           "@chrom_name.recal.bai" => :recal_bai,
           "_splitbam_" => :split_bam_root,
           "_splitbam_@sample_name.bam" => :split_bam,
-
           "@cohort_name.interval_bed" => :interval_bed
         }
       },
@@ -72,9 +72,9 @@ module Genome
           "@sample_name.alignment_metrics" => :qc_align_metrics,
           "@sample_name.insert_sizes" => :qc_inserts,
           "@sample_name.sample_summary" => :qc_coverage_metrics,
-          "@sample_name" => :qc_coverage_base
+          "@sample_name" => :qc_coverage_base,
+          "@sample_name.duplication_metrics" => :duplication_metrics,
         },
-        "@cohort_name.duplication_metrics" => :duplication_metrics,
         "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
@@ -116,6 +116,7 @@ module Genome
           
     # Library Merge
     def_var :raw_sample_bams do samples.map{|s| raw_sample_bam(s) } end
+    def_var :dedup_sample_bams do samples.map{|s| dedup_sample_bam(s) } end
 
     # Library Split
     def_var :recal_bams do @config.chroms.map{ |c| recal_bam c } end
