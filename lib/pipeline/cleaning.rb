@@ -75,7 +75,11 @@ module Pipeline
           if File.exists? file
             total_size += File.size file
             total_count += 1
-            File.unlink file 
+            if File.directory? file
+              FileUtils.rm_rf file
+            else
+              File.unlink file 
+            end
           end
         end
       end
