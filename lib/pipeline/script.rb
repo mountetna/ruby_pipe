@@ -83,6 +83,8 @@ module Pipeline
 
     def start_pipe(step)
       FileUtils.rm(config.error_file) if File.exists?(config.error_file)
+      FileUtils.rm(config.error_pid) if File.exists?(config.error_pid)
+
       config.set_config :scheduler, scheduler_type
       job, splits = create_step(step).setup_exec
       create_step(config.next_step).setup_scheduler(job,splits) if config.next_step

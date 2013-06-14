@@ -44,8 +44,8 @@ module Pipeline
 
         ensure_dir config.cohort_scratch
 
-        File.open(config.error_pid,"w") do |f|
-          f.puts "failed"
+        File.open(config.error_pid,"a") do |f|
+          f.puts "#{config.step} #{config.job_index} #{task_name}"
         end
         exit
       end

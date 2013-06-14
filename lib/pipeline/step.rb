@@ -102,16 +102,34 @@ module Pipeline
       [ job, config.splits ]
     end
 
+    def make_error_file errors
+      File.open(config.error_file, "w") do |f|
+        f.puts "Script failed at:"
+        errors.each do |step,error|
+          f.puts "  #{step}:"
+          f.puts error.map{|e| "    trial #{e[:trial]}:#{e[:task]}"}.join("\n")
+        end
+        f.puts "See logs in #{config.log_dir}/"
+        f.puts "Resume with '#{config.pipe}_#{config.script} start #{config.config_file} #{config.step}'"
+        f.puts "You may want to clean partial output of the last step before resuming, try '#{config.pipe}_#{config.script} clean #{config.config_file} list #{config.step}'"
+        log_main "Script failed at #{config.step}".red.bold
+      end
+    end
+
+    def get_errors
+      errors = File.foreach(config.error_pid).map do |l|
+        Hash[[ :step, :trial, :task ].zip( l.chomp.split)]
+      end.group_by{ |l| l[:step] }
+      FileUtils.rm(config.error_pid)
+      return errors
+    end
+
     def complete
       # consolidate logs for this step. 
       
       # Error out if there is an error pid
       if File.exists?(config.error_pid)
-        FileUtils.rm(config.error_pid)
-        File.open(config.error_file, "w") do |f|
-          f.puts "Script failed at #{config.step}, see logs in #{config.log_dir}/. Resume with '#{config.pipe}_#{config.script} start #{config.config_file} #{config.step}'"
-          log_main "Script failed at #{config.step}".red.bold
-        end
+        make_error_file get_errors
         exit
       end
 
