@@ -48,6 +48,10 @@ module Rna
             "rsem" => {
               "." => :rsem_scratch
             }
+          },
+          "cuffdiff" => {
+            "." => :cuffdiff_dir,
+            "gene_exp.diff" => :gene_exp_diff
           }
         },
         "@cohort_name" => {
@@ -72,6 +76,7 @@ module Rna
           "@sample_name.@replicate_name.transcripts.gtf" => :output_gtf,
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
           "@sample_name.mutations" => :sample_mutations,
+          "@sample_name.diff_exp" => :diff_exp_table,
           "@replicate_name" => {
             "rsem" => {
               "." => :rsem_output_dir,

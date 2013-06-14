@@ -160,7 +160,8 @@ module Pipeline
     end
 
     def cuffdiff(params)
-      run_cmd "#{config.cufflinks_dir}/cuffdiff -o #{params[:out]} #{params[:gtf]} $BAM1 $BAM2"
+      params = { :gtf => config.reference_gtf, :threads => config.threads }.merge(params)
+      run_cmd "#{config.cufflinks_dir}/cuffdiff -p #{params[:threads]} -o #{params[:out]} #{params[:gtf]} #{params[:sample1].join(",")} #{params[:sample2].join(",")}"
     end
 
     def fastx_clipper(params)
