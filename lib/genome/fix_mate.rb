@@ -3,6 +3,7 @@ module Genome
     include Pipeline::Step
     runs_tasks :verify_mate, :enforce_label, :mark_duplicates 
     runs_on :samples
+    resources :walltime => 50
 
     class VerifyMate 
       include Pipeline::Task
