@@ -7,16 +7,8 @@ module Exome
     def platform_unit; "Exome"; end
 
     def_var :unit do "exome" end
-    def_var :sample_names do samples.collect(&:sample_name) end
-    def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
-    def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
     def_var :bam_label do "bwa.realigned.dedup.recal" end
-    def_var :input_bam do |s| s ? s.input_bam : nil end
     def_var :output_bams do samples.map{|s| output_bam(s) } end
-    def_var :normal_bam do sample_bam(normal) end
-    def_var :normal_name do sample.normal_name || samples.first.sample_name end
-    def_var :normal do samples.find{|s| s.sample_name == normal_name} end
-    def_var :tumor_bam do sample_bam(sample) end
 
     empty_var :cosmic_vcf
 

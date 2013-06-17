@@ -5,10 +5,34 @@ module Pipeline
     include Pipeline::Usage
     attr_reader :config
 
+    def reset(args=nil)
+      @config = { :cohort_name => @cohort_name}.update(YAML.load( config_text ) || {})
+    end
     usage "reset", "create a fresh config file"
+
+    def show args=nil
+      puts [ config_header.green, '', config.to_yaml, '', config_comments.map(&:green) ]
+    end
     usage "show", "list the current config file"
+
+    def print args=nil
+      File.open(args.first || default_output, "w") do |f|
+        f.puts [ config_header, '', config.to_yaml, '', config_comments ]
+      end
+    end
     usage "print", "print the currante config file to a local file"
+
+    def samples(args=nil)
+      config[:samples] = []
+      args.each do |s|
+        config[:samples].push({ :sample_name => s })
+      end
+    end
     usage "samples <list of sample names>", "set the sample names"
+
+    def quit args=nil
+      exit
+    end
     usage "quit", "quit the config generator"
 
     def lib_dir
@@ -85,17 +109,6 @@ module Pipeline
       puts
     end
 
-    def reset(args=nil)
-      @config = { :cohort_name => @cohort_name}.update(YAML.load( config_text ) || {})
-    end
-
-    def samples(args=nil)
-      config[:samples] = []
-      args.each do |s|
-        config[:samples].push({ :sample_name => s })
-      end
-    end
-
     def find_sample sample_name
       config[:samples] ||= []
       config[:samples].find { |s| s[:sample_name] == sample_name } 
@@ -116,28 +129,6 @@ module Pipeline
 
     def config_comments
       config_text.split(/\n/).grep(/^\s*#/)[1..-1].map(&:chomp)
-    end
-
-    def show args=nil
-      puts config_header.green
-      puts
-      puts config.to_yaml
-      puts
-      puts config_comments.map(&:green)
-    end
-
-    def quit args=nil
-      exit
-    end
-
-    def print args=nil
-      File.open(args.first || default_output, "w") do |f|
-        f.puts config_header
-        f.puts
-        f.puts config.to_yaml
-        f.puts
-        f.puts config_comments
-      end
     end
 
     def start_generator

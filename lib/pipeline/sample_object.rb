@@ -36,14 +36,19 @@ module Pipeline
       @obj.update set_member(key,value)
     end
 
-    def parent_with_property prop
+    def owner prop
       if @obj[prop]
         self
-      elsif parent
-        parent.parent_with_property(prop) 
+      elsif parent && parent.respond_to?(:owner)
+        parent.owner(prop) 
       else
         nil
       end
+    end
+
+    def property prop
+      o = owner(prop)
+      o ? o.send(prop) : nil
     end
 
     def extend_with opts

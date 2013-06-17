@@ -5,7 +5,6 @@ module Utility
     extend Pipeline::Config
     include Pipeline::BaseConfig
 
-    def_var :input_bam do |s| (s || sample).input_bam end
     def_var :feature_name do cohort_name end
 
     dir_tree({

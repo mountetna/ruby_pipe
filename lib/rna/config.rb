@@ -12,20 +12,16 @@ module Rna
       end
     end
 
-    def_var :sample_names do samples.collect(&:sample_name) end
-    def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
-    def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
     def_var :bam_label do "aligned.merged.sorted" end
-    def_var :input_bam do |s| s ? s.input_bam : nil end
-    def_var :replicate_bams do |s| (s||sample).replicates.map{ |r| replicate_bam r} end
     def_var :normal_bams do replicate_bams normal end
-    def_var :replicate_bam do |r| input_bam(r) || output_bam(r) end
-    def_var :normal_name do sample.normal_name || sample_names.first end
-    def_var :normal do samples.find{|s| s.sample_name == normal_name} end
-    def_var :tumor_bam do sample_bam(sample_name) end
 
-    def_var :replicate do job_item end
+    def_var :replicate_bams do |s| (s||sample).replicates.map{ |r| replicate_bam r} end
+    def_var :replicate_bam do |r| input_bam(r) || output_bam(r) end
+
+    def_var :replicate_name do |r| (r || job_item).property :replicate_name end
     def_var :replicates do samples.collect(&:replicates).flatten end
+
+    def_var :sample_replicate_name do |r| "#{sample_name(r)}.#{replicate_name(r)}" end
 
     dir_tree({
       ":scratch_dir" => {
@@ -43,7 +39,8 @@ module Rna
             },
             "cufflinks" => {
               "." => :cufflinks_scratch,
-              "transcripts.gtf" => :transcripts_gtf
+              "transcripts.gtf" => :transcripts_gtf,
+              "genes.fpkm_tracking" => :gene_tracking
             },
             "rsem" => {
               "." => :rsem_scratch
@@ -87,7 +84,8 @@ module Rna
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
           "@cohort_name.ug.annotated.vcf" => :ug_annotated_vcf,
-          "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf 
+          "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf,
+          "@cohort_name.fpkm_table" => :fpkm_table
         }
       }
     })
@@ -98,6 +96,9 @@ module Rna
 
     # count_transcripts
     def_var :transcripts_gtfs do replicates.map{ |r| transcripts_gtf r } end
+
+    # assemble_transcripts
+    def_var :gene_trackings do replicates.map{|r| gene_tracking(r) } end
 
     # qc
     def_var :qc_bam do replicate_bam end

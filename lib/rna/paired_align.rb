@@ -23,6 +23,7 @@ module Rna
     def_module :default, :tophat_align => true,
       :qc => true,
       :count_transcripts => true,
+      :assemble_transcripts => true,
       :diff_exp => true
 
     class ConfigGenerator

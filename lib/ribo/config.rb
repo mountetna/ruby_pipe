@@ -5,11 +5,7 @@ module Ribo
 
     def platform; "Illumina"; end
 
-    def_var :sample_names do samples.collect(&:sample_name) end
-    def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
-    def_var :input_bam do |s| s ? sample(s)[:input_bam] : nil end
-    def_var :output_bam do sample_output_file "#{sample_name}.bam" end
-    def_var :output_bams do sample_names.map{|s| output_bam(s) } end
+    def_var :output_bams do samples.map{|s| output_bam(s) } end
 
     dir_tree({
       ":scratch_dir" => {
@@ -36,9 +32,12 @@ module Ribo
         }
       },
       ":output_dir" => {
-        "normal.cov" => :normal_cov,
-        "null.cov" => :random_cov,
-        "coverage.sam" => :coverage_sam,
+        "@sample_name" => {
+          "normal.cov" => :normal_cov,
+          "null.cov" => :random_cov,
+          "coverage.sam" => :coverage_sam,
+          "@sample_name.bam" => :output_bam
+        }
       },
       ":metrics_dir" => {
         "@sample_name" => {

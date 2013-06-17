@@ -5,8 +5,6 @@ module Utility
     extend Pipeline::Config
     include Pipeline::BaseConfig
 
-    def_var :input_bam do |s| (s || sample).input_bam end
-
     dir_tree({
       ":output_dir" => {
         "@sample_name.reordered.bam" => :output_bam

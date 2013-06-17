@@ -58,24 +58,6 @@ module Pipeline
     def_var :threads do resources[:threads] end
     def_var :qual_type do "phred64" end
 
-    def_var :cohort_dir do |dir,s| File.join dir, cohort_name end
-    def_var :cohort_scratch do cohort_dir scratch_dir end
-    def_var :cohort_scratch_file do |affix| File.join cohort_scratch, affix end 
-    def_var :cohort_output do cohort_dir output_dir end
-    def_var :cohort_output_file do |affix| File.join cohort_output, affix end 
-    def_var :cohort_metrics do cohort_dir metrics_dir end
-    def_var :cohort_metrics_file do |affix| File.join metrics_dir, "#{cohort_name}.#{affix}" end 
-
-    def_var :sample_dir do |dir,s| File.join dir, (s || sample_name) end
-    def_var :sample_scratch do |s| sample_dir scratch_dir, s end
-    def_var :sample_scratch_file do |affix,s| File.join sample_scratch(s), affix end 
-    
-    def_var :sample_output do |s| sample_dir output_dir, s end
-    def_var :sample_output_file do |affix,s| File.join sample_output(s), affix end 
-    def_var :sample_metrics do |s| sample_dir metrics_dir, s end
-    def_var :sample_metrics_file do |affix,s| File.join metrics_dir, "#{s || sample_name}.#{affix}" end 
-    def_var :sample_name do sample.sample_name end
-
     def_var :genome do :hg19 end
     def_var :reference_name do genome end
     def_var :reference_date do send "#{genome}_date".to_sym end
@@ -86,22 +68,39 @@ module Pipeline
     def_var :reference_gtf do send "#{genome}_ucsc_gtf".to_sym end
     def_var :reference_rsem do send "#{genome}_rsem_reference".to_sym end
 
+    dir_tree({
+      ":scratch_dir" => {
+        "@csample_name" => {
+          "." => :sample_scratch
+        },
+        "@cohort_name" => {
+          "." => :cohort_scratch
+        }
+      }
+    })
+
     def_var :modules do [ :default ] end
 
-    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config
+    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config, :walltime, :job_array
 
     def splits
       job_array ? job_array.size : nil
     end
 
-    def sample(name=nil)
-      return samples.find { |s| s.sample_name == name } if name
-      job_item.parent_with_property :sample_name if job_array
-    end
-
     def cohort
       return @config
     end
+
+    def_var :sample do job_item.owner :sample_name end
+    def_var :input_bam do |s| (s || job_item).property :input_bam end
+    def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
+    def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
+    def_var :sample_name do |s| (s || job_item).property :sample_name end
+    def_var :sample_names do job_array.map{ |item| item.property :sample_name }.uniq end
+
+    def_var :normal_bam do sample_bam(normal) end
+    def_var :normal_name do sample.normal_name || samples.first.sample_name end
+    def_var :normal do samples.find{|s| s.sample_name == normal_name} end
 
     def normal_samples
       n = samples.map(&:normal_name).compact
@@ -112,6 +111,7 @@ module Pipeline
       n = samples.select { |s| s[:normal_name] }
       n.empty? ? samples[1..-1] : n
     end
+    def_var :tumor_bam do sample_bam(sample) end
 
     def chromosomes
       # read chromosomes from the fasta dict
@@ -140,7 +140,6 @@ module Pipeline
       set_dir
 
       load_config
-
       load_genome_config
 
       init_hook
@@ -223,7 +222,7 @@ module Pipeline
         send ($1 || $2).to_sym, obj
       end.gsub(/@(?:(\w+)|\{(\w+)\})/) do |s|
         m = ($1 || $2).to_sym
-        obj.parent_with_property(m).send m
+        obj.property m
       end
     end
 

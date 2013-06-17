@@ -98,7 +98,7 @@ module Pipeline
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      job = schedule_job :exec, :splits => config.splits, :walltime => resources[:walltime], :threads => resources[:threads]
+      job = schedule_job :exec, :splits => config.splits, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
       [ job, config.splits ]
     end
 

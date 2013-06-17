@@ -4,39 +4,28 @@ require 'tempfile'
 module Rna
   class AssembleTranscripts
     include Pipeline::Step
-    runs_tasks :compare, :merge
-    resources :threads => 12
+    runs_tasks :make_table
 
-    class Compare
+    class MakeTable
       include Pipeline::Task
-      requires_file :transcripts_gtfs
-      dumps_file :tracking_file
+      requires_files :gene_trackings
+      outs_file :fpkm_table
 
       def run
-        File.open( config.assembly_list, "w" ) do |f|
-          f.puts config.transcripts_gtfs.join("\n")
+        combined = {}
+        config.replicates.each do |rep|
+          genes = HashTable.new config.gene_tracking(rep)
+          genes.each do |l|
+            combined[l[:gene_id]] ||= {}
+            combined[l[:gene_id]][config.sample_replicate_name(rep)] = l[:FPKM]
+          end
         end
-
-        log_info "Comparing transcripts to reference"
-        cuffcompare :i => config.assembly_list, :r => config.hg19_ucsc_gtf, :o => config.cuffcompare_scratch
-
-        File.unlink config.assembly_list
-      end
-    end
-    class Merge
-      include Pipeline::Task
-      requires_files :transcripts_gtfs
-      outs_file :assembly_gtf
-
-      def run
-        File.open( config.assembly_list, "w" ) do |f|
-          f.puts config.transcripts_gtfs.join("\n")
+        File.open config.fpkm_table, "w" do |f|
+          f.puts "gene_id\t#{config.replicates.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          combined.each do |gid,g|
+            f.puts "#{gid}\t#{config.replicates.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+          end
         end
-
-        log_info "Merging transcripts"
-        cuffmerge :out => config.scratch, :list => config.assembly_list or error_exit "Cuffmerge failed."
-
-        File.unlink config.assembly_list
       end
     end
   end

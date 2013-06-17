@@ -137,8 +137,7 @@ module Pipeline
     end
 
     def tophat(opts)
-      opts = { :num_threads => config.threads,
-        :output_dir => config.sample_scratch }.merge(opts)
+      opts = { :num_threads => config.threads }.merge(opts)
       fq1 = opts.delete :fq1
       fq2 = opts.delete :fq2
       run_cmd "#{config.tophat_dir}/tophat #{format_opts(opts,true)} #{config.bowtie2_idx} #{fq1} #{fq2}"
