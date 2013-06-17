@@ -99,7 +99,6 @@ module Exome
     include Pipeline::Step
     runs_tasks :filter_muts
     has_tasks :filter_muts, :concat_chroms, :filter_muts_annovar
-    resources :threads => 12
     runs_on :tumor_samples
 
     class FilterMuts
