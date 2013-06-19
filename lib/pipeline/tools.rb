@@ -98,12 +98,12 @@ module Pipeline
     end
 
     def gatk(tool,opts)
-      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.log_level, :num_threads => config.threads }.merge(opts)
+      opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.logging_level, :num_threads => config.threads }.merge(opts)
       java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
     end
 
     def mutect(opts)
-      opts = { :logging_level => config.log_level,
+      opts = { :logging_level => config.logging_level,
         :analysis_type => "MuTect",
         :baq => "CALCULATE_AS_NECESSARY",
         :reference_sequence => config.reference_fa,
