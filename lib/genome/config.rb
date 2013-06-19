@@ -105,6 +105,8 @@ module Genome
       @config.extend_with :chroms => chromosomes
     end
 
+    def_var :initial_bam do |s| (s || job_item).initial_bam end
+
     def_var :chrom do job_item.chrom_name end
 
     # Align

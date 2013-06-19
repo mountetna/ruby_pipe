@@ -7,12 +7,12 @@ module Genome
 
     class VerifyMate 
       include Pipeline::Task
-      requires_file :input_bam
+      requires_file :initial_bam
       dumps_file :mated_bam
 
       def run
         log_info "Verifying mate information"
-        picard :fix_mate_information, :INPUT => config.input_bam, :OUTPUT=> config.mated_bam or error_exit "Verify mate information failed"
+        picard :fix_mate_information, :INPUT => config.initial_bam, :OUTPUT=> config.mated_bam or error_exit "Verify mate information failed"
       end
     end
 
