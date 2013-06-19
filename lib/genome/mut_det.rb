@@ -18,7 +18,7 @@ module Genome
 
     class Mutect
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam
       dumps_files :mutect_snvs, :mutect_coverage
 
       def run
@@ -34,7 +34,7 @@ module Genome
 
     class Pindel
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam
       dumps_files :pindel_snv_d
 
       def run
