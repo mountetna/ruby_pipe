@@ -92,6 +92,7 @@ module Pipeline
     end
 
     def_var :sample do job_item.owner :sample_name end
+    def_var :replicate do job_item.owner :replicate_name end
     def_var :input_bam do |s| (s || job_item).property :input_bam end
     def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
     def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
@@ -99,7 +100,7 @@ module Pipeline
     def_var :sample_names do job_array.map{ |item| item.property :sample_name }.uniq end
 
     def_var :normal_bam do sample_bam(normal) end
-    def_var :normal_name do sample.normal_name || samples.first.sample_name end
+    def_var :normal_name do |s| (s || job_item).property(:normal_name) || samples.first.sample_name end
     def_var :normal do samples.find{|s| s.sample_name == normal_name} end
 
     def normal_samples
