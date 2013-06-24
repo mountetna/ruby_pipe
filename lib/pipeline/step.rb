@@ -122,6 +122,9 @@ module Pipeline
 
     def get_errors
       errors = File.foreach(config.error_pid).map do |l|
+        # if you were asked to stop, just exit, don't worry about errors
+        exit if l.chomp == "stop"
+
         Hash[[ :step, :trial, :task ].zip( l.chomp.split)]
       end.group_by{ |l| l[:step] }
       FileUtils.rm(config.error_pid)

@@ -42,9 +42,7 @@ module Pipeline
 
         log_main "#{config.step} trial #{config.job_index} failed to complete at #{task_name}.".red.bold
 
-        ensure_dir config.cohort_scratch
-
-        File.open(config.error_pid,"a") do |f|
+        open_error_pid do |f|
           f.puts "#{config.step} #{config.job_index} #{task_name}"
         end
         exit
@@ -67,12 +65,6 @@ module Pipeline
 
     def initialize(s)
       @step = s
-    end
-
-    def ensure_dir(*dirs)
-      dirs.each do |f|
-        FileUtils.mkdir_p f
-      end
     end
 
     def config
@@ -106,7 +98,7 @@ module Pipeline
       error_exit "Could not get filename for #{f}" if !filename
 
       # make sure the directory is there
-      ensure_dir File.dirname(filename)
+      ensure_dir filename
 
       error_exit "Could not find required file #{f} at #{filename}" if !File.size?(filename) 
       error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
@@ -130,7 +122,7 @@ module Pipeline
         log_debug "#{task_name}: #{f} already made at #{filename}" if config.verbose?
         nil
       else
-        ensure_dir File.dirname(filename)
+        ensure_dir filename
         true
       end
     end

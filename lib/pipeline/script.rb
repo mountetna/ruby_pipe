@@ -125,6 +125,11 @@ module Pipeline
       config.set_config :scheduler, scheduler_type
       abort "Say please if you want to let the current step finish running before stopping" if args.first && args.first != "please"
       cancel_job(args.first == "please")
+
+      # create an error pid just in case
+      open_error_pid do |f|
+        f.puts "stop"
+      end
     end
 
     def audit(args)
