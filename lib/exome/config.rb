@@ -58,7 +58,7 @@ module Exome
           "@chrom_name.recal.bai" => :recal_bai,
           "_splitbam_" => :split_bam_root,
           "_splitbam_@sample_name.bam" => :split_bam,
-          "@cohort_name.interval_bed" => :interval_bed,
+          "@cohort_name.bed" => :interval_bed,
           "absolute" => {
             "." => :absolute_review_dir,
             "@cohort_name.PP-calls_tab.txt" => :review_table,

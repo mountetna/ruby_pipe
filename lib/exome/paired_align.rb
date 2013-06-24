@@ -1,4 +1,5 @@
 require 'pipeline'
+require 'exome/prep'
 require 'exome/align'
 require 'exome/merge'
 require 'exome/recal'
@@ -11,7 +12,7 @@ require 'exome/copy_number'
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :review_absolute, :mut_det, :mut_filter, :univ_geno_normals
+    runs_steps :prep, :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number, :mut_det, :univ_geno_normals, :mut_filter, :review_absolute
 
     def_module :create_bams, {
       :align => true,
@@ -48,6 +49,7 @@ module Exome
 
     def_module :default, {
       # the default sequence of events. The order is dictated by runs_steps
+      :prep => true,
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,
