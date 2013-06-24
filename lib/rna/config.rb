@@ -21,6 +21,8 @@ module Rna
     def_var :replicate_name do |r| (r || job_item).property :replicate_name end
     def_var :replicates do samples.collect(&:replicates).flatten end
 
+    def_var :diff_exps do samples.collect(&:diff_exp).compact.flatten end
+
     def_var :sample_replicate_name do |r| "#{sample_name(r)}.#{replicate_name(r)}" end
 
     dir_tree({
@@ -46,7 +48,7 @@ module Rna
               "." => :rsem_scratch
             }
           },
-          "cuffdiff" => {
+          "cuffdiff_@normal_name" => {
             "." => :cuffdiff_dir,
             "gene_exp.diff" => :gene_exp_diff
           }
@@ -73,7 +75,7 @@ module Rna
           "@sample_name.@replicate_name.transcripts.gtf" => :output_gtf,
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
           "@sample_name.mutations" => :sample_mutations,
-          "@sample_name.diff_exp" => :diff_exp_table,
+          "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
           "@replicate_name" => {
             "rsem" => {
               "." => :rsem_output_dir,

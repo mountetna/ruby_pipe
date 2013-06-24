@@ -3,7 +3,7 @@ module Rna
   class DiffExp
     include Pipeline::Step
     runs_tasks :cuff_diff_compare, :diff_exp_table
-    runs_on :tumor_samples
+    runs_on :diff_exps
     resources :threads => 12
 
     class CuffDiffCompare
