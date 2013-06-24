@@ -7,7 +7,7 @@ module Exome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
-    resources :threads => 12
+    resources :threads => 1
     runs_on :tumor_samples, :chroms
 
     def vacuum
