@@ -34,7 +34,7 @@ module Exome
 
   class Recal
     include Pipeline::Step
-    runs_tasks :create_intervals, :realign_indels, :count_covariates, :table_recal, :recal_index
+    runs_tasks :create_intervals, :realign_indels, :count_covariates, :plot_covariates, :table_recal, :recal_index
     runs_on :chroms
     resources :threads => 1
 
@@ -83,6 +83,21 @@ module Exome
 		:input_file => config.realigned_bam,
                 :num_threads => nil,
 		:out => config.recal_grp or error_exit "First CountCovariates failed"
+      end
+    end
+
+    class PlotCovariates
+      include Pipeline::Task
+      requires_file :recal_grp, :realigned_bam
+      dumps_file :recal_plot_pdf
+
+      def run
+	log_info "Generating recalibration plots."
+	gatk :base_recalibrator, :knownSites => config.reference_snp_vcf, 
+		:input_file => config.realigned_bam,
+                :num_threads => nil,
+                :BQSR => config.recal_grp,
+		:plot_pdf_file => config.recal_plot_pdf or error_exit "Could not generate recalibration plot"
       end
     end
 

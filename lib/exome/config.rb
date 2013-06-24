@@ -78,6 +78,9 @@ module Exome
           "@sample_name" => :qc_coverage_base
         },
         "@cohort_name.duplication_metrics" => :duplication_metrics,
+        "@cohort_name.recal_plots" => {
+          "@chrom_name.recal_plot.pdf" => :recal_plot_pdf
+        },
         "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
