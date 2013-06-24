@@ -36,6 +36,13 @@ module Pipeline
     def audit
       log_console "Auditing #{self.class.name.snake_case} trial #{config.job_index}".yellow.bold
 
+      if self.audit_vars
+        self.audit_vars.each do |v|
+          val = config.send(v) || "nil".red
+          log_console "#{v}: ".magenta.bold + val
+        end
+      end
+
       tasks.each do |t|
         create_task(t).audit
       end

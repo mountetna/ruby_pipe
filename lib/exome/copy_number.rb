@@ -7,6 +7,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :compute_purity_ploidy
     runs_on :tumor_samples
+    audit_report :sample_name, :normal_name
 
     class ComputeCoverage
       include Pipeline::Task

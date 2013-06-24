@@ -7,7 +7,7 @@ module Pipeline
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      attr_reader :job_items, :tasks
+      attr_reader :job_items, :tasks, :audit_vars
       def runs_task(*tasklist)
         @tasks = tasklist
       end
@@ -32,6 +32,10 @@ module Pipeline
 
       def input
         required - made
+      end
+
+      def audit_report *vars
+        @audit_vars = vars
       end
 
       def job_list &block
@@ -60,7 +64,7 @@ module Pipeline
       setup_logging unless config.action == :audit || config.action == :clean
     end
 
-    class_var :job_items, :tasks, :available_tasks, :resources
+    class_var :job_items, :tasks, :available_tasks, :resources, :audit_vars
 
     def set_tasks t
       @tasks = self.class.available_tasks.map{|e|
