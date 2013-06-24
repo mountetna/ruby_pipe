@@ -87,6 +87,7 @@ module Exome
         "@sample_name" => {
           "@sample_name.:bam_label.bam" => :output_bam,
           "@sample_name.mut.txt" => :tumor_muts,
+          "@sample_name.maf" => :tumor_maf,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :tumor_exon_cnr,
