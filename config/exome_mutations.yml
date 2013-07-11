@@ -1,12 +1,14 @@
 :pindel:
   :normal:
-    :max_alt_count: 0
+    :max_alt_count: 2
+    :max_alt_freq: 0.1
     :min_depth: 8
   :tumor:
     :min_alt_count: 2
     :min_depth: 14
-    :max_alt_length: 15
-    :max_ref_length: 15
+    :max_alt_length: 50
+    :max_ref_length: 50
+    :min_alt_freq: 0.03
 :mutect:
   :has_judgement: KEEP
   :include_dbsnp_site: [ COSMIC, NOVEL ]
