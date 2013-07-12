@@ -2,6 +2,7 @@ module Pipeline
   module Script
     def audit_step s
       step = create_step s
+      log_console "runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
 
       if config.splits
         config.splits.times do |i|
@@ -148,7 +149,7 @@ module Pipeline
         if !dump.missing? && !out.missing?
           log_console "won't run, all files are present".blue
           out.print_files do |f,fn|
-            log_console "#{f} => #{fn}".green
+            log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
           end if config.verbose
         end
       end
