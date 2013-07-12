@@ -29,6 +29,7 @@ module Rna
       ":scratch_dir" => {
         "@sample_name" => {
           "@replicate_name" => {
+            "coverage.sam" => :coverage_sam,
             "tophat" => {
               "." => :tophat_scratch,
               "accepted_hits.bam" => :accepted_bam,
@@ -36,8 +37,6 @@ module Rna
               "merged.bam" => :merged_bam,
               "merged.sorted.bam" => :sorted_bam,
               "sorted_header.txt" => :sorted_header,
-              "coverage.sam" => :coverage_sam,
-              "transcripts.cov" => :transcripts_cov
             },
             "cufflinks" => {
               "." => :cufflinks_scratch,
@@ -76,6 +75,7 @@ module Rna
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
+          "@sample_name.@replicate_name.transcripts.cov" => :transcripts_cov,
           "@replicate_name" => {
             "rsem" => {
               "." => :rsem_output_dir,

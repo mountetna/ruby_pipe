@@ -3,8 +3,9 @@ require 'hash_table'
 module Rna
   class CountTranscripts
     include Pipeline::Step
-    runs_tasks :cufflink, :count_coverage #, :format_transcript
-    has_tasks :cufflink, :count_coverage, :rsem_count
+    runs_tasks :cufflink, :format_transcript, :sort_sam, :count_coverage
+    has_tasks :cufflink, :format_transcript, :sort_sam, :count_coverage, :rsem_count
+    audit_report :sample_replicate_name
     resources :threads => 12
     runs_on :replicates
 
@@ -21,7 +22,7 @@ module Rna
     class Cufflink
       include Pipeline::Task
       requires_files :replicate_bam
-      outs_file :transcripts_gtf
+      dumps_file :transcripts_gtf
 
       def run
         log_info "Running cufflinks"
@@ -36,30 +37,28 @@ module Rna
 
       def run
         log_info "Formatting transcript gtf"
-        gene_alias = HashTable.new(config.hg19_ucsc_gene_names, :key => [ :"#kgID", :spID ])
-        File.open(config.output_gtf,"w") do |f|
-          File.foreach(config.transcripts_gtf) do |t|
-            t.chomp!
-            t.match(/gene_id "(.*?)"/) do |m|
-              t.sub!(/gene_id ".*?"/,"gene_id \"#{gene_alias[m[1]][:geneSymbol]}\"") if gene_alias[m[1]]
-            end
-            f.puts t
-          end
-        end
+        FileUtils.cp config.transcripts_gtf, config.output_gtf
+      end
+    end
+
+    class SortSam
+      include Pipeline::Task
+      requires_file :replicate_bam
+      dumps_file :coverage_sam
+
+      def run
+        run_cmd "samtools view -b -h -q 1 -f 2 #{config.replicate_bam} | samtools sort -on - #{config.coverage_sam.sub(/.sam/,"")} | samtools view -h - > #{config.coverage_sam}" or error_exit "Could not sort bam correctly."
       end
     end
 
     class CountCoverage
       include Pipeline::Task
-      requires_file :replicate_bam
+      requires_file :coverage_sam
       outs_file :transcripts_cov
 
       def run
         log_info "Mapping coverage to reference genes"
-        samtools "view -h -q 1 -F 4", config.replicate_bam, config.coverage_sam
-        htseq_count :input => config.coverage_sam, :gtf => config.reference_gtf, :type => "rnaseq", :out => config.transcripts_cov or error_exit "Computing normal coverage failed."
-        File.unlink config.coverage_sam
-        #coverage_bed config.sample_bam, config.reference_gtf, config.normal_cov or error_exit "Computing normal coverage failed."
+        htseq_count :input => config.coverage_sam, :gtf => config.reference_gtf, :type => "exon", :out => config.transcripts_cov or error_exit "Computing normal coverage failed."
       end
     end
   end
