@@ -9,6 +9,7 @@
 :hg19_dict: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict
 :hg19_fa: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.fa
 :hg19_date: feb_2009
+:hg19_reference_gtf: /taylorlab/resources/human/hg19/refSeq/refFlat.hg19.gtf
 :hg19_ucsc_gtf: /taylorlab/resources/human/hg19/ucsc_feb_2009/knownGene.trimmed.gtf
 :hg19_ucsc_gene_names: /taylorlab/resources/human/hg19/ucsc_feb_2009/kgXref.txt
 :hg19_gencode_gtf: /taylorlab/resources/human/hg19/gencode/gencode.v11.annotation.gtf
