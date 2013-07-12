@@ -114,6 +114,17 @@ module Pipeline
       java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
     end
 
+    def indelocator(opts)
+      opts = { :logging_level => config.logging_level,
+        :num_threads => config.threads,
+        :baq => "CALCULATE_AS_NECESSARY",
+        #:"rodBind:dbsnp,vcf" => config.reference_snp_vcf,
+        :reference_sequence => config.reference_fa,
+        :analysis_type => "IndelGenotyperV2"
+      }.merge(opts)
+      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.indelocator_dir}/#{config.indelocator_jar}", :args => format_opts(opts)
+    end
+
     def pindel(opts)
       opts = { :number_of_threads => config.threads, :fasta => config.reference_fa }.merge(opts)
 

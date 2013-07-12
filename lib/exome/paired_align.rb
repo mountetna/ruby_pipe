@@ -14,6 +14,10 @@ module Exome
     include Pipeline::Script
     runs_steps :prep, :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number, :mut_det, :univ_geno_normals, :mut_filter, :review_absolute
 
+    def_module :prep_pipe, {
+      :prep => true
+    }
+
     def_module :create_bams, {
       :align => true,
       :merge => true,
@@ -39,6 +43,10 @@ module Exome
       :mut_filter => true
     }
 
+    def_module :find_mutations_indelocator, {
+      :mut_det => [ :indelocator ]
+    }
+
     def_module :find_normal_mutations, {
       :univ_geno_normals => true
     }
@@ -49,7 +57,7 @@ module Exome
 
     def_module :default, {
       # the default sequence of events. The order is dictated by runs_steps
-      :prep => true,
+      :prep_pipe => true,
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,

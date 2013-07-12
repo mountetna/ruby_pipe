@@ -75,6 +75,7 @@ module Exome
           "@sample_name.alignment_metrics" => :qc_align_metrics,
           "@sample_name.insert_sizes" => :qc_inserts,
           "@sample_name.sample_summary" => :qc_coverage_metrics,
+          "@sample_name.indelocator" => :indelocator_metrics,
           "@sample_name" => :qc_coverage_base
         },
         "@cohort_name.duplication_metrics" => :duplication_metrics,
@@ -95,6 +96,8 @@ module Exome
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.mutations" => :tumor_mutations,
           "@sample_name.normal_mut.txt" => :normal_muts,
+          "@sample_name.indelocator.bed" => :indelocator_bed,
+          "@sample_name.indelocator.txt" => :indelocator_output,
         }
       }
     })

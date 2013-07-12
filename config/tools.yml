@@ -1,5 +1,5 @@
 
-:java: /opt/java/jdk1.6.0_latest/bin/java
+:java: /opt/java/jdk1.7.0_latest/bin/java
 
 :tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
 
@@ -14,6 +14,8 @@
 :gatk_jar: GenomeAnalysisTK.jar
 :mutect_dir: /taylorlab/lib/mutect/mutect-latest
 :mutect_jar: muTect.jar
+:indelocator_dir: /taylorlab/lib/indelocator/indelocator-latest
+:indelocator_jar: IndelGenotyper.jar
 :picard_dir: /taylorlab/lib/picard/picard-latest
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest
 :rsem_dir: /taylorlab/lib/rsem/rsem-latest

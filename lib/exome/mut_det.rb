@@ -8,6 +8,7 @@ module Exome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
+    has_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf, :indelocator
     resources :threads => 1
     runs_on :tumor_samples, :chroms
 
@@ -92,6 +93,16 @@ module Exome
           l.genotype(config.sample_name).info[:AD] = "#{tumor_depth - support},#{support}"
         end
         unpatched.write config.pindel_vcf
+      end
+    end
+
+    class Indelocator
+      include Pipeline::Task
+      requires_files :normal_bam, :tumor_bam, :interval_list
+      outs_files :indelocator_bed, :indelocator_metrics
+
+      def run
+        indelocator :somatic => true, :"input_file:normal" => config.normal_bam, :"input_file:tumor" => config.tumor_bam, :verboseOutput => config.indelocator_output, :metrics_file => config.indelocator_metrics, :out => config.indelocator_bed, :intervals => config.interval_list or error_exit "Indelocator failed"
       end
     end
   end
