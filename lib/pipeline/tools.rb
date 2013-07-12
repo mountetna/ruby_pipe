@@ -203,8 +203,8 @@ module Pipeline
       lines.map{|l| Hash[headers.zip(l)]}
     end
 
-    def coverage_bed(bam,intervals,outfile)
-      run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
+    def coverage_bed(bam,intervals,outfile,quality=20)
+      run_cmd "samtools view -u -q #{quality} #{bam} | coverageBed -abam stdin -b #{intervals} -counts > #{outfile}"
     end
 
     def count_depth bam, chr, pos, pos2=nil
