@@ -41,7 +41,7 @@ module Rna
       end
       usage "input <sample name>", "Input fastqs for the given sample"
 
-      def normal(args)
+      def diff_exp(args)
         sample = find_sample args[0]
         normal = find_sample args[1]
         if !sample || !normal
@@ -53,9 +53,10 @@ module Rna
           return
         end
 
-        sample[:normal_name] = normal[:sample_name]
+        sample[:diff_exp] ||= []
+        sample[:diff_exp].push :normal_name => normal[:sample_name]
       end
-      usage "normal <sample name> <normal sample name>", "Set the normal name for the given sample (the first sample is assumed to be the normal)"
+      usage "diff_exp <sample name> <normal sample name>", "Differential expression between two samples"
 
       def frag_size(args)
         config[:frag_size] = args.first

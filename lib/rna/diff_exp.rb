@@ -24,7 +24,7 @@ module Rna
       def run
         diff = HashTable.new config.gene_exp_diff
         diff.select! do |l|
-          l.q_value.to_f <= 0.001
+          l.q_value.to_f <= config.q_value_cutoff
         end
         diff.sort_by! {|l| l.q_value.to_f }
         diff.print config.diff_exp_table

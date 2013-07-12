@@ -104,6 +104,9 @@ module Rna
 
     # qc
     def_var :qc_bam do replicate_bam end
+
+    # diff_exp
+    def_var :q_value_cutoff do 0.001 end
     
     def_var :mutations_config do "#{config_dir}/rna_mutations.yml" end
 
