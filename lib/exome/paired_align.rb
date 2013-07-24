@@ -12,19 +12,43 @@ require 'exome/copy_number'
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :prep, :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number, :mut_det, :univ_geno_normals, :mut_filter, :review_absolute
+    runs_steps :prep, 
+      :dump_fastqs, :combine_fastqs, :align, :merge,
+      :lane_merge, :lane_recal, :lane_table_recal, :lane_split,
+      :patient_merge, :patient_realign, :patient_split, 
+      :make_samples,
+      :hybrid_qc, :hybrid_qc_summary, :copy_number, 
+      :mut_det, :univ_geno_normals, :mut_filter, :review_absolute
 
     def_module :prep_pipe, {
       :prep => true
     }
 
-    def_module :create_bams, {
+    def_module :align_bams, {
+      :dump_fastqs => true,
+      :combine_fastqs => true,
       :align => true,
-      :merge => true,
-      :library_merge => true,
-      :recal => true,
-      :library_split => true,
-      :make_samples => true, 
+      :merge => true
+    }
+
+    def_module :recal_by_lane, {
+      :lane_merge => true,
+      :lane_recal => true,
+      :lane_table_recal => true,
+      :lane_split => true
+    }
+
+    def_module :realign_by_patient, {
+      :patient_merge => true,
+      :patient_realign => true,
+      :patient_split => true
+    }
+
+    def_module :create_bams, {
+      :align_bams => true,
+      :recal_by_lane => true,
+      :realign_by_patient => true,
+      :make_samples => true
     }
 
     def_module :calculate_qc, {

@@ -11,7 +11,11 @@ module Pipeline
 
     def bwa_aln(params)
       params = { :threads => config.threads }.merge(params)
-      bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
+      if params[:bam]
+        bwa "aln -t #{params[:threads]} #{config.bwa_idx} -b#{params[:pair]} #{params[:bam]}", params[:out]
+      else
+        bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
+      end
     end
 
     def bwa_pair(params)

@@ -4,8 +4,14 @@ module Pipeline
     module ClassMethods
       def class_init
         @required_files = []
+        @skip_symbols = []
         @dump_files = []
         @out_files = []
+      end
+
+      def skip_without *required
+        requires_file *required
+        @skip_symbols = required
       end
 
       def requires_file(*required)
@@ -24,7 +30,7 @@ module Pipeline
       alias :outs_files :outs_file
 
       def made_files; @out_files + @dump_files; end
-      attr_reader :required_files, :dump_files, :out_files
+      attr_reader :required_files, :skip_symbols, :dump_files, :out_files
     end
   end
   class PipeError < StandardError
@@ -77,7 +83,7 @@ module Pipeline
       self.class.name.split(/::/).last.snake_case
     end
     
-    class_var :dump_files, :out_files, :made_files, :required_files
+    class_var :dump_files, :out_files, :made_files, :required_files, :skip_symbols
 
     def should_run
       # don't even log it if the script says to skip it
@@ -86,8 +92,9 @@ module Pipeline
 
         log_info "task #{task_name}:".white.bold
 
-        # this will exit the step if it is missing.
-        check_required
+        # this will exit the step if it is missing files.
+        # it will skip if some required symbols are nil
+        next if !check_required
 
         # this will merely move on to the next step
         return make_files?
@@ -107,6 +114,10 @@ module Pipeline
     end
 
     def check_required
+      skip_symbols.each do |s|
+        return nil if !config.send s
+      end
+
       required_files.each do |f|
         filename = config.send(f)
         if filename.is_a? Array
@@ -115,6 +126,7 @@ module Pipeline
           check_file filename, f
         end
       end
+      true
     end
 
     def make_file?(filename,f)

@@ -69,6 +69,14 @@ module Pipeline
           count != total
         end
 
+        def symbols_missing?
+          symbol_count != total
+        end
+
+        def symbol_count
+          @files.map{|f| @config.send f}.compact.size
+        end
+
         def needed?
           total != 0 && missing?
         end
@@ -91,10 +99,10 @@ module Pipeline
             end
           end
         end
-        def print_files
+        def print_files no_array=nil
           @files.each do |f|
             filename = @config.send f
-            if filename && filename.is_a?(Array)
+            if filename && filename.is_a?(Array) && !no_array
               filename.each do |fn|
                 yield(f,fn)
               end
@@ -121,12 +129,19 @@ module Pipeline
       def audit
         return if step.script.exclude_task? self
         log_console "task #{task_name}:".blue.bold
+        sym = Audit.new(skip_symbols,config)
         req = Audit.new(required_files,config)
         dump = Audit.new(dump_files,config)
         out = Audit.new(out_files,config)
         log_console "required files: #{req.summary}" if req.total > 0
         log_console "dump files: #{dump.summary}" if dump.total > 0
         log_console "out files: #{out.summary}" if out.total > 0
+        if sym.symbols_missing?
+          log_console "doesn't need to run".red
+          sym.print_files do |f,fn| 
+            log_console "#{f} => #{fn}".blue if !fn
+          end
+        end
         if req.missing?
           log_console "won't run, required files are missing".red
           req.print_files do |f,fn| 

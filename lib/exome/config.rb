@@ -15,12 +15,23 @@ module Exome
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {
-          "input.@input_name.read1.sai" => :read1_sai,
-          "input.@input_name.read2.sai" => :read2_sai,
-          "input.@input_name.mate_fixed.bwa.sam" => :mated_sam,
-          "input.@input_name.paired.bwa.sam" => :paired_sam,
-          "input.@input_name.renamed.bwa.sam" => :renamed_sam,
-          "input.@input_name.aligned.bwa.bam" => :aligned_bam,
+          "input.@input_name.chaste.bam" => :chaste_bam,
+          "input.@input_name.reads1.fastq.gz" => :reads1_fastq,
+          "input.@input_name.reads2.fastq.gz" => :reads2_fastq,
+
+          "chunk.@chunk_name.read1.fastq.gz" => :chunk1_fastq,
+          "chunk.@chunk_name.read2.fastq.gz" => :chunk2_fastq,
+          "chunk.@chunk_name.read1.sai" => :read1_sai,
+          "chunk.@chunk_name.read2.sai" => :read2_sai,
+          "chunk.@chunk_name.mate_fixed.bwa.bam" => :mated_bam,
+          "chunk.@chunk_name.paired.bwa.sam" => :paired_sam,
+          "chunk.@chunk_name.paired.bwa.bam" => :paired_bam,
+          "chunk.@chunk_name.aligned.bwa.bam" => :aligned_bam,
+
+          "@sample_name.reads1.fastq" => :sample_reads1_fastq,
+          "@sample_name.reads2.fastq" => :sample_reads2_fastq,
+
+          "chunk_info" => :chunk_info,
 
           "raw_sample.bam" => :raw_sample_bam,
           "raw_sample.bai" => :raw_sample_bai,
@@ -43,21 +54,31 @@ module Exome
 
           ":normal_name.cov" => :normal_cov,
           "@sample_name.cov" => :tumor_cov,
+          "@sample_name.recal.bam" => :recal_sample_bam,
           "absolute" => {
             "." => :absolute_scratch,
             "@sample_name.ABSOLUTE.RData" => :absolute_rdata
           }
         },
-        "@cohort_name" => {
-          "merged_library.bam" => :merged_library_bam,
-          "raw_library.bam" => :raw_library_bam,
-          "@chrom_name.merged.intervals" => :merged_intervals,
-          "@chrom_name.realigned.bam" => :realigned_bam,
-          "@chrom_name.recal.grp" => :recal_grp,
+        "@lane_name" => {
+          "merged_lane.bam" => :merged_lane_bam,
+          "recal.grp" => :recal_grp,
+          "recal_plot.pdf" => :recal_plot_pdf,
           "@chrom_name.recal.bam" => :recal_bam,
-          "@chrom_name.recal.bai" => :recal_bai,
-          "_splitbam_" => :split_bam_root,
-          "_splitbam_@sample_name.bam" => :split_bam,
+          "_splitbam_" => :lane_split_bam_root,
+          "_splitbam_SAMPLE.bam" => :lane_split_bam
+        },
+        "@patient_name" => {
+          "merged_patient.bam" => :merged_patient_bam,
+          "raw_patient.bam" => :raw_patient_bam,
+          "duplication_metrics" => :duplication_metrics,
+          "@chrom_name.patient.intervals" => :patient_intervals,
+          "@chrom_name.realigned_patient.bam" => :realigned_patient_bam,
+          "_splitbam_" => :patient_split_bam_root,
+          "_splitbam_SAMPLE.bam" => :patient_split_bam
+        },
+        "@cohort_name" => {
+          "@chrom_name.realigned.bam" => :realigned_bam,
           "@cohort_name.bed" => :interval_bed,
           "absolute" => {
             "." => :absolute_review_dir,
@@ -79,14 +100,12 @@ module Exome
           "@sample_name" => :qc_coverage_base
         },
         "@cohort_name.duplication_metrics" => :duplication_metrics,
-        "@cohort_name.recal_plots" => {
-          "@chrom_name.recal_plot.pdf" => :recal_plot_pdf
-        },
         "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
         "@sample_name" => {
           "@sample_name.:bam_label.bam" => :output_bam,
+          "@sample_name.:bam_label.bam.bai" => :sample_bai,
           "@sample_name.mut.txt" => :tumor_muts,
           "@sample_name.maf" => :tumor_maf,
           "@sample_name.mutations" => :sample_mutations,
@@ -102,6 +121,19 @@ module Exome
       }
     })
 
+    def make_chunks s
+      if File.exists? chunk_info(s)
+        num_reads = File.read(chunk_info(s)).to_i
+        num_chunks = (num_reads*4 / chunk_size.to_f).ceil
+        num_chunks.times.map{ |i|
+          { :chunk_number => i, :chunk_name => "c#{i}" }
+        }
+      else
+        # you don't know right now, just make a dummy
+        [ { :chunk_number => 0, :chunk_name => "c0" } ]
+      end
+    end
+
     def init_hook
       # add various bells and whistles here
       samples.each do |s|
@@ -111,25 +143,65 @@ module Exome
           end
         end
         s.extend_with :chroms => chromosomes
+        s.extend_with :chunks => make_chunks(s)
       end
-      @config.extend_with :chroms => chromosomes
+      @config.extend_with :lanes => make_lanes
+      lanes.each do |lane|
+        lane.extend_with :chroms => chromosomes
+      end
+      @config.extend_with :patients => make_patients
+      patients.each do |patient|
+        patient.extend_with :chroms => chromosomes
+      end
     end
 
-    def_var :chrom do job_item.chrom_name end
+    def make_lanes
+      samples.group_by(&:lane).map do |lane,samples|
+        { :lane_name => "lane#{lane || 0}", :samples => samples }
+      end
+    end
+
+    def make_patients
+      samples.group_by(&:patient).map do |patient,samples|
+        { :patient_name => "patient#{patient || 0}", :samples => samples }
+      end
+    end
+
+    def_var :lane_name do |l| (l||job_item).property :lane_name end
+    def_var :chunk_size do 4_000_000 end
+    job_items :chrom, :lane, :patient
+
+    def_var :reads1_fastqs do sample.inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
+    def_var :reads2_fastqs do sample.inputs.map{|input| input_fastq2(input) || reads2_fastq(input) } end
 
     # Align
-    def_var :input_fastq1 do job_item.fq1 end
-    def_var :input_fastq2 do job_item.fq2 end
+    def_var :input_file1 do input_fastq1 || reads_bam end
+    def_var :input_file2 do input_fastq2 || reads_bam end
+    def_var :reads_bam do job_item.reads_bam end
+    def_var :input_fastq1 do |i| (i || job_item).fq1 end
+    def_var :input_fastq2 do |i| (i || job_item).fq2 end
 
     # Merge 
-    def_var :aligned_bams do sample.inputs.map { |input| aligned_bam input } end
+    def_var :aligned_bams do sample.chunks.map { |chunk| aligned_bam chunk } end
           
-    # Library Merge
-    def_var :raw_sample_bams do samples.map{|s| raw_sample_bam(s) } end
+    # Lane Merge
+    def_var :lane_raw_sample_bams do lane.samples.map{|s| raw_sample_bam(s) } end
 
-    # Library Split
-    def_var :recal_bams do @config.chroms.map{ |c| recal_bam c } end
-    def_var :split_bams do samples.map{ |s| split_bam s } end
+    # Lane Split
+    def_var :lane_recal_bams do lane.chroms.map{|c| recal_bam(c) } end
+    def_var :lane_sample_split_bam do |s| lane_split_bam.sub("SAMPLE",s.sample_name) end
+    def_var :lane_split_bams do lane.samples.map{|s| lane_sample_split_bam(s) } end
+    def_var :lane_sample_bams do lane.samples.map{|s| recal_sample_bam(s) } end
+
+    # Patient Merge
+    def_var :patient_raw_sample_bams do patient.samples.map {|s| patient_raw_sample_bam s } end
+    def_var :patient_raw_sample_bam do |s| recal_sample_bam(s || job_item) end
+
+    # PatientSplit
+    def_var :realigned_patient_bams do patient.chroms.map{|c| realigned_patient_bam(c) } end
+    def_var :patient_sample_split_bam do |s| patient_split_bam.sub("SAMPLE",s.sample_name) end
+    def_var :patient_split_bams do patient.samples.map{|s| patient_sample_split_bam(s) } end
+    def_var :patient_sample_bams do patient.samples.map{|s| sample_bam(s) } end
 
     # Hybrid qc
     def_var :qc_bam do tumor_bam end
