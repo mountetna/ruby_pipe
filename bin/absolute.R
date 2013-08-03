@@ -2,13 +2,15 @@
 suppressMessages(library(ABSOLUTE))
 
 args = commandArgs(TRUE)
+lib_dir = args[1]
+cmd = args[2]
 
 # Get input and set globals
 
 if (length(args) < 1) {
   print("Usage:")
-  print("  absolute.R callSample <sample_name> <seg_file> <results_dir>")
-  print("  absolute.R createReview <cohort_name> <results_dir> <list of filenames>")
+  print("  absolute.R <lib_dir> callSample <sample_name> <seg_file> <results_dir>")
+  print("  absolute.R <lib_dir> createReview <cohort_name> <results_dir> <list of filenames>")
   quit()
 }
 
@@ -94,4 +96,4 @@ callSample = function(args) {
   )
 }
 
-do.call(args[1],list(args[-1]))
+do.call(cmd,list(args[-1,-2]))

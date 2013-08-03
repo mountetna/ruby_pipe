@@ -14,23 +14,11 @@
 ascat.loadData = function(Tumor_LogR, Tumor_BAF, Germline_LogR = NULL, Germline_BAF = NULL, chrs = c(1:22,"X")) {
 
   # read in SNP array data files
-  #print.noquote("Reading Tumor LogR data...")
-  #Tumor_LogR <- read.table(Tumor_LogR_file, header=T, row.names=1, comment.char="", sep = "\t")
-  #print.noquote("Reading Tumor BAF data...")
-  #Tumor_BAF <- read.table(Tumor_BAF_file, header=T, row.names=1, comment.char="", sep = "\t")
-
   #infinite values are a problem - change those
   Tumor_LogR[Tumor_LogR==-Inf]=NA
   Tumor_LogR[Tumor_LogR==Inf]=NA
 
-  #Germline_LogR = NULL
-  #Germline_BAF = NULL
   if(!is.null(Germline_LogR)) {
-    #print.noquote("Reading Germline LogR data...")
-    #Germline_LogR <- read.table(Germline_LogR_file, header=T, row.names=1, comment.char="", sep = "\t")
-    #print.noquote("Reading Germline BAF data...")
-    #Germline_BAF <- read.table(Germline_BAF_file, header=T, row.names=1, comment.char="", sep = "\t")
-
     #infinite values are a problem - change those
     Germline_LogR[Germline_LogR==-Inf]=NA
     Germline_LogR[Germline_LogR==Inf]=NA
@@ -185,7 +173,7 @@ ascat.plotRawData = function(ASCATobj, tumorfiles = "Tumor", germlinefiles = "Ge
 # it saves the results in LogR_PCFed[sample]_[segment].txt and BAF_PCFed[sample]_[segment].txt
 # if these files exist, the results are read from the files
 # hence, after parallelization, copy all the files into the current directory, and run this function to read in the results
-ascat.aspcf = function(ASCATobj, selectsamples = 1:length(ASCATobj$samples), ascat.gg = NULL) {
+ascat.aspcf = function(ASCATobj, selectsamples = 1:length(ASCATobj$samples), ascat.gg = NULL, ascat_dir = "") {
   attach(ASCATobj)
  
   #first, set germline genotypes
@@ -205,11 +193,11 @@ ascat.aspcf = function(ASCATobj, selectsamples = 1:length(ASCATobj$samples), asc
   rownames(Tumor_LogR_segmented) = rownames(Tumor_LogR)
   colnames(Tumor_LogR_segmented) = colnames(Tumor_LogR)
   Tumor_BAF_segmented = list();
-  source("aspcf.R")
+  source("/taylorlab/scripts/ruby_pipe/bin/ASCAT2.1/aspcf.R")
   for (sample in selectsamples) {
     print.noquote(paste("Sample ", samples[sample], " (",sample,"/",length(samples),")",sep=""))
-    logrfilename = paste("LogR_PCFed_",samples[sample],".txt",sep="")
-    baffilename = paste("BAF_PCFed_",samples[sample],".txt",sep="")
+    logrfilename = paste(ascat_dir, "/", "LogR_PCFed_",samples[sample],".txt",sep="")
+    baffilename = paste(ascat_dir, "/", "BAF_PCFed_",samples[sample],".txt",sep="")
     logRPCFed = numeric(0)
     bafPCFed = numeric(0)
     #if(length(dir(pattern=logrfilename))==0 || length(dir(pattern=baffilename))==0) {
@@ -386,8 +374,8 @@ ascat.aspcf = function(ASCATobj, selectsamples = 1:length(ASCATobj$samples), asc
         }
       }
 
-      write.table(logRPCFed,logrfilename,sep="\t",col.names=F)
-      write.table(bafPCFed,baffilename,sep="\t",col.names=F)
+      #write.table(logRPCFed,logrfilename,sep="\t",col.names=F)
+      #write.table(bafPCFed,baffilename,sep="\t",col.names=F)
       bafPCFed = as.matrix(bafPCFed)
     #}
     #else {
