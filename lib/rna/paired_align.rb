@@ -7,6 +7,8 @@ require 'rna/assemble_transcripts'
 require 'rna/compare_expn'
 require 'rna/univ_geno'
 require 'rna/diff_exp'
+require 'rna/splice_count'
+require 'rna/detect_fusions'
 require 'rna/filter_muts'
 require 'rna/qc'
 require 'rna/config'
@@ -14,11 +16,15 @@ require 'rna/config'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :tophat_align, :qc, :count_transcripts, :diff_exp, :assemble_transcripts #, :univ_geno, :filter_muts
+    runs_steps :tophat_align, :qc, :count_transcripts, :diff_exp, :assemble_transcripts, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
 
     def_module :rsem, :tophat_align => true,
       :qc => true,
       :count_transcripts => [ :rsem_count ]
+
+    def_module :count_splice, :splice_count => true
+
+    def_module :fusion_detect, :detect_fusions => true
 
     def_module :default, :tophat_align => true,
       :qc => true,

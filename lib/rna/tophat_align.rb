@@ -2,11 +2,11 @@
 module Rna
   class TophatAlign
     include Pipeline::Step
-    runs_tasks :tophat_align, :merge_reads, :sort_seq, :relabel_bam
+    runs_tasks :run_tophat, :merge_reads, :sort_seq, :relabel_bam
     resources :threads => 12
     runs_on :replicates
 
-    class TophatAlign
+    class RunTophat
       include Pipeline::Task
       requires_files :input_fastq1s, :input_fastq2s
       dumps_files :accepted_bam, :unmapped_bam

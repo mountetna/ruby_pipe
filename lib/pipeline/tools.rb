@@ -101,6 +101,10 @@ module Pipeline
       end
     end
 
+    def chimerascan fq1, fq2, output_dir
+      run_cmd "python /taylorlab/lib/python/bin/chimerascan_run.py -p #{config.threads} -v --quals #{config.qual_type} #{config.bowtie_idx} #{fq1} #{fq2} #{output_dir}"
+    end
+
     def gatk(tool,opts)
       opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.logging_level, :num_threads => config.threads }.merge(opts)
       java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
@@ -247,5 +251,3 @@ module Pipeline
     end
   end
 end
-
-

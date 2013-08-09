@@ -12,6 +12,8 @@ module Rna
       end
     end
 
+    empty_var :splice_gtf
+
     def_var :bam_label do "aligned.merged.sorted" end
     def_var :normal_bams do replicate_bams normal end
 
@@ -30,6 +32,13 @@ module Rna
         "@sample_name" => {
           "@replicate_name" => {
             "coverage.sam" => :coverage_sam,
+            "splice.sam" => :splice_sam,
+            "chimera1.fastq" => :chimera_fq1,
+            "chimera2.fastq" => :chimera_fq2,
+            "chimerascan" => {
+              "." => :chimera_dir,
+              "chimeras.bedpe" => :chimera_bedpe
+            },
             "tophat" => {
               "." => :tophat_scratch,
               "accepted_hits.bam" => :accepted_bam,
@@ -76,6 +85,7 @@ module Rna
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
           "@sample_name.@replicate_name.transcripts.cov" => :transcripts_cov,
+          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts,
           "@replicate_name" => {
             "rsem" => {
               "." => :rsem_output_dir,

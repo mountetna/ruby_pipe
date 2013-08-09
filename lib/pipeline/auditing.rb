@@ -6,11 +6,11 @@ module Pipeline
 
       if config.splits
         config.splits.times do |i|
-          config.set_config :job_index, i
+          config.set_opt :job_number, i+1
           step.audit
         end
       else
-        config.set_config :job_index, :nil
+        config.set_opt :job_number, nil
         step.audit
       end
     end
@@ -141,6 +141,14 @@ module Pipeline
           sym.print_files do |f,fn| 
             log_console "#{f} => #{fn}".blue if !fn
           end
+          return
+        end
+        if !dump.missing? && !out.missing?
+          log_console "won't run, all files are present".blue
+          out.print_files do |f,fn|
+            log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
+          end if config.verbose
+          return
         end
         if req.missing?
           log_console "won't run, required files are missing".red
@@ -160,12 +168,6 @@ module Pipeline
           out.print_files do |f,fn|
             log_console "#{f} => #{fn}".red if empty? fn
           end
-        end
-        if !dump.missing? && !out.missing?
-          log_console "won't run, all files are present".blue
-          out.print_files do |f,fn|
-            log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
-          end if config.verbose
         end
       end
     end
