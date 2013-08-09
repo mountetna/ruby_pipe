@@ -92,13 +92,15 @@ module Pipeline
 
         log_info "task #{task_name}:".white.bold
 
+        # if all of the files exist, you shouldn't run
+        return nil if !make_files?
+
         # this will exit the step if it is missing files.
         # it will skip if some required symbols are nil
-        next if !check_required
-
+        return nil if !check_required
         # this will merely move on to the next step
-        return make_files?
       end
+      true
     end
 
     def check_file(filename,f)

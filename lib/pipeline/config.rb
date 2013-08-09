@@ -14,6 +14,15 @@ module Pipeline
       @the_tree.deep_merge! tree
       get_procs_from_tree tree
     end
+
+    def job_items *jis
+      jis.each do |ji|
+        self.instance_eval <<-EOT
+          def_var :#{ji} do |item| find_job_item :#{ji}, item; end
+        EOT
+      end
+    end
+
     def get_procs_from_tree tree, ancestor=nil
       tree.each do |file,blob|
         full_name = [ ancestor, file ].compact.join("/")
@@ -23,11 +32,7 @@ module Pipeline
         when Symbol
           self.instance_eval <<-EOT
             def_var :#{blob} do |obj|
-              if obj && obj.#{blob}
-                obj.#{blob}
-              else
-                unescape_dir_string "#{full_name}", obj
-              end
+              (obj || job_item).property(:#{blob}) || unescape_dir_string("#{full_name}", obj)
             end
           EOT
         end
@@ -53,8 +58,6 @@ module Pipeline
     def_var :tools_config do "#{config_dir}/tools.yml" end
     def_var :genome_config do "#{config_dir}/#{genome}.yml" end
 
-    def_var :job_index do job_number ? job_number - 1 : 0 end
-    def_var :job_item do job_array ? job_array[job_index] : @config end
     def_var :threads do resources[:threads] end
     def_var :qual_type do "phred64" end
 
@@ -83,16 +86,32 @@ module Pipeline
 
     empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config, :walltime, :job_array
 
+    def job_index
+      @opts[:job_number] ? @opts[:job_number] - 1 : 0 
+    end
+    def job_item 
+      @opts[:job_array] ? @opts[:job_array][job_index] : @config
+    end
     def splits
       job_array ? job_array.size : nil
     end
+    def bunch unit
+      send("#{unit}s".to_sym)
+    end
+    def find_job_item unit, item
+      if item
+        bunch(unit).find{ |unit| unit.property("#{unit}_name".to_sym) == item }
+      else
+        job_item.owner "#{unit}_name".to_sym
+      end
+    end
+
 
     def cohort
       return @config
     end
 
-    def_var :sample do job_item.owner :sample_name end
-    def_var :replicate do job_item.owner :replicate_name end
+    job_items :sample, :replicate
     def_var :input_bam do |s| (s || job_item).property :input_bam end
     def_var :sample_bam do |s| input_bam(s) || output_bam(s) end
     def_var :sample_bams do samples.map{ |s| sample_bam(s) } end
@@ -124,7 +143,6 @@ module Pipeline
       end.compact
     end
 
-    # This creates a new step in a pipeline
     def initialize(script,opts=nil)
       @script = script
       # stuff that should default to nil goes here, rather than using method_missing
@@ -227,11 +245,19 @@ module Pipeline
       end
     end
 
+    def find_prop property, item
+      item ||= job_item
+      item.property(property) || send(property, item)
+    end
+
     def method_missing(meth,*args,&block)
       # always look in the config file first, so we can overrule things there
       meth = meth.to_sym if meth.is_a? String
       if @config[meth]
         return @config[meth]
+      # check for it on the job_item
+      #elsif job_item != @config && job_item.property(meth)
+        #return job_item.property meth
       # if not there, it could be in the procs table, to be found interactively
       elsif @procs[meth]
         return instance_exec( *args, &@procs[meth])
