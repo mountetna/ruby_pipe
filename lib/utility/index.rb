@@ -5,11 +5,7 @@ module Utility
     extend Pipeline::Config
     include Pipeline::BaseConfig
 
-    dir_tree({
-      ":output_dir" => {
-        "@sample_name.reordered.bai" => :sample_bai
-      }
-    })
+    def_var :sample_bai do "#{input_bam}.bai" end
   end
 
   class IndexBam
