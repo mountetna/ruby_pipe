@@ -2,8 +2,10 @@
 :bwa_idx: /taylorlab/resources/human/hg19/bwa_index/bwa-latest/hg19.fa
 
 # The Bowtie index
+:bowtie_idx: /taylorlab/resources/human/hg19/bowtie_index/hg19
 :bowtie2_idx: /taylorlab/resources/human/hg19/bowtie2_index/hg19
 
+:chimerascan_idx: /taylorlab/resources/human/hg19/chimerascan_index
 # Some resource files
 :transcriptome_idx: /taylorlab/resources/human/hg19/gencode/gencode.v11.tophat2
 :hg19_dict: /taylorlab/resources/human/hg19/ucsc_feb_2009/hg19.dict

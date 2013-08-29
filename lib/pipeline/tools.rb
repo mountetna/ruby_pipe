@@ -54,9 +54,9 @@ module Pipeline
       }
 
       if params[:out]
-        run_cmd "#{config.java} #{ opts.values.join(" ") } > #{params[:out]}"
+        run_cmd "#{params[:bin] || config.java} #{ opts.values.join(" ") } > #{params[:out]}"
       else
-        run_cmd "#{config.java} #{ opts.values.join(" ") }"
+        run_cmd "#{params[:bin] || config.java} #{ opts.values.join(" ") }"
       end
     end
 
@@ -112,7 +112,7 @@ module Pipeline
     end
 
     def chimerascan fq1, fq2, output_dir
-      run_cmd "python /taylorlab/lib/python/bin/chimerascan_run.py -p #{config.threads} -v --quals #{config.qual_type} #{config.bowtie_idx} #{fq1} #{fq2} #{output_dir}"
+      run_cmd "python /taylorlab/lib/python/bin/chimerascan_run.py -p #{config.threads} -v --quals #{config.qual_type} #{config.chimerascan_idx} #{fq1} #{fq2} #{output_dir}"
     end
 
     def gatk(tool,opts)
@@ -129,7 +129,7 @@ module Pipeline
         :num_threads => config.threads,
         :cosmic => config.cosmic_vcf
       }.merge(opts)
-      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
+      java :bin => config.java6, :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
     end
 
     def indelocator(opts)

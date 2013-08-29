@@ -7,7 +7,7 @@ module Rna
       # add various bells and whistles here
       samples.each do |s|
         s.replicates.each do |r|
-          r.add_member :replicate_name, "r#{r.index}"
+          r.add_member :replicate_name, "r#{r.index}" if !r.replicate_name
         end
       end
     end
@@ -97,7 +97,8 @@ module Rna
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
           "@cohort_name.ug.annotated.vcf" => :ug_annotated_vcf,
           "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf,
-          "@cohort_name.fpkm_table" => :fpkm_table
+          "@cohort_name.fpkm_table" => :fpkm_table,
+          "@cohort_name.coverage_table" => :coverage_table
         }
       }
     })
@@ -111,6 +112,7 @@ module Rna
 
     # assemble_transcripts
     def_var :gene_trackings do replicates.map{|r| gene_tracking(r) } end
+    def_var :transcripts_covs do replicates.map{|r| transcripts_cov(r) } end
 
     # qc
     def_var :qc_bam do replicate_bam end
