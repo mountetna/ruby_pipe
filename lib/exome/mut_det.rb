@@ -126,9 +126,11 @@ module Exome
       def run
         maf = Maf.new
         all_muts_maf = Maf.new
-        addl_headers = [ :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        maf.headers.concat addl_headers
-        all_muts_maf.headers.concat addl_headers
+        maf.headers.concat [ :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
+
+        # stupid fixes for absolute
+        all_muts_maf.headers.concat [ :t_ref_count, :t_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
+        all_muts_maf.headers.map! { |l| l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l }
 
         segs = HashTable.new config.tumor_cnr_seg
         config.sample.chroms.each do |chrom|

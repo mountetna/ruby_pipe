@@ -9,23 +9,12 @@ cmd = args[2]
 
 if (length(args) < 1) {
   print("Usage:")
-  print("  absolute.R <lib_dir> callSample <sample_name> <seg_file> <results_dir>")
+  print("  absolute.R <lib_dir> callSample <sample_name> <seg_file> <maf_file> <results_dir>")
   print("  absolute.R <lib_dir> createReview <cohort_name> <results_dir> <list of filenames>")
   quit()
 }
 
-extractReview = function(args) {
-  if (length(args) < 5) {
-    print("Usage:")
-    print("  absolute.R extractReview <reviewed_file> <userid> <mode_file> <review_dir> <cohort_name>")
-    quit()
-  }
-  reviewed_file = args[1]
-  userid = args[2]
-  mod_file = args[3]
-  review_dir = args[4]
-  cohort_name = args[5]
-
+extractReview = function(reviewed_file, userid, mod_file, review_dir, cohort_name) {
   ExtractReviewedResults(
     reviewed.pp.calls.fn=reviewed_file,
     analyst.id=userid,
@@ -36,15 +25,7 @@ extractReview = function(args) {
     )
 }
 
-createReview = function(args) {
-  if (length(args) < 3) {
-  print("Usage: absolute.R createReview <cohort_name> <results_dir> [<list of files>]")
-  quit()
-  }
-
-  cohort_name=args[1]
-  results_dir=args[2]
-  files=args[-(1:2)]
+createReview = function(cohort_name, results_dir, files) {
 
   CreateReviewObject(
     obj.name = cohort_name,
@@ -55,18 +36,7 @@ createReview = function(args) {
   )
 }
 
-callSample = function(args) {
-  if (length(args) < 4) {
-  print("Usage: absolute.R callSample <sample_name> <seg_file> <maf_file> <results_dir>")
-  quit()
-  }
-
-  sample_name=args[1]
-  seg_file=args[2]
-  maf_file=args[3]
-  results_dir=args[4]
-  #maf_file=args[4]
-
+callSample = function(sample_name, seg_file, maf_file, results_dir) {
   platform="Illumina"
   pd="cancer"
   cnt="total"
@@ -97,4 +67,4 @@ callSample = function(args) {
   )
 }
 
-do.call(cmd,list(args[-1,-2]))
+do.call(cmd,as.list(args[-1:-2]))

@@ -233,9 +233,15 @@ module Exome
     class ExtractReviewResults
       include Pipeline::Task
 
-      requires_file :reviewed_table
+      requires_file :reviewed_table, :absolute_modes
+      outs_file  :absolute_calls
+
       def run
         r_script :absolute, :extractReview, config.reviewed_table, "Exome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name or error_exit "Absolute failed"
+        FileUtils.mv config.absolute_calls_scratch, config.absolute_calls 
+        config.tumor_samples.each do |sample|
+          FileUtils.mv config.absolute_segs_scratch(sample), config.tumor_absolute_seg(sample)
+        end
       end
     end
   end

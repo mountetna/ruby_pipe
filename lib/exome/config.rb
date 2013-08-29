@@ -91,8 +91,14 @@ module Exome
           "absolute" => {
             "." => :absolute_review_dir,
             "@cohort_name.PP-calls_tab.txt" => :review_table,
-            "@cohort_name.PP-modes.RData" => :absolute_modes,
-            "@cohort_name.PP-called_tab.txt" => :reviewed_table
+            "@cohort_name.PP-modes.data.RData" => :absolute_modes,
+            "@cohort_name.PP-called_tab.txt" => :reviewed_table,
+            "reviewed" => {
+              "@cohort_name.Exome.Pipeline.ABSOLUTE.table.txt" => :absolute_calls_scratch,
+              "SEG_MAF" => {
+                "@sample_name.segtab.txt" => :absolute_segs_scratch
+              }
+            }
           }
         }
       },
@@ -119,14 +125,18 @@ module Exome
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :sample_exon_cnr,
-          "@sample_name.cnr.Rdata" => :tumor_cnr_rdata,
-          "@sample_name.ascat.Rdata" => :tumor_ascat_rdata,
+          "@sample_name.cnr.RData" => :tumor_cnr_rdata,
+          "@sample_name.ascat.RData" => :tumor_ascat_rdata,
           "@sample_name.ascat.txt" => :tumor_ascat_txt,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
+          "@sample_name.absolute.seg" => :tumor_absolute_seg,
           "@sample_name.mutations" => :tumor_mutations,
           "@sample_name.normal_mut.txt" => :normal_muts,
           "@sample_name.indelocator.bed" => :indelocator_bed,
           "@sample_name.indelocator.txt" => :indelocator_output,
+        },
+        "@cohort_name" => {
+          "@cohort_name.ABSOLUTE.table.txt" => :absolute_calls
         },
         ":normal_name" => {
           ":normal_name.exon_cnr" => :normal_exon_cnr
