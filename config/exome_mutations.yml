@@ -1,7 +1,6 @@
 :pindel:
   :normal:
-    :max_alt_count: 2
-    :max_alt_freq: 0.1
+    :max_alt_count: 0
     :min_depth: 8
   :tumor:
     :min_alt_count: 2
@@ -10,8 +9,11 @@
     :max_ref_length: 50
     :min_alt_freq: 0.03
 :mutect:
-  :has_judgement: KEEP
-  :include_dbsnp_site: [ COSMIC, NOVEL ]
+  :either:
+    :has_judgement: KEEP
+    :has_dbsnp_site: COSMIC
+    #:whitelisted: whitelist.gtf
+  #:include_dbsnp_site: [ COSMIC, NOVEL ]
   :has_covered: COVERED
 :oncotator:
   :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]

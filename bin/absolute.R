@@ -56,14 +56,15 @@ createReview = function(args) {
 }
 
 callSample = function(args) {
-  if (length(args) < 3) {
-  print("Usage: absolute.R callSample <sample_name> <seg_file> <results_dir>")
+  if (length(args) < 4) {
+  print("Usage: absolute.R callSample <sample_name> <seg_file> <maf_file> <results_dir>")
   quit()
   }
 
   sample_name=args[1]
   seg_file=args[2]
-  results_dir=args[3]
+  maf_file=args[3]
+  results_dir=args[4]
   #maf_file=args[4]
 
   platform="Illumina"
@@ -77,7 +78,7 @@ callSample = function(args) {
   # Run ABSOLUTE 
   RunAbsolute(
     seg.dat.fn=seg_file,
-    #maf.fn=maf_fname,
+    maf.fn=maf_file,
     sample.name=sample_name,
     output.fn.base=sample_name,
     results.dir=results_dir,

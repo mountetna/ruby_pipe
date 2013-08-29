@@ -25,7 +25,7 @@ module Exome
           "chunk.@chunk_name.read2.sai" => :read2_sai,
           "chunk.@chunk_name.mate_fixed.bwa.bam" => :mated_bam,
           "chunk.@chunk_name.paired.bwa.sam" => :paired_sam,
-          "chunk.@chunk_name.paired.bwa.bam" => :paired_bam,
+          "chunk.@chunk_name.dedup.bwa.bam" => :dedup_bam,
           "chunk.@chunk_name.aligned.bwa.bam" => :aligned_bam,
 
           "@sample_name.reads1.fastq" => :sample_reads1_fastq,
@@ -49,22 +49,28 @@ module Exome
           "@sample_name.indels.raw2.pindel.vcf" => :pindel_all_vcf,
 
           "@sample_name.ug.raw.vcf" => :ug_raw_vcf,
+          "@sample_name.ug.SNPs.vcf" => :ug_snps_vcf,
           "@sample_name.ug.annotated.vcf" => :ug_annotated_vcf,
           "@sample_name.ug.filtered.vcf" => :ug_filtered_vcf,
 
-          ":normal_name.cov" => :normal_cov,
-          "@sample_name.cov" => :tumor_cov,
-          "@sample_name.recal.bam" => :recal_sample_bam,
+          "@sample_name.tumor.baf" => :tumor_baf,
+          "@sample_name.normal.baf" => :normal_baf,
+          "@sample_name.all_muts.maf" => :all_muts_maf,
+
+          "@sample_name.cov" => :sample_cov,
+          "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
             "@sample_name.ABSOLUTE.RData" => :absolute_rdata
           }
         },
+        ":normal_name" => {
+          ":normal_name.cov" => :normal_cov,
+        },
         "@lane_name" => {
           "merged_lane.bam" => :merged_lane_bam,
           "recal.grp" => :recal_grp,
           "recal_plot.pdf" => :recal_plot_pdf,
-          "@chrom_name.recal.bam" => :recal_bam,
           "_splitbam_" => :lane_split_bam_root,
           "_splitbam_SAMPLE.bam" => :lane_split_bam
         },
@@ -74,12 +80,14 @@ module Exome
           "duplication_metrics" => :duplication_metrics,
           "@chrom_name.patient.intervals" => :patient_intervals,
           "@chrom_name.realigned_patient.bam" => :realigned_patient_bam,
-          "_splitbam_" => :patient_split_bam_root,
-          "_splitbam_SAMPLE.bam" => :patient_split_bam
+          "@chrom_name.split." => :patient_split_bam_root,
+          "@chrom_name.split.@sample_name.bam" => :patient_split_bam,
+          "_splitbam_@sample_name.bam" => :sample_split_bam
         },
         "@cohort_name" => {
           "@chrom_name.realigned.bam" => :realigned_bam,
           "@cohort_name.bed" => :interval_bed,
+          "@cohort_name.total_normal.cov" => :total_normal_cov,
           "absolute" => {
             "." => :absolute_review_dir,
             "@cohort_name.PP-calls_tab.txt" => :review_table,
@@ -110,13 +118,18 @@ module Exome
           "@sample_name.maf" => :tumor_maf,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
-          "@sample_name.exon_cnr" => :tumor_exon_cnr,
+          "@sample_name.exon_cnr" => :sample_exon_cnr,
           "@sample_name.cnr.Rdata" => :tumor_cnr_rdata,
+          "@sample_name.ascat.Rdata" => :tumor_ascat_rdata,
+          "@sample_name.ascat.txt" => :tumor_ascat_txt,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.mutations" => :tumor_mutations,
           "@sample_name.normal_mut.txt" => :normal_muts,
           "@sample_name.indelocator.bed" => :indelocator_bed,
           "@sample_name.indelocator.txt" => :indelocator_output,
+        },
+        ":normal_name" => {
+          ":normal_name.exon_cnr" => :normal_exon_cnr
         }
       }
     })
@@ -144,6 +157,8 @@ module Exome
         end
         s.extend_with :chroms => chromosomes
         s.extend_with :chunks => make_chunks(s)
+        s.add_member :lane_name, "lane#{s.lane || 0}"
+        s.add_member :patient_name, "patient#{s.patient || 0}"
       end
       @config.extend_with :lanes => make_lanes
       lanes.each do |lane|
@@ -156,23 +171,23 @@ module Exome
     end
 
     def make_lanes
-      samples.group_by(&:lane).map do |lane,samples|
-        { :lane_name => "lane#{lane || 0}", :samples => samples }
+      samples.group_by(&:lane_name).map do |lane,samples|
+        { :lane_name => lane, :samples => samples }
       end
     end
 
     def make_patients
-      samples.group_by(&:patient).map do |patient,samples|
-        { :patient_name => "patient#{patient || 0}", :samples => samples }
+      samples.group_by(&:patient_name).map do |patient,samples|
+        { :patient_name => patient, :samples => samples }
       end
     end
 
     def_var :lane_name do |l| (l||job_item).property :lane_name end
     def_var :chunk_size do 4_000_000 end
-    job_items :chrom, :lane, :patient
+    job_items :chrom, :lane, :patient, :chunk
 
-    def_var :reads1_fastqs do sample.inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
-    def_var :reads2_fastqs do sample.inputs.map{|input| input_fastq2(input) || reads2_fastq(input) } end
+    def_var :reads1_fastqs do |s| (s || sample).inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
+    def_var :reads2_fastqs do |s| (s || sample).inputs.map{|input| input_fastq2(input) || reads2_fastq(input) } end
 
     # Align
     def_var :input_file1 do input_fastq1 || reads_bam end
@@ -187,21 +202,16 @@ module Exome
     # Lane Merge
     def_var :lane_raw_sample_bams do lane.samples.map{|s| raw_sample_bam(s) } end
 
-    # Lane Split
-    def_var :lane_recal_bams do lane.chroms.map{|c| recal_bam(c) } end
-    def_var :lane_sample_split_bam do |s| lane_split_bam.sub("SAMPLE",s.sample_name) end
-    def_var :lane_split_bams do lane.samples.map{|s| lane_sample_split_bam(s) } end
-    def_var :lane_sample_bams do lane.samples.map{|s| recal_sample_bam(s) } end
-
     # Patient Merge
-    def_var :patient_raw_sample_bams do patient.samples.map {|s| patient_raw_sample_bam s } end
-    def_var :patient_raw_sample_bam do |s| recal_sample_bam(s || job_item) end
+    def_var :patient_raw_sample_bams do patient.samples.map {|s| find_prop :patient_raw_sample_bam, s } end
+    def_var :patient_raw_sample_bam do |s| find_prop :recal_bam, s end
 
     # PatientSplit
     def_var :realigned_patient_bams do patient.chroms.map{|c| realigned_patient_bam(c) } end
-    def_var :patient_sample_split_bam do |s| patient_split_bam.sub("SAMPLE",s.sample_name) end
-    def_var :patient_split_bams do patient.samples.map{|s| patient_sample_split_bam(s) } end
+    def_var :patient_split_bams do patient.samples.map{|s| patient_split_bam s.chrom(chrom.chrom_name) } end
     def_var :patient_sample_bams do patient.samples.map{|s| sample_bam(s) } end
+
+    def_var :sample_patient_bams do sample.chroms.map{|c| patient_split_bam c } end
 
     # Hybrid qc
     def_var :qc_bam do tumor_bam end
@@ -209,6 +219,8 @@ module Exome
     #mut_filter
     def_var :pindel_vcfs do sample.chroms.map{|c| pindel_vcf c } end
     def_var :mutect_snvses do sample.chroms.map{|c| mutect_snvs c } end
+
+    def_var :normal_sample_covs do normal_samples.map{|s| sample_cov s } end
 
     # Absolute
     def_var :absolute_rdatas do tumor_samples.map{|s| absolute_rdata s } end

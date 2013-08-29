@@ -13,7 +13,7 @@ module Exome
 
       def run
         log_info "Merging sample bam files for #{config.sample_name}"
-        picard :merge_sam_files, :O => config.raw_sample_bam, :I => config.aligned_bams or error_exit "BAM file merge failed."
+        picard :merge_sam_files, :O => config.raw_sample_bam, :I => config.aligned_bams, :CREATE_INDEX => :true or error_exit "BAM file merge failed."
       end
     end
   end

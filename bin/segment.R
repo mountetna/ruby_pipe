@@ -17,6 +17,24 @@ segCBS=function(cna) {
 	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=1.5))
 }
 
+segPSCBS=function(tumor_logr,tumor_baf,normal_baf) {
+	print.noquote("Running PSCBS.")
+	# get the baf and CNR into one matrix
+	return(segmentByPairedPSCBS(
+		tumor_logr$logR,
+		tumor_baf$BAF, 
+		normal_baf$BAF, 
+		muN=rep(0.5,length(tumor_logr$logR)),
+		chromosome=chr_int(tumor_baf$chromosome), 
+		x=tumor_baf$position, 
+		tbn=F,
+		#alphaTCN=0.009, alphaDH=0.001, undoTCN=Inf, undoDH=Inf,
+		#..., 
+		#flavor=c("tcn&dh", "tcn,dh", "sqrt(tcn),dh", "sqrt(tcn)&dh", "tcn")
+		flavor="tcn&dh"
+		))
+}
+
 load_logr_file = function(logr_file) {
 	tumor_logr=read.table(logr_file,header=T,as.is=T)
 	tumor_logr = tumor_logr[tumor_logr$chr != "chrY",]
@@ -66,6 +84,19 @@ doSegCbs=function(logr_file, rdata_file, seg_file, sample_name) {
 	save(cbs_seg,file=rdata_file)
 
 	save_seg_obj(cbs_seg,seg_file)
+}
+
+doSegPscbs=function(logr_file,tumor_baf_file,normal_baf_file,rdata_file) {
+	print.noquote("Segmenting with PSCBS...")
+
+	tumor_logr = load_logr_file(logr_file)
+
+	tumor_baf = load_baf(tumor_baf_file)
+	normal_baf = load_baf(tumor_baf_file)
+
+	pscbs_seg = segPSCBS(tumor_logr, tumor_baf, normal_baf)
+
+	save(pscbs_seg,file=rdata_file)
 }
 
 getASCAT=function(ascatpcf) {

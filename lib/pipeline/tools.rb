@@ -2,11 +2,21 @@ module Pipeline
   module Tools
     def run_cmd cmd
       log_command cmd
-      system cmd
+      system "/bin/bash", "-c", cmd
+    end
+
+    def read_cmd cmd
+      log_command cmd
+      output = %x{/bin/bash -c '#{cmd}'}
+      $?.success? ? output : nil
     end
 
     def r_script script, *args
-      run_cmd "#{config.lib_dir}/bin/#{script}.R #{args.join(" ")}"
+      run_cmd "#{config.lib_dir}/bin/#{script}.R #{config.lib_dir} #{args.join(" ")}"
+    end
+
+    def py_script script, opts
+      run_cmd "#{config.lib_dir}/python/#{script}.py #{opts[:args].join(" ")} > #{opts[:out] || '/dev/null'}"
     end
 
     def bwa_aln(params)

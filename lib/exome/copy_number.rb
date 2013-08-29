@@ -5,6 +5,7 @@ require 'vcf'
 
 module Exome
   class CoverageTable < HashTable
+    header_on
     class Coverage < HashLine
       def p_count
         count.to_f + 10
@@ -104,7 +105,7 @@ module Exome
 
       def run
         # just pass these arguments to the R script
-        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
+        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name or error_exit "CBS segmentation failed"
       end
     end
   end
@@ -148,7 +149,7 @@ module Exome
 
       def run
         # just pass these arguments to the R script
-        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
+        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name or error_exit "CBS segmentation failed"
       end
     end
 
@@ -194,7 +195,7 @@ module Exome
       outs_file :tumor_ascat_rdata, :tumor_ascat_txt
 
       def run
-        r_script :segment, :doAscatPurityPloidy, config.tumor_baf, config.normal_baf, config.sample_exon_cnr, config.normal_exon_cnr, config.interval_bed, config.tumor_ascat_rdata, config.tumor_ascat_txt
+        r_script :segment, :doAscatPurityPloidy, config.tumor_baf, config.normal_baf, config.sample_exon_cnr, config.normal_exon_cnr, config.interval_bed, config.tumor_ascat_rdata, config.tumor_ascat_txt or error_exit "ASCAT failed"
       end
     end
   end
@@ -206,11 +207,11 @@ module Exome
     runs_tasks :absolute_purity_ploidy
     class AbsolutePurityPloidy
       include Pipeline::Task
-      requires_file :sample_exon_cnr
+      requires_file :sample_exon_cnr, :all_muts_maf
       outs_file :absolute_rdata
 
       def run
-        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.absolute_scratch
+        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
       end
     end
   end
@@ -226,7 +227,7 @@ module Exome
       dumps_file :review_table
 
       def run
-        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas or error_exit "Absolute failed"
       end
     end
     class ExtractReviewResults
@@ -234,7 +235,7 @@ module Exome
 
       requires_file :reviewed_table
       def run
-        r_script :absolute, :extractReview, config.reviewed_table, "Exome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name
+        r_script :absolute, :extractReview, config.reviewed_table, "Exome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name or error_exit "Absolute failed"
       end
     end
   end

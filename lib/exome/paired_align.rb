@@ -14,11 +14,14 @@ module Exome
     include Pipeline::Script
     runs_steps :prep, 
       :dump_fastqs, :combine_fastqs, :align, :merge,
-      :lane_merge, :lane_recal, :lane_table_recal, :lane_split,
-      :patient_merge, :patient_realign, :patient_split, 
+      :lane_recal, :table_recal,
+      :patient_realign, 
       :make_samples,
-      :hybrid_qc, :hybrid_qc_summary, :copy_number, 
-      :mut_det, :univ_geno_normals, :mut_filter, :review_absolute
+      :hybrid_qc, :hybrid_qc_summary, 
+      :sample_coverage, :prep_normal, :compute_normals, :copy_number, 
+      :run_ascat,
+      :mut_det, :univ_geno_normals, :mut_filter,
+      :run_absolute, :review_absolute
 
     def_module :prep_pipe, {
       :prep => true
@@ -32,23 +35,24 @@ module Exome
     }
 
     def_module :recal_by_lane, {
-      :lane_merge => true,
       :lane_recal => true,
-      :lane_table_recal => true,
-      :lane_split => true
+      :table_recal => true
     }
 
     def_module :realign_by_patient, {
-      :patient_merge => true,
       :patient_realign => true,
       :patient_split => true
+    }
+
+    def_module :finalize_samples, {
+      :make_samples => true
     }
 
     def_module :create_bams, {
       :align_bams => true,
       :recal_by_lane => true,
       :realign_by_patient => true,
-      :make_samples => true
+      :finalize_samples => true
     }
 
     def_module :calculate_qc, {
@@ -56,10 +60,23 @@ module Exome
       :hybrid_qc_summary => true,
     }
 
-    def_module :compute_copy_number, {
-      :copy_number_prep => true,
+    def_module :ascat_purity, {
+      :prep_normal => true,
+      :sample_coverage => true,
+      :compute_normals => true,
       :copy_number => true,
+      :run_ascat => true
+    }
+
+    def_module :absolute_purity, {
+      :run_absolute => true,
       :review_absolute => true
+    }
+
+    def_module :compute_copy_number, {
+      :prep => true,
+      :sample_coverage => true,
+      :copy_number => true
     }
 
     def_module :find_mutations, {
@@ -85,7 +102,8 @@ module Exome
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,
-      :find_mutations => true
+      :find_mutations => true,
+      :absolute_purity => true
     }
 
     def exclude_task? task

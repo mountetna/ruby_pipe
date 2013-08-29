@@ -50,8 +50,10 @@ module Exome
       outs_file :chunk_info
 
       def run
-        lines1 =  %x{wc -l <(zcat #{config.reads1_fastqs.join(" ")})}.split.first.to_i
-        lines2 =  %x{wc -l <(zcat #{config.reads2_fastqs.join(" ")})}.split.first.to_i
+        lines1 =  read_cmd("wc -l <(zcat #{config.reads1_fastqs.join(" ")})") or error_exit "Could not count fastq files"
+        lines1 = lines1.split.first.to_i 
+        lines2 =  read_cmd("wc -l <(zcat #{config.reads2_fastqs.join(" ")})") or error_exit "Could not count fastq files"
+        lines2 = lines2.split.first.to_i 
         error_exit "Fastq files differ in size" if lines1 != lines2
         error_exit "Fastq files are not properly formatted" if lines1 % 4 != 0
         File.open(config.chunk_info,"w"){|f| f.puts lines1/4}
@@ -61,7 +63,7 @@ module Exome
 
   class Align 
     include Pipeline::Step
-    runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label
+    runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :mark_duplicates, :enforce_label
     runs_on :samples, :chunks
     resources :threads => 12
 
@@ -120,20 +122,36 @@ module Exome
 
       def run
         log_info "Verifying mate information"
-        picard :fix_mate_information, :INPUT => config.paired_sam, :OUTPUT=> config.mated_bam or error_exit "Verify mate information failed"
+        picard :fix_mate_information, :INPUT => config.paired_sam, 
+                :SORT_ORDER => :coordinate,
+                :OUTPUT=> config.mated_bam or error_exit "Verify mate information failed"
+      end
+    end
+
+    class MarkDuplicates
+      include Pipeline::Task
+      requires_file :mated_bam
+      outs_file :dedup_bam, :duplication_metrics
+
+      def run
+	log_info "Mark duplicates"
+	picard :mark_duplicates, :INPUT => config.mated_bam,
+          :OUTPUT => config.dedup_bam, :METRICS_FILE => config.duplication_metrics, 
+          :REMOVE_DUPLICATES => :false or error_exit "Mark duplicates failed"
       end
     end
 
     class EnforceLabel 
       include Pipeline::Task
-      requires_file :mated_bam
+      requires_file :dedup_bam
       outs_file :aligned_bam
 
       def run
         log_info "Enforce read group assignments"
-        picard :add_or_replace_read_groups, :INPUT => config.mated_bam,
+        picard :add_or_replace_read_groups, :INPUT => config.dedup_bam,
                 :OUTPUT => config.aligned_bam,
                 :SORT_ORDER => :coordinate,
+                :CREATE_INDEX => :true,
                   :RGID => config.sample_name, :RGLB => config.sample_name,
                   :RGPL => config.platform, :RGPU => config.platform_unit, :RGSM => config.sample_name,
                   :VALIDATION_STRINGENCY => "LENIENT" or error_exit "Relabel failed"
