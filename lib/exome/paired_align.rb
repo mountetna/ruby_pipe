@@ -34,6 +34,10 @@ module Exome
       :merge => true
     }
 
+    def_module :align_bwa_mem, {
+      :align => [ :make_fastq_chunk, :align_mem, :verify_mate, :mark_duplicates, :enforce_label ]
+    }
+
     def_module :recal_by_lane, {
       :lane_recal => true,
       :table_recal => true
