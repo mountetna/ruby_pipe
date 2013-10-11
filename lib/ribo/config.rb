@@ -34,18 +34,22 @@ module Ribo
       ":output_dir" => {
         "@sample_name" => {
           "normal.cov" => :normal_cov,
-          "null.cov" => :random_cov,
+          "null.cov" => :null_cov,
           "coverage.sam" => :coverage_sam,
           "@sample_name.bam" => :output_bam
-        }
+        },
+        "@cohort_name.normal_cov" => :normal_summary,
+        "@cohort_name.null_cov" => :null_summary,
       },
       ":metrics_dir" => {
         "@sample_name" => {
           "@sample_name.flagstat" => :qc_flag,
           "@sample_name.rnaseq_metrics" => :qc_rnaseq,
           "@sample_name.rnaseq_pdf" => :qc_pdf,
+          "@sample_name.splice_counts" => :qc_splice_counts,
           "@sample_name.alignment_metrics" => :qc_align_metrics,
-        }
+        },
+        "@cohort_name.qc_summary" => :qc_summary
       }
     })
 

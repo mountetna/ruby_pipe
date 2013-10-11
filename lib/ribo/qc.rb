@@ -2,7 +2,7 @@
 module Ribo
   class Qc
     include Pipeline::Step
-    runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics
+    runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics, :collect_splice_counts
     runs_on :samples
 
     class CalcFlags
@@ -36,6 +36,16 @@ module Ribo
       def run
         log_info "Calculating alignment metrics"
         picard :collect_alignment_summary_metrics, :INPUT => config.sample_bam, :OUTPUT => config.qc_align_metrics or error_exit "Alignment metrics failed"
+      end
+    end
+
+    class CollectSpliceCounts
+      include Pipeline::Task
+      requires_file :sample_bam
+      outs_files :qc_splice_counts
+
+      def run
+        run_cmd %Q!samtools view #{config.sample_bam} | awk -F '	' '$6 ~ /N/ { print "OK"}' | wc -l > #{config.qc_splice_counts}! or error_exit "Couldn't count spliced reads"
       end
     end
   end
