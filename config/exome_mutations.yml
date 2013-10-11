@@ -9,12 +9,16 @@
     :max_ref_length: 50
     :min_alt_freq: 0.03
 :mutect:
-  :either:
-    :has_judgement: KEEP
+  :germline:
     :has_dbsnp_site: COSMIC
+    :has_covered: COVERED
+    :min_n_var_freq: 0.1
+    :min_t_var_freq: 0.1
+  :somatic:
+    :has_judgement: KEEP
+    :has_covered: COVERED
     #:whitelisted: whitelist.gtf
   #:include_dbsnp_site: [ COSMIC, NOVEL ]
-  :has_covered: COVERED
 :oncotator:
   :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
   #:is_snp: false
