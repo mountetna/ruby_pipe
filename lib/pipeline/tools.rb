@@ -32,6 +32,11 @@ module Pipeline
       bwa "sampe #{config.bwa_idx} #{params[:m1]} #{params[:m2]} #{params[:fq1]} #{params[:fq2]}", params[:out]
     end
 
+    def bwa_mem(params)
+      params = { :threads => config.threads }.merge(params)
+      bwa "mem -t #{params[:threads]} -M #{config.bwa_idx} #{params[:fq1]} #{params[:fq2]}", params[:out]
+    end
+
     def bwa_single(params)
       bwa "samse #{config.bwa_idx} #{params[:map]} #{params[:fq]}", params[:out]
     end

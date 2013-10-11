@@ -64,6 +64,7 @@ module Exome
   class Align 
     include Pipeline::Step
     runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :mark_duplicates, :enforce_label
+    has_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :align_mem, :verify_mate, :mark_duplicates, :enforce_label
     runs_on :samples, :chunks
     resources :threads => 12
 
@@ -112,6 +113,17 @@ module Exome
         log_info "Pairing aligned reads"
         bwa_pair :m1 => config.read1_sai, :m2 => config.read2_sai, 
           :fq1 =>  config.chunk1_fastq, :fq2 => config.chunk2_fastq, :out => config.paired_sam or error_exit "BWA sampe failed"
+      end
+    end
+
+    class AlignMem 
+      include Pipeline::Task
+      requires_files :chunk1_fastq, :chunk2_fastq
+      dumps_file :paired_sam
+
+      def run
+        log_info "Pairing aligned reads"
+        bwa_mem :fq1 =>  config.chunk1_fastq, :fq2 => config.chunk2_fastq, :out => config.paired_sam or error_exit "BWA mem failed"
       end
     end
 
