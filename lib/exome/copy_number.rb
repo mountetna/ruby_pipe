@@ -227,7 +227,7 @@ module Exome
       dumps_file :review_table
 
       def run
-        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas or error_exit "Absolute failed"
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, config.absolute_rdatas.join(",") or error_exit "Absolute failed"
       end
     end
     class ExtractReviewResults
