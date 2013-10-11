@@ -29,7 +29,7 @@ createReview = function(cohort_name, results_dir, files) {
 
   CreateReviewObject(
     obj.name = cohort_name,
-    absolute.files = files,
+    absolute.files = strsplit(files, ",")[[1]],
     indv.results.dir = results_dir,
     copy_num_type="total",
     verbose=TRUE
