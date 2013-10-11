@@ -92,6 +92,14 @@ module Exome
       :mut_det => [ :indelocator ]
     }
 
+    def_module :find_mutations_pindel, {
+      :mut_det => [ :pindel, :pindel_vcf, :patch_pindel_vcf ]
+    }
+
+    def_module :find_mutations_strelka, {
+      :mut_det => [ :strelka ]
+    }
+
     def_module :find_normal_mutations, {
       :univ_geno_normals => true
     }

@@ -22,3 +22,4 @@
 :samtools_dir: /taylorlab/lib/samtools/samtools-latest
 :tophat_dir: /taylorlab/lib/tophat/tophat-latest
 :vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
+:strelka_dir: /taylorlab/lib/strelka/strelka-latest

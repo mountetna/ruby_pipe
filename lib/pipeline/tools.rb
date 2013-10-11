@@ -170,6 +170,14 @@ module Pipeline
       run_cmd "#{config.pindel_dir}/pindel2vcf #{format_opts(opts)}"
     end
 
+    def strelka(params)
+      params = { :reference => config.reference_fa }.merge(params)
+
+      #require 'fasta'
+      #f = Fasta.new params[:reference]
+      run_cmd "#{config.strelka_dir}/libexec/strelka2 -bam-file #{params[:normal]} --tumor-bam-file #{params[:tumor]} -clobber --somatic-indel-file #{params[:output]} -bam-seq-name #{params[:chrom]} -samtools-reference #{params[:reference]} -genome-size #{3095693984} --tumor-realigned-read-file #{params[:realigned_bam]}"
+    end
+
     def tophat(opts)
       opts = { :num_threads => config.threads }.merge(opts)
       fq1 = opts.delete :fq1

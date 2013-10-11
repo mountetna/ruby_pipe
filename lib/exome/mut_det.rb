@@ -8,7 +8,7 @@ module Exome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
-    has_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf, :indelocator
+    has_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf, :indelocator, :strelka
     resources :threads => 1
     runs_on :tumor_samples, :chroms
 
@@ -20,7 +20,7 @@ module Exome
 
     class Mutect
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam
       dumps_files :mutect_snvs, :mutect_coverage
 
       def run
@@ -36,7 +36,7 @@ module Exome
 
     class Pindel
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam
       dumps_files :pindel_snv_d
 
       def run
@@ -102,11 +102,21 @@ module Exome
 
     class Indelocator
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :interval_list
+      requires_files :normal_bam, :tumor_bam
       outs_files :indelocator_bed, :indelocator_metrics
 
       def run
-        indelocator :somatic => true, :"input_file:normal" => config.normal_bam, :"input_file:tumor" => config.tumor_bam, :verboseOutput => config.indelocator_output, :metrics_file => config.indelocator_metrics, :out => config.indelocator_bed, :intervals => config.interval_list or error_exit "Indelocator failed"
+        indelocator :somatic => true, :"input_file:normal" => config.normal_bam, :"input_file:tumor" => config.tumor_bam, :verboseOutput => config.indelocator_output, :metrics_file => config.indelocator_metrics, :out => config.indelocator_bed, :intervals => config.chrom.chrom_name or error_exit "Indelocator failed"
+      end
+    end
+
+    class Strelka
+      include Pipeline::Task
+      requires_files :normal_bam, :tumor_bam
+      dumps_file :strelka_vcf, :strelka_bam
+      
+      def run
+        strelka :tumor => config.tumor_bam, :normal => config.normal_bam, :output => config.strelka_vcf, :chrom => config.chrom.chrom_name, :realigned_bam => config.strelka_bam or error_exit "Strelka failed"
       end
     end
   end
