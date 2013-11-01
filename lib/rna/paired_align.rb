@@ -16,21 +16,26 @@ require 'rna/config'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :tophat_align, :qc, :count_transcripts, :diff_exp, :assemble_transcripts, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
+    runs_steps :rsem_count, :rsem_format, :tophat_align, :qc, :cufflinks_count, :cuff_diff_exp, :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
 
-    def_module :rsem, :tophat_align => true,
+    def_module :rsem,
+      :rsem_count => true,
+      :rsem_format => true,
       :qc => true,
-      :count_transcripts => [ :rsem_count ]
+      :assemble_rsem_transcripts => true,
+      :deseq_diff_exp => true
 
     def_module :count_splice, :splice_count => true
 
     def_module :fusion_detect, :detect_fusions => true
 
+    def_module :cufflinks_count_denovo, :cufflinks_count => [ :cufflink_denovo, :format_transcript, :sort_sam, :count_coverage ]
+
     def_module :default, :tophat_align => true,
       :qc => true,
-      :count_transcripts => true,
+      :cufflinks_count => true,
       :assemble_transcripts => true,
-      :diff_exp => true
+      :cuff_diff_exp => true
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator

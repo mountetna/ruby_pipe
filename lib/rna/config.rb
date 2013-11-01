@@ -14,7 +14,8 @@ module Rna
 
     empty_var :splice_gtf
 
-    def_var :bam_label do "aligned.merged.sorted" end
+    def_var :bam_label do "aligned.sorted" end
+    def_var :fdr_cutoff do 0.10 end
     def_var :normal_bams do replicate_bams normal end
 
     def_var :replicate_bams do |s| (s||sample).replicates.map{ |r| replicate_bam r} end
@@ -53,7 +54,18 @@ module Rna
               "genes.fpkm_tracking" => :gene_tracking
             },
             "rsem" => {
-              "." => :rsem_scratch
+              "." => :rsem_scratch_dir,
+              "tmp" => :rsem_tmp_dir,
+              "@sample_name.@replicate_name.genes.results" => :rsem_scratch_genes_results,
+              "@sample_name.@replicate_name.isoforms.results" => :rsem_scratch_isoforms_results,
+              "@sample_name.@replicate_name.transcript.bam" => :rsem_scratch_txp_unsorted_bam,
+              "@sample_name.@replicate_name.transcript.sorted.bam" => :rsem_scratch_txp_bam,
+              "@sample_name.@replicate_name.transcript.sorted.bam.bai" => :rsem_scratch_txp_bai,
+              "@sample_name.@replicate_name.genome.bam" => :rsem_scratch_genome_unsorted_bam,
+              "@sample_name.@replicate_name.genome.header" => :rsem_scratch_genome_header,
+              "@sample_name.@replicate_name.genome.sorted.bam" => :rsem_scratch_genome_sorted_bam,
+              "@sample_name.@replicate_name.genome.patched.bam" => :rsem_scratch_genome_patched_bam,
+              "@sample_name.@replicate_name.genome.sorted.bam.bai" => :rsem_scratch_genome_bai,
             }
           },
           "cuffdiff_@normal_name" => {
@@ -82,22 +94,22 @@ module Rna
         "@sample_name" => {
           "@sample_name.@replicate_name.transcripts.gtf" => :output_gtf,
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
+          "@sample_name.@replicate_name.:bam_label.unpatched.bam" => :output_unpatched_bam,
+          "@sample_name.@replicate_name.header" => :output_header,
+          "@sample_name.@replicate_name.:bam_label.bai" => :output_bai,
+          "@sample_name.@replicate_name.genes.results" => :rsem_genes_results,
+          "@sample_name.@replicate_name.isoforms.results" => :rsem_isoforms_results,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
           "@sample_name.@replicate_name.transcripts.cov" => :transcripts_cov,
-          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts,
-          "@replicate_name" => {
-            "rsem" => {
-              "." => :rsem_output_dir,
-              "@sample_name.@replicate_name.genes.results" => :rsem_genes_results
-            }
-          }
+          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
           "@cohort_name.ug.annotated.vcf" => :ug_annotated_vcf,
           "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf,
           "@cohort_name.fpkm_table" => :fpkm_table,
+          "@cohort_name.tpm_table" => :tpm_table,
           "@cohort_name.coverage_table" => :coverage_table
         }
       }
@@ -112,6 +124,7 @@ module Rna
 
     # assemble_transcripts
     def_var :gene_trackings do replicates.map{|r| gene_tracking(r) } end
+    def_var :rsem_genes_resultses do replicates.map{|r| rsem_genes_results(r) } end
     def_var :transcripts_covs do replicates.map{|r| transcripts_cov(r) } end
 
     # qc
