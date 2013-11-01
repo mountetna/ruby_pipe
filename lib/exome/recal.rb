@@ -52,6 +52,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :create_intervals, :realign_indels, :split_bam
     runs_on :patients, :chroms
+    audit_report :patient_name
     resources :threads => 1
 
     class CreateIntervals

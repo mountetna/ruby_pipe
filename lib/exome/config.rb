@@ -60,7 +60,6 @@ module Exome
 
           "@sample_name.tumor.baf" => :tumor_baf,
           "@sample_name.normal.baf" => :normal_baf,
-          "@sample_name.all_muts.maf" => :all_muts_maf,
 
           "@sample_name.cov" => :sample_cov,
           "@sample_name.recal.bam" => :recal_bam,
@@ -127,6 +126,7 @@ module Exome
           "@sample_name.mut.txt" => :tumor_muts,
           "@sample_name.somatic.maf" => :tumor_maf,
           "@sample_name.germline.maf" => :germline_maf,
+          "@sample_name.all_muts.maf" => :all_muts_maf,
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :sample_exon_cnr,
@@ -221,7 +221,7 @@ module Exome
 
     # PatientSplit
     def_var :realigned_patient_bams do patient.chroms.map{|c| realigned_patient_bam(c) } end
-    def_var :patient_split_bams do patient.samples.map{|s| patient_split_bam s.chrom(chrom.chrom_name) } end
+    def_var :patient_split_bams do patient.samples.map{|s| patient_split_bam s.chroms.find{|c| c.chrom_name == chrom.chrom_name} } end
     def_var :patient_sample_bams do patient.samples.map{|s| sample_bam(s) } end
 
     def_var :sample_patient_bams do sample.chroms.map{|c| patient_split_bam c } end
