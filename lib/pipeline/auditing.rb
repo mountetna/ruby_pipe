@@ -134,8 +134,29 @@ module Pipeline
         dump = Audit.new(dump_files,config)
         out = Audit.new(out_files,config)
         log_console "required files: #{req.summary}" if req.total > 0
+        req.print_files do |f,fn| 
+          if empty? fn
+            log_console "  #{f} => #{fn}".red
+          else
+            log_console "  #{f} => #{fn}".green
+          end
+        end if config.verbose
         log_console "dump files: #{dump.summary}" if dump.total > 0
+        dump.print_files do |f,fn|
+          if empty? fn
+            log_console "  #{f} => #{fn} (#{File.human_size(fn)})".red
+          else
+            log_console "  #{f} => #{fn} (#{File.human_size(fn)})".green
+          end
+        end if config.verbose
         log_console "out files: #{out.summary}" if out.total > 0
+        out.print_files do |f,fn|
+          if empty? fn
+            log_console "  #{f} => #{fn} (#{File.human_size(fn)})".red
+          else
+            log_console "  #{f} => #{fn} (#{File.human_size(fn)})".green
+          end
+        end if config.verbose
         if sym.symbols_missing?
           log_console "doesn't need to run".red
           sym.print_files do |f,fn| 
@@ -147,27 +168,30 @@ module Pipeline
           log_console "won't run, all files are present".blue
           out.print_files do |f,fn|
             log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
-          end if config.verbose
+          end if !config.verbose
+          dump.print_files do |f,fn|
+            log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
+          end if !config.verbose
           return
         end
         if req.missing?
           log_console "won't run, required files are missing".red
           req.print_files do |f,fn| 
             log_console "#{f} => #{fn}".red if empty? fn
-          end
+          end if !config.verbose
           return
         end
         if dump.missing?
           log_console "will run, needs to make dump files".green
           dump.print_files do |f,fn| 
             log_console "#{f} => #{fn}".red if empty? fn
-          end
+          end if !config.verbose
         end
         if out.missing?
           log_console "will run, needs to make out files".green
           out.print_files do |f,fn|
             log_console "#{f} => #{fn}".red if empty? fn
-          end
+          end if !config.verbose
         end
       end
     end
