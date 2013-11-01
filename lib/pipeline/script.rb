@@ -7,19 +7,19 @@ module Pipeline
     include Pipeline::Scheduling
 
     module ClassMethods 
-      attr_reader :steps, :modules
+      attr_reader :steps, :available_modules
       def runs_steps(*step_list)
         @steps = step_list
       end
 
       def def_module mod, steps
-        @modules ||= {}
-        @modules[mod] = steps
+        @available_modules ||= {}
+        @available_modules[mod] = steps
       end
 
       def expand_module m
-        modules[m].map do |n,disp|
-          modules[n] ? expand_module(n) : { n => disp }
+        @available_modules[m].map do |n,disp|
+          @available_modules[n] ? expand_module(n) : { n => disp }
         end.reduce :merge
       end
     end
@@ -30,7 +30,15 @@ module Pipeline
 
     def modules
       @modules ||= config.modules.inject({}) do |mods,m|
-        mods.update self.class.expand_module m.to_sym
+        emod = self.class.expand_module(m.to_sym)
+        emod.each do |k,v|
+          if v.is_a?(Array) && mods[k].is_a?(Array)
+            mods[k].concat v
+          else
+            mods[k] = v
+          end
+        end
+        mods
       end
     end
 
@@ -153,9 +161,9 @@ module Pipeline
           puts "  has tasks #{step.class.available_tasks.join(", ")}".yellow.bold if (step.class.available_tasks - step.class.tasks).size > 0
         end
         puts "Available modules for #{config.script}".red.bold
-        self.class.modules.each do |m,h|
+        self.class.available_modules.each do |m,h|
           puts "module #{m} => ".magenta.bold + h.map{|s,d|
-            (self.class.modules[s] ? "#{s}".magenta.bold : "#{s}".green.bold) + (d == true ? "" : "[#{d.join(", ")}]".blue.bold)
+            (self.class.available_modules[s] ? "#{s}".magenta.bold : "#{s}".green.bold) + (d == true ? "" : "[#{d.join(", ")}]".blue.bold)
           }.join(", ")
         end
       else
