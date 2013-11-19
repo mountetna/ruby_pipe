@@ -93,7 +93,7 @@ module Pipeline
     def job_item 
       @opts[:job_array] ? @opts[:job_array][job_index] : @config
     end
-    def splits
+    def trials
       job_array ? job_array.size : nil
     end
     def bunch unit

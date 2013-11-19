@@ -4,8 +4,8 @@ module Pipeline
       step = create_step s
       log_console "runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
 
-      if config.splits
-        config.splits.times do |i|
+      if config.trials
+        config.trials.times do |i|
           config.set_opt :job_number, i+1
           step.audit
         end

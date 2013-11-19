@@ -90,20 +90,20 @@ module Pipeline
     def script; @script; end
     def config; @script.config; end
 
-    def setup_scheduler(prevjob, splits)
+    def setup_scheduler(prevjob, trials)
       # setup the scheduler to run this task.
       prevjob.strip!
 
-      log_main "Scheduling #{step_name}".yellow.bold
-      schedule_job :schedule, :wait => prevjob, :prev_splits => splits
+      log_main "Scheduling #{step_name} with #{trials} trials".yellow.bold
+      schedule_job :schedule, :wait => prevjob, :prev_trials => trials
     end
 
     def setup_exec
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      job = schedule_job :exec, :splits => config.splits, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
-      [ job, config.splits ]
+      job = schedule_job :exec, :trials => config.trials, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
+      [ job, config.trials ]
     end
 
     def make_error_file errors

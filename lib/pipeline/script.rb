@@ -72,10 +72,10 @@ module Pipeline
       return if config.single_step
 
       # schedule the execution for the current step
-      job, splits = create_step(curr_step).setup_exec
+      job, trials = create_step(curr_step).setup_exec
 
       # schedule the scheduler for the next step
-      create_step(config.next_step).setup_scheduler(job, splits) if config.next_step
+      create_step(config.next_step).setup_scheduler(job, trials) if config.next_step
     end
 
     def create_step(s)
@@ -94,8 +94,8 @@ module Pipeline
       FileUtils.rm(config.error_pid) if File.exists?(config.error_pid)
 
       config.set_config :scheduler, scheduler_type
-      job, splits = create_step(step).setup_exec
-      create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
+      job, trials = create_step(step).setup_exec
+      create_step(config.next_step).setup_scheduler(job,trials) if config.next_step
     end
 
     usage "list_steps <config_file.yml>", "List steps for this pipeline."

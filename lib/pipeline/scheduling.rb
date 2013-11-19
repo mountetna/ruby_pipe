@@ -14,8 +14,8 @@ module Pipeline
       def run_job vars, opts
         fields = {
           :N => opts[:name],
-          :W => opts[:wait] ? wait_string(opts[:wait],opts[:prev_splits]) : nil,
-          :t => opts[:splits] ? "1-#{opts[:splits]}" : nil,
+          :W => opts[:wait] ? wait_string(opts[:wait],opts[:prev_trials]) : nil,
+          :t => opts[:trials] ? "1-#{opts[:trials]}" : nil,
           :m => "n",
           :j => "oe",
           :o => "log/uncaught_errors.log",
@@ -33,7 +33,7 @@ module Pipeline
     end
 
     class MoabScheduler < TorqueScheduler
-      def wait_string job, splits
+      def wait_string job, trials
         "x=depend:afterany:#{job}"
       end
 
@@ -72,7 +72,7 @@ module Pipeline
     end
 
     class MauiScheduler < TorqueScheduler
-      def wait_string job, splits
+      def wait_string job, trials
         if job =~ /\[\]/
           "depend=afteranyarray:#{job}"
         else
