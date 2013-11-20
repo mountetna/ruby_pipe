@@ -10,11 +10,17 @@ module Exome
     def_var :bam_label do "bwa.realigned.dedup.recal" end
     def_var :output_bams do samples.map{|s| output_bam(s) } end
 
-    empty_var :cosmic_vcf
+    empty_var :cosmic_vcf, :verify_fastq_quality
 
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {
+          "@{fastq_name}_fastqc" => {
+            "." => :fastqc_output_dir,
+            "summary.txt" => :fastqc_summary,
+            "fastqc_report.html" => :fastqc_html
+          },
+
           "input.@input_name.chaste.bam" => :chaste_bam,
           "input.@input_name.reads1.fastq.gz" => :reads1_fastq,
           "input.@input_name.reads2.fastq.gz" => :reads2_fastq,
@@ -114,7 +120,10 @@ module Exome
           "@sample_name.alignment_metrics" => :qc_align_metrics,
           "@sample_name.insert_sizes" => :qc_inserts,
           "@sample_name.sample_summary" => :qc_coverage_metrics,
-          "@sample_name" => :qc_coverage_base
+          "@sample_name" => :qc_coverage_base,
+          "fastqc" => {
+            "@sample_name.@fastq_name.pdf" => :fastqc_pdf
+          }
         },
         "@cohort_name.duplication_metrics" => :duplication_metrics,
         "@cohort_name.qc_summary" => :qc_summary
@@ -160,6 +169,13 @@ module Exome
       end
     end
 
+    def make_fastq filename
+      {
+        :fastq_name => File.basename(filename).sub(/.fastq.gz/,""),
+        :fastq_file => filename
+      }
+    end
+
     def init_hook
       # add various bells and whistles here
       samples.each do |s|
@@ -167,6 +183,9 @@ module Exome
           s.inputs.each do |i|
             i.add_member :input_name, i.index
           end
+          s.extend_with :fastqs => s.inputs.map{|i|
+            [ make_fastq(i.fq1), make_fastq(i.fq2) ]
+          }.flatten
         end
         s.extend_with :chroms => chromosomes
         s.extend_with :chunks => make_chunks(s)
@@ -197,7 +216,7 @@ module Exome
 
     def_var :lane_name do |l| (l||job_item).property :lane_name end
     def_var :chunk_size do 4_000_000 end
-    job_items :chrom, :lane, :patient, :chunk
+    job_items :chrom, :lane, :patient, :chunk, :fastq
 
     def_var :reads1_fastqs do |s| (s || sample).inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
     def_var :reads2_fastqs do |s| (s || sample).inputs.map{|input| input_fastq2(input) || reads2_fastq(input) } end
