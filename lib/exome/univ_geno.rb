@@ -3,7 +3,7 @@ module Exome
   class UnivGenoNormals
     include Pipeline::Step
     runs_tasks :unified_genotyper, :annotate_muts, :quality_filter, :filter_muts
-    runs_on :normal_samples
+    runs_on :samples
     resources :threads => 12
 
     class UnifiedGenotyper
@@ -72,31 +72,10 @@ module Exome
         headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :ref_count, :alt_count, :var_freq, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :dbSNP_RS ]
         v = VCF.read config.ug_filtered_vcf, config.mutations_config
         v.each do |l|
-          next if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
-          next if l.skip_oncotator?([:univ_geno_normal, :oncotator])
-          muts.push :gene =>           l.onco.txp_gene,
-            :sample => config.sample_name,
-            :chrom =>                   l.chrom,
-            :pos => l.pos,
-            :ref_allele =>              l.ref,
-            :alt_allele =>              l.alt,
-            :var_freq => l.genotype(config.sample_name).alt_freq,
-            :ref_count => l.genotype(config.sample_name).ref_count,
-            :alt_count => l.genotype(config.sample_name).alt_count,
-            :variant_classification =>  l.onco.txp_variant_classification,
-            :protein_change =>          l.onco.txp_protein_change,
-            :transcript_change => l.onco.txp_transcript_change, 
-            :polyphen2_class  =>                  l.onco.pph2_class,
-            :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-            :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
+          v.invalidate! if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
+          v.invalidate! if l.skip_oncotator?([:univ_geno_normal, :oncotator])
         end
-        File.open(config.normal_muts, "w") do |f|
-          f.puts "#{headers.join("\t")}\n#{
-            muts.sort_by{|m| -1 * m[:var_freq]}.map do |m|
-              headers.map{|h| m[h] || "-" }.join("\t")
-            end.join("\n")
-          }"
-        end
+        v.print config.normal_muts
       end
     end
   end
