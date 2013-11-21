@@ -21,6 +21,7 @@
   #:include_dbsnp_site: [ COSMIC, NOVEL ]
 :oncotator:
   :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
+  :has_txp_gene: true
   #:is_snp: false
 :univ_geno_normal:
   :vcf:
