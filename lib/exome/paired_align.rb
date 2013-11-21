@@ -8,11 +8,13 @@ require 'exome/mut_det'
 require 'exome/univ_geno'
 require 'exome/config'
 require 'exome/copy_number'
+require 'exome/fastqc'
 
 module Exome
   class PairedAlign 
     include Pipeline::Script
     runs_steps :prep, 
+      :fast_qc,
       :dump_fastqs, :combine_fastqs, :align, :merge,
       :lane_recal, :table_recal,
       :patient_realign, 
@@ -25,6 +27,10 @@ module Exome
 
     def_module :prep_pipe, {
       :prep => true
+    }
+
+    def_module :verify_fastqs, {
+      :fast_qc => true
     }
 
     def_module :align_bams, {

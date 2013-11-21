@@ -74,7 +74,7 @@ module Pipeline
 
     dir_tree({
       ":scratch_dir" => {
-        "@csample_name" => {
+        "@sample_name" => {
           "." => :sample_scratch
         },
         "@cohort_name" => {

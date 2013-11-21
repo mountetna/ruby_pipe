@@ -69,6 +69,14 @@ module Pipeline
       run_cmd "#{config.cufflinks_dir}/cuffdiff -p #{params[:threads]} -o #{params[:out]} #{params[:gtf]} #{params[:sample1].join(",")} #{params[:sample2].join(",")}"
     end
 
+    def fastqc(fastq,output)
+      run_cmd "fastqc #{fastq} --outdir=#{output}"
+    end
+
+    def htmldoc(html,pdf)
+      run_cmd "htmldoc --webpage --browserwidth 800px --fontsize 7 -f #{pdf} #{html}" or error_exit "Could not make fastqc pdf"
+    end
+
     def fastx_clipper(params)
       params = { :min_length => 24, 
         :quals => (config.qual_type == "solexa" ? "-Q33" : nil) }.merge(params)

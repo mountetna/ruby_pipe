@@ -40,7 +40,7 @@ module Exome
 		:intervals => config.ug_raw_vcf,
 		:variant => config.ug_raw_vcf,
 		:baq =>  :CALCULATE_AS_NECESSARY,
-		:annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, :ReadPosRankSumTest, :DepthOfCoverage ],
+		:annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, :ReadPosRankSumTest, :Coverage ],
 		:out => config.ug_annotated_vcf or error_exit "Unified Genotyper SNP annotation failed"
       end
     end
