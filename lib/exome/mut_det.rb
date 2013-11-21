@@ -149,12 +149,13 @@ module Exome
         config.sample.chroms.each do |chrom|
           MuTect.read(config.mutect_snvs(chrom), config.mutations_config).each do |l|
             next unless l.keep_somatic? || l.keep_germline?
+            next if l.skip_oncotator?
             log_info "Annotating #{l.contig}:#{l.position}"
             seg = segs.find{|seg| seg[:Chromosome] == l.contig && seg[:Start].to_i < l.position.to_i && seg[:End].to_i > l.position.to_i}
             mut = {
               :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
               :ncbi_build => 37, :chromosome => l.contig.sub(/^chr/,""),
-              :start_position => l.position, :end_position => l.position, :strand => "+",
+              :start_position => l.position, :end_position => l.position, :strand => l.onco.txp_strand || "=",
               :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
               :reference_allele => l.ref_allele, :tumor_seq_allele1 => l.alt_allele,
               :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status, 
@@ -189,7 +190,7 @@ module Exome
             mut = {
               :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
               :ncbi_build => 37, :chromosome => l.chrom.sub(/^chr/,""),
-              :start_position => l.pos, :end_position => l.end_pos, :strand => "+",
+              :start_position => l.pos, :end_position => l.end_pos, :strand => l.onco.txp_strand || "=",
               :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
               :reference_allele => l.ref, :tumor_seq_allele1 => l.alt,
               :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status, 
@@ -208,8 +209,10 @@ module Exome
               :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
               :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
             }
-            somatic_maf.add_line mut
-            #all_muts_maf.add_line mut
+            unless l.skip_oncotator?
+              somatic_maf.add_line(mut)
+            end
+            all_muts_maf.add_line mut
           end
         end
         somatic_maf.sort_by! {|l| -l.tumor_var_freq }
