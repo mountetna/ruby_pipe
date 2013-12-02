@@ -68,7 +68,7 @@ module Ribo
           summary.each do |gid,samples|
             next if gid !~ /ENS/
             symbol = gtf.attributes[:gene_id][gid].first.attribute[:gene_name]
-            size = gtf.attributes[:gene_id][gid].inject(0) {|sum,f| sum += f.end.to_i - f.start.to_i }
+            size = gtf.attributes[:gene_id][gid].inject(0) {|sum,f| sum += f.stop.to_i - f.start.to_i }
             f.puts [ gid, symbol, size, config.samples.map{|s| samples[s.sample_name]} ].flatten.join("\t")
           end
         end
