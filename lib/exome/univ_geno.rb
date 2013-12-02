@@ -75,10 +75,6 @@ module Exome
         muts = []
         v = VCF.read config.ug_filtered_vcf, config.mutations_config
         v.samples.replace [ config.sample_name ]
-        v.each do |l|
-          l.invalidate! if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
-          #l.invalidate! if l.skip_oncotator?([:univ_geno_normal, :oncotator])
-        end
         v.print config.ug_muts
       end
     end
