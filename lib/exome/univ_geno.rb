@@ -1,14 +1,14 @@
 #!/bin/bash
 module Exome
-  class UnivGenoNormals
+  class UnivGenoCall
     include Pipeline::Step
-    runs_tasks :unified_genotyper, :annotate_muts, :quality_filter, :filter_muts
-    runs_on :samples
+    runs_tasks :unified_genotyper, :annotate_muts, :quality_filter
+    runs_on :patients
     resources :threads => 12
 
     class UnifiedGenotyper
       include Pipeline::Task
-      requires_files :sample_bam, :interval_list
+      requires_files :patient_sample_bams, :interval_list
       outs_files :ug_raw_vcf
 
       def run
@@ -16,8 +16,8 @@ module Exome
 	gatk :unified_genotyper,
 		:genotype_likelihoods_model => :BOTH, 
                 :genotyping_mode => :DISCOVERY,
-		:input_file => config.sample_bam,
-		:dbsnp => config.dbsnp_vcf,
+		:input_file => config.patient_sample_bams,
+		:dbsnp => config.reference_snp_vcf,
 		:intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
 		:standard_min_confidence_threshold_for_calling => 30.0,
 		:standard_min_confidence_threshold_for_emitting => 10.0,
@@ -28,15 +28,15 @@ module Exome
     end
     class AnnotateMuts
       include Pipeline::Task
-      requires_files :sample_bam, :ug_raw_vcf
+      requires_files :patient_sample_bams, :ug_raw_vcf
       dumps_file :ug_annotated_vcf
 
       def run
 	log_info "Annotating Unified Genotyper SNPs"
 	gatk :variant_annotator,
-		:input_file => config.sample_bam,
+		:input_file => config.patient_sample_bams,
                 :num_threads => 1,
-		:dbsnp => config.dbsnp_vcf,
+		:dbsnp => config.reference_snp_vcf,
 		:intervals => config.ug_raw_vcf,
 		:variant => config.ug_raw_vcf,
 		:baq =>  :CALCULATE_AS_NECESSARY,
@@ -44,7 +44,6 @@ module Exome
 		:out => config.ug_annotated_vcf or error_exit "Unified Genotyper SNP annotation failed"
       end
     end
-
     class QualityFilter
       include Pipeline::Task
       requires_files :ug_annotated_vcf
@@ -62,20 +61,25 @@ module Exome
 
       end
     end
+  end
+  class UnivGenoAnnotate
+    include Pipeline::Step
+    runs_task :filter_muts
+    runs_on :samples
     class FilterMuts
       include Pipeline::Task
       requires_files :ug_filtered_vcf
-      outs_file :normal_muts
+      outs_file :ug_muts
 
       def run
         muts = []
-        headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :ref_count, :alt_count, :var_freq, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :dbSNP_RS ]
         v = VCF.read config.ug_filtered_vcf, config.mutations_config
+        v.samples.replace [ config.sample_name ]
         v.each do |l|
-          v.invalidate! if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
-          v.invalidate! if l.skip_oncotator?([:univ_geno_normal, :oncotator])
+          l.invalidate! if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
+          #l.invalidate! if l.skip_oncotator?([:univ_geno_normal, :oncotator])
         end
-        v.print config.normal_muts
+        v.print config.ug_muts
       end
     end
   end
