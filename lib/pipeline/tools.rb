@@ -6,12 +6,25 @@ module Pipeline
     end
 
     def r_script script, *args
-      run_cmd "#{config.lib_dir}/bin/#{script}.R #{args.join(" ")}"
+#      run_cmd "#{config.lib_dir}/bin/#{script}.R #{args.join(" ")}"
+      run_cmd "#{config.lib_dir}/bin/#{script}.R #{config.lib_dir} #{args.join(" ")}"
     end
+
+    def indelocator(opts)
+      opts = { :logging_level => config.logging_level,
+        :num_threads => config.threads,
+        :baq => "CALCULATE_AS_NECESSARY",
+        :reference_sequence => config.reference_fa,
+        :analysis_type => "IndelGenotyperV2"
+      }.merge(opts)
+      java_17 :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.indelocator_dir}/#{config.indelocator_jar}", :args => format_opts(opts)
+    end
+
 
     def bwa_aln(params)
       params = { :threads => config.threads }.merge(params)
       bwa "aln -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
+      #bwa "mem -t #{params[:threads]} #{config.bwa_idx} #{params[:fq]}", params[:out]
     end
 
     def bwa_pair(params)
@@ -28,10 +41,10 @@ module Pipeline
 
     def picard(jar,params)
       params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.cohort_scratch }.merge(params)
-      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
+      java_16 :mem => 4, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
     end
 
-    def java(params)
+    def java_17(params)
       opts = {
         :mem => "-Xmx#{params[:mem]}g",
         :tmp => "-Djava.io.tmpdir=#{params[:tmp]}",
@@ -40,9 +53,24 @@ module Pipeline
       }
 
       if params[:out]
-        run_cmd "#{config.java} #{ opts.values.join(" ") } > #{params[:out]}"
+        run_cmd "#{config.java_1_7} #{ opts.values.join(" ") } > #{params[:out]}"
       else
-        run_cmd "#{config.java} #{ opts.values.join(" ") }"
+        run_cmd "#{config.java_1_7} #{ opts.values.join(" ") }"
+      end
+    end
+
+    def java_16(params)
+      opts = {
+        :mem => "-Xmx#{params[:mem]}g",
+        :tmp => "-Djava.io.tmpdir=#{params[:tmp]}",
+        :jar => "-jar #{params[:jar]}",
+        :args => params[:args]
+      }
+
+      if params[:out]
+        run_cmd "#{config.java_1_6} #{ opts.values.join(" ") } > #{params[:out]}"
+      else
+        run_cmd "#{config.java_1_6} #{ opts.values.join(" ") }"
       end
     end
 
@@ -57,8 +85,9 @@ module Pipeline
     def sam_flags(infile,outfile)
       samtools "flagstat", infile, outfile
     end
-
+    
     def sam_sort(infile,outpref)
+    #def sam_sort(infile,outpref)
       samtools "sort #{infile}", outpref
     end
 
@@ -76,8 +105,11 @@ module Pipeline
     end
 
     def samtools(cmd,infile,outfile=nil)
-      if outfile
-        run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile} > #{outfile}"
+      #need cmd.include? for make_samples (samtools sort) needs more memory
+      if outfile and cmd.include? 'sort'
+        run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile} #{outfile}"
+      elsif outfile
+	run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile} > #{outfile}"
       else
         run_cmd "#{config.samtools_dir}/samtools #{cmd} #{infile}"
       end
@@ -99,10 +131,24 @@ module Pipeline
 
     def gatk(tool,opts)
       opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.logging_level, :num_threads => config.threads }.merge(opts)
-      java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
+      java_17 :tmp => config.cohort_scratch, :mem => 2, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
     end
 
-    def mutect(opts)
+#CHANGMT this is for old version of mutect only
+#    def mutect(opts)
+#      opts = { :logging_level => config.logging_level,
+#        :analysis_type => "MuTect",
+#        :baq => "CALCULATE_AS_NECESSARY",
+#        :reference_sequence => config.reference_fa,
+#        :num_threads => config.threads,
+#        :"B:dbsnp,vcf" => config.reference_snp_vcf
+#      }.merge(opts)
+#      opts=format_opts(opts)
+#      opts=opts.sub('--B:dbsnp,vcf',"-B:dbsnp,vcf")
+#      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => opts
+#    end
+
+   def mutect(opts)
       opts = { :logging_level => config.logging_level,
         :analysis_type => "MuTect",
         :baq => "CALCULATE_AS_NECESSARY",
@@ -111,7 +157,7 @@ module Pipeline
         :num_threads => config.threads,
         :cosmic => config.cosmic_vcf
       }.merge(opts)
-      java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
+      java_16 :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
     end
 
     def pindel(opts)
@@ -193,7 +239,7 @@ module Pipeline
     end
 
     def coverage_bed(bam,intervals,outfile)
-      run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
+	run_cmd "#{config.bedtools_dir}/coverageBed -abam #{bam} -b #{intervals} -counts > #{outfile}"
     end
 
     def count_depth bam, chr, pos, pos2=nil

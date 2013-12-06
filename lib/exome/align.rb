@@ -1,4 +1,4 @@
-module Exome
+module Genome
   class Align 
     include Pipeline::Step
     runs_tasks :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label

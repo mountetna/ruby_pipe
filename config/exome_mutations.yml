@@ -12,12 +12,12 @@
   :include_dbsnp_site: [ COSMIC, NOVEL ]
   :has_covered: COVERED
 :oncotator:
-  :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
+  :exclude_txp_variant_classification: [ "5\'Flank", "3\'Flank", "5\'UTR", "3\'UTR", Intron, RNA ]
   #:is_snp: false
 :univ_geno_normal:
   :vcf:
     :min_alt_freq: 0.25
     :min_depth: 14
   :oncotator:
-    :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
+    :exclude_txp_variant_classification: [ IGR, Intron, UTR, Flank, RNA ]
     :is_cancerous: true

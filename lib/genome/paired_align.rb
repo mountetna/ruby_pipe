@@ -1,17 +1,24 @@
-require 'pipeline'
-require 'genome/fix_mate'
-require 'genome/recal'
-require 'genome/hybrid_qc'
-require 'genome/mut_det'
-require 'genome/config'
-require 'genome/copy_number'
+require '/home/changmt/scripts/ruby_pipe/lib/pipeline'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/align'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/sam_merge'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/fix_mate'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/recal'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/collect_qc'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/mut_det'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/config'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/copy_number'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/indel'
+require '/home/changmt/scripts/ruby_pipe/lib/genome/copy_number2'
+#require 'genome/pre_pindel'
 
 module Genome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :fix_mate, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number, :mut_det, :mut_filter
+    runs_steps :align, :sam_merge, :fix_mate, :library_merge, :recal, :library_split, :make_samples, :collect_qc, :collect_qc_summary, :mut_det, :indel_det, :copy_number, :variant_det, :mut_filter, :review_absolute, :copy_number2, :merge_snp
 
     def_module :create_bams, {
+      :align => true,
+      :sam_merge => true,
       :fix_mate => true,
       :library_merge => true,
       :recal => true,
@@ -20,17 +27,25 @@ module Genome
     }
 
     def_module :calculate_qc, {
-      :hybrid_qc => true,
-      :hybrid_qc_summary => true,
+      :collect_qc => true,
+      :collect_qc_summary => true,
     }
 
     def_module :compute_copy_number, {
       :copy_number => true,
+      :merge_snp => true,
+      :copy_number2 => true,
+      :format_rdata => true,
+      :absolute => true,
+      :review_absolute => true,
     }
 
     def_module :find_mutations, {
+      :variant_det => true,
+      :merge_snp => true,
       :mut_det => true,
-      :mut_filter => true
+      :indel_det => true,
+      :mut_filter => true,
     }
 
     def_module :mut_filter_annovar, {

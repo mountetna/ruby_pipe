@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+require '/home/changmt/lib/ruby/hash_table'
+require 'fileutils'
+module Genome
+  class CopyNumber
+    include Pipeline::Step
+    runs_tasks :split_contig, :seq_cbs 
+    runs_on :tumor_samples, :chroms
+
+    class SplitContig
+      include Pipeline::Task
+      requires_file :normal_bam, :tumor_bam
+      outs_files :split_normal_contigs, :split_tumor_contigs
+
+      def run
+        log_info "Separating reads by contig (#{config.chrom})"
+        run_cmd %Q/samtools view -f 0x40 -q 200 #{config.tumor_bam} #{config.chrom} | awk '{ print $3"\\t"$4"\\t"substr(and($2,16),0,1) }' > #{config.split_tumor_contigs}/
+        run_cmd %Q/samtools view -f 0x40 -q 200 #{config.normal_bam} #{config.chrom} | awk '{ print $3"\\t"$4"\\t"substr(and($2,16),0,1) }' > #{config.split_normal_contigs}/
+
+      end
+    end
+#  end
+
+#  class CopyNumber
+#    include Pipeline::Step
+#    runs_tasks :seq_cbs
+#    runs_on :tumor_samples, :chroms
+
+    class SeqCbs
+      include Pipeline::Task
+      requires_files :split_normal_contigs, :split_tumor_contigs
+      outs_file :tumor_cnr_rdata#, :tumor_cnr_seg 
+
+      def run
+        log_info "Running SeqCBS on contigs"
+        r_script :seqcbs, config.split_normal_contigs, config.split_tumor_contigs, config.tumor_cnr_rdata 
+      end
+    end
+  end
+  
+  class FormatRdata
+    include Pipeline::Step
+    runs_tasks :format_rdata
+    runs_on :tumor_samples
+
+    class FormatRdata
+      include Pipeline::Task
+      requires_files :tumor_cnr_rdatas
+      outs_file :tumor_cnr_seg
+
+      def run
+        log_info "Formatting Rdata, extracting undid"
+        r_script :convert_to_pipe, config.tumor_cnr_seg, config.tumor_cnr_rdatas
+      end
+    end
+  end
+
+  class Absolute 
+    include Pipeline::Step
+    runs_tasks :compute_purity_ploidy
+    runs_on :tumor_samples
+
+    class ComputePurityPloidy
+      include Pipeline::Task
+      requires_file :tumor_cnr_seg
+      outs_file :absolute_rdata
+
+      def run
+        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.absolute_scratch#, config.tumor_muts
+
+      end
+
+    end
+  end
+ 
+  class ReviewAbsolute
+    include Pipeline::Step
+    runs_tasks :create_review_object, :extract_review_results
+
+    class CreateReviewObject
+      include Pipeline::Task
+
+      requires_files :absolute_rdatas
+      dumps_file :review_table
+
+      def run
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas
+      end
+    end
+    class ExtractReviewResults
+      include Pipeline::Task
+
+      requires_file :reviewed_table
+      def run
+        r_script :absolute, :extractReview, config.reviewed_table, "Genome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name
+      end
+    end
+  end
+
+end

@@ -2,8 +2,7 @@
 require 'hash_table'
 require 'fileutils'
 require 'mutect'
-require '/home/changmt/lib/ruby/vcf.rb'
-require 'maf'
+require 'vcf'
 module Exome
   class MutDet
     include Pipeline::Step
@@ -68,11 +67,6 @@ module Exome
         unpatched.preamble_lines.push "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth (only filtered reads used for calling)\">\n"
         puts "Trying to find genotyes for #{config.normal_name}, #{config.sample_name}"
         unpatched.each do |l|
-          # skip invalid ones
-          if l.alt == "<INS>"
-            l.invalid = true
-            next
-          end
           l.format.push :DP 
           # get the actual depth for this locus
           normal_depth = count_depth config.normal_bam, l.mutation[:chrom], l.mutation[:pos]
@@ -113,63 +107,78 @@ module Exome
       outs_file :tumor_muts
 
       def run
-        maf = Maf.new
-        maf.output_headers.concat [ :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count,
-              :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
+        log_info "asdf"
+        muts = []
         segs = HashTable.new config.tumor_cnr_seg
+        headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr, :dbSNP_RS ]
         config.sample.chroms.each do |chrom|
+          log_info "Here 9"
           m = MuTect.read config.mutect_snvs(chrom), config.mutations_config
           m.each do |l|
+            log_info "Here A"
             next if l.skip_mutect?
             next if l.skip_oncotator?
-            seg = segs.find{|seg| seg[:Chromosome] == l.contig && seg[:Start].to_i < l.position.to_i && seg[:End].to_i > l.position.to_i}
-
-           maf.add_line :Hugo_Symbol => l.onco.txp_gene, :Center => "taylorlab.ucsf.edu",
-              :NCBI_Build => 37, :Chromosome => l.contig,
-              :Start_Position => l.position, :End_Position => l.position, :Strand => "+",
-              :Variant_Classification => l.onco.txp_variant_classification, :Variant_Type => l.onco.variant_type,
-              :Reference_Allele => l.ref_allele, :Tumor_Seq_Allele1 => l.alt_allele,
-              :dbSNP_RS => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbSNP_Val_Status => l.onco.dbSNP_Val_Status, 
-              :Tumor_Sample_Barcode => config.sample_name, :Matched_Norm_Sample_Barcode => config.normal_name,
-              :BAM_file => config.sample_bam,
+            seg = segs.find{|seg| seg[:chrom] == l.contig && seg[:"loc.start"].to_i < l.position.to_i && seg[:"loc.end"].to_i > l.position.to_i}
+            log_info "Here B"
+            muts.push :gene => l.onco.txp_gene,
+              :sample => config.sample_name,
+              :chrom => l.contig,
+              :pos => l.position,
+              :ref_allele => l.ref_allele,
+              :alt_allele => l.alt_allele,
               :tumor_ref_count => l.t_ref_count,
               :tumor_alt_count => l.t_alt_count,
               :tumor_var_freq => l.t_var_freq,
               :normal_ref_count => l.n_ref_count,
               :normal_alt_count => l.n_alt_count, 
+              :variant_classification => l.onco.txp_variant_classification,
               :protein_change => l.onco.txp_protein_change, 
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class => l.onco.pph2_class,
               :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end
+          log_info "Here 0"
           v = VCF.read config.pindel_vcf(chrom), config.mutations_config
+          log_info "Here 1"
           v.each do |l|
             next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
             next if l.skip_oncotator?
-            seg = segs.find{|seg| seg[:Chromosome] == l.chrom && seg[:Start].to_i < l.pos.to_i && seg[:End].to_i > l.pos.to_i}
-            maf.add_line :Hugo_Symbol => l.onco.txp_gene, :Center => "taylorlab.ucsf.edu",
-              :NCBI_Build => 37, :Chromosome => l.chrom,
-              :Start_Position => l.pos, :End_Position => l.pos, :Strand => "+",
-              :Variant_Classification => l.onco.txp_variant_classification, :Variant_Type => l.onco.variant_type,
-              :Reference_Allele => l.ref, :Tumor_Seq_Allele1 => l.alt,
-              :dbSNP_RS => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbSNP_Val_Status => l.onco.dbSNP_Val_Status, 
-              :Tumor_Sample_Barcode => config.sample_name, :Matched_Norm_Sample_Barcode => config.normal_name,
-              :BAM_file => config.sample_bam,
+            seg = segs.find{|seg| seg[:chrom] == l.chrom && seg[:"loc.start"].to_i < l.pos.to_i && seg[:"loc.end"].to_i > l.pos.to_i}
+            log_info seg
+            log_info seg[:"seg.mean"].to_f.round(5)
+            log_info l.onco.is_snp
+            log_info l.onco.dbDNP_RS 
+            muts.push :gene => l.onco.txp_gene,
+              :sample => config.sample_name,
+              :chrom => l.chrom,
+              :pos => l.pos,
+              :ref_allele => l.ref,
+              :alt_allele => l.alt,
               :tumor_ref_count => l.genotype(config.sample_name).ref_count,
               :tumor_alt_count => l.genotype(config.sample_name).alt_count,
               :tumor_var_freq => l.genotype(config.sample_name).alt_freq,
               :normal_ref_count => l.genotype(config.normal_name).ref_count,
               :normal_alt_count => l.genotype(config.normal_name).alt_count,
+              :variant_classification =>  l.onco.txp_variant_classification,
               :protein_change =>          l.onco.txp_protein_change,
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class  =>                  l.onco.pph2_class,
               :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => (seg ? seg[:Segment_Mean].to_f.round(5) : nil)
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => nil 
+              #:dbSNP_RS => (l.onco.is_snp ? l.onco.dbSNP_RS : nil)
           end
         end
-        maf.sort_by! {|l| -l.tumor_var_freq}
-        maf.write config.tumor_muts
+        log_info "Here4"
+        File.open(config.tumor_muts, "w") do |f|
+          f.puts headers.join("\t")
+          muts.sort_by{|m| -1 * m[:tumor_var_freq]}.each do |m|
+            f.puts headers.map{|h| m[h] || "-" }.join("\t")
+          end
+        end
+        log_info "Here 5"
       end
     end
 

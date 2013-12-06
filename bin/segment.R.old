@@ -1,0 +1,50 @@
+#!/opt/R/R-latest/bin/Rscript --no-save
+
+args = commandArgs(TRUE)
+
+print.noquote("Segmenting...")
+
+suppressMessages(library(DNAcopy))
+
+
+# okay, using this, first generate the CBS segmentation. Return the segmentation object.
+segCBS=function(cna, facs) {
+        #fac=as.numeric(fac)*0.2
+	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=(facs)))
+#1.5
+}
+
+logr_file = args[1]
+rdata_file = args[2]
+seg_file = args[3]
+sname = args[4]
+
+# load coverage data (made using coverageBed from the BAMs)
+tumor_logr=read.table(logr_file,header=T,as.is=T)
+
+# clean out Y chromosomes
+#CHANGMT clean out X chromosome too
+tumor_logr = tumor_logr[tumor_logr$chr != "chrY",]
+tumor_logr = tumor_logr[tumor_logr$chr != "chrX",]
+
+# generate 
+print.noquote("Creating CNA...")
+cna=CNA(tumor_logr$logr,tumor_logr$chr,as.integer((tumor_logr$start+tumor_logr$stop)/2),"logratio",sname)
+smCNA=smooth.CNA(cna)
+print(args[5])
+cbs_seg=segCBS(smCNA, as.numeric(args[5]))
+
+# fix sorting of chromosomes
+library(gtools)
+cbs_seg$data = cbs_seg$data[ mixedorder(cbs_seg$data$chrom), ]
+cbs_seg$output = cbs_seg$output[ mixedorder(cbs_seg$output$chrom), ]
+
+# recenter the chromosome segments by estimating the mode
+z = density(cbs_seg$output$seg.mean,bw="SJ")
+cbs_seg$output$seg.mean = cbs_seg$output$seg.mean - z$x[z$y == max(z$y)]
+
+save(cbs_seg,file=rdata_file)
+
+seg_obj = cbs_seg$output
+colnames(seg_obj) = c("ID","Chromosome", "Start","End","Num_Probes","Segment_Mean")
+write.table(seg_obj,file=seg_file,sep="\t",eol="\n",quote=F,row.names=F)

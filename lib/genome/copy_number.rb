@@ -1,36 +1,15 @@
 #!/usr/bin/env ruby
-require 'hash_table'
+require '/home/changmt/lib/ruby/hash_table'
 require 'fileutils'
 module Genome
-  class CopyNumberPrep
-    include Pipeline::Step
-    runs_task :create_intervals_bed
-
-    class CreateIntervalsBed
-      include Pipeline::Task
-      requires_file :interval_list
-      dumps_file :interval_bed
-      
-      def run
-        if !File.exists? config.interval_bed
-          File.open(config.interval_bed,"w") do |f|
-            File.foreach(config.interval_list) do |l|
-              next if l =~ /^@/
-              f.print l
-            end
-          end
-        end
-      end
-    end
-  end
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :compute_purity_ploidy
     runs_on :tumor_samples
 
     class ComputeCoverage
       include Pipeline::Task
-      requires_files :tumor_bam, :normal_bam, :interval_bed
+      #requires_files :tumor_bam, :normal_bam, :interval_bed
       dumps_files :tumor_cov, :normal_cov
 
       def run
@@ -44,15 +23,8 @@ module Genome
       requires_files :normal_cov, :tumor_cov
       outs_files :tumor_exon_cnr
 
-      def exon_coverage(cov)
-        tot = cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
-        cov.each_with_object(Hash.new(0)) do |l,m| 
-          m[l[:name]] += (l[:count].to_i + 10) / tot 
-        end
-      end
-
       def run
-        header = [ :chr, :start, :stop, :strand, :name, :count ]
+        header = [ :chr, :start, :stop, :count ]
         normal_cov = HashTable.new(config.normal_cov, :header => header)
         tumor_cov = HashTable.new(config.tumor_cov, :header => header)
         tumor_logr = HashTable.new(config.tumor_cov, :header => header)
@@ -81,17 +53,59 @@ module Genome
       outs_file :tumor_cnr_rdata, :tumor_cnr_seg
 
       def run
-        # just pass these arguments to the R script
-        r_script :segment, config.tumor_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
+        r_script :segment, :doSegCbs, config.tumor_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
       end
     end
     class ComputePurityPloidy
       include Pipeline::Task
-      requires_file :tumor_cnr_seg
+      requires_file :tumor_cnr_seg, :all_muts_maf
+      outs_file :absolute_rdata
 
       def run
-        r_script :absolute, config.sample_name, config.tumor_cnr_seg, config.tumor_maf, config.absolute_scratch
+        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
+#        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.absolute_scratch, config.tumor_muts
       end
     end
   end
+
+  class Absolute 
+    include Pipeline::Step
+    runs_tasks :compute_purity_ploidy
+    runs_on :tumor_samples
+
+    class ComputePurityPloidy
+      include Pipeline::Task
+      requires_file :tumor_cnr_seg, :all_muts_maf
+      outs_file :absolute_rdata
+
+      def run
+        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
+      end
+    end
+  end
+ 
+  class ReviewAbsolute
+    include Pipeline::Step
+    runs_tasks :create_review_object, :extract_review_results
+
+    class CreateReviewObject
+      include Pipeline::Task
+
+      requires_files :absolute_rdatas
+      dumps_file :review_table
+
+      def run
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas
+      end
+    end
+    class ExtractReviewResults
+      include Pipeline::Task
+
+      requires_file :reviewed_table
+      def run
+        r_script :absolute, :extractReview, config.reviewed_table, "Genome.Pipeline", config.absolute_modes, config.absolute_review_dir, config.cohort_name
+      end
+    end
+  end
+
 end
