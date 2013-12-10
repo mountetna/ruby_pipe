@@ -17,6 +17,7 @@
   :somatic:
     :has_judgement: KEEP
     :has_covered: COVERED
+    :max_q0_ratio: 1
     #:whitelisted: whitelist.gtf
   #:include_dbsnp_site: [ COSMIC, NOVEL ]
 :oncotator:
