@@ -50,7 +50,10 @@ module Pipeline
           :reference_sequence => config.reference_fa,
           :dbsnp => config.reference_snp_vcf,
           :num_threads => config.threads,
-          :cosmic => config.cosmic_vcf
+          :cosmic => config.cosmic_vcf,
+          :max_alt_alleles_in_normal_count => 100000,
+          :max_alt_alleles_in_normal_qscore_sum => 100000,
+          :max_alt_allele_in_normal_fraction => 1
         }.merge(opts)
         java :bin => config.java6, :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
       end
