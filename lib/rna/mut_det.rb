@@ -53,9 +53,6 @@ module Rna
 		:"input_file:tumor" => config.tumor_bam,
 		:dbsnp => config.dbsnp_vcf,
 		:group => "StandardAnnotation",
-    :max_alt_alleles_in_normal_count => 100000,
-    :max_alt_alleles_in_normal_qscore_sum => 100000,
-    :max_alt_allele_in_normal_fraction => 1,
 		:out => config.mutect_indels_anno or error_exit "Indel annotation failed"
       end
     end
