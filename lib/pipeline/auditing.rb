@@ -40,6 +40,7 @@ module Pipeline
       if self.audit_vars
         self.audit_vars.each do |v|
           val = config.send(v) || "nil".red
+          val = val.join(",") if val.is_a? Array
           log_console "#{v}: ".magenta.bold + val
         end
       end
