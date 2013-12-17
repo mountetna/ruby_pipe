@@ -14,10 +14,10 @@
     :has_covered: COVERED
     :min_n_var_freq: 0.1
     :min_t_var_freq: 0.1
-    :max_q0_ratio: 1
   :somatic:
     :has_judgement: KEEP
     :has_covered: COVERED
+    :max_q0_ratio: 1
     #:whitelisted: whitelist.gtf
   #:include_dbsnp_site: [ COSMIC, NOVEL ]
 :oncotator:
