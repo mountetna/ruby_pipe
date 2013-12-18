@@ -46,8 +46,8 @@ module Exome
     end
     class QualityFilter
       include Pipeline::Task
-      requires_files :ug_annotated_vcf
-      dumps_file :ug_filtered_vcf
+      requires_files :snp_annotated_vcf
+      dumps_file :snp_filtered_vcf
 
       def run
 	log_info "Filtering Unified Genotyper SNPs"

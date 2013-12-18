@@ -8,6 +8,8 @@
 :bowtie_dir: /taylorlab/lib/bowtie/bowtie-latest
 :bwa_dir: /taylorlab/lib/bwa/bwa-latest
 :cufflinks_dir: /taylorlab/lib/cufflinks/cufflinks-latest
+:indelocator_dir: /taylorlab/lib/indelocator/indelocator-latest
+:indelocator_jar: IndelGenotyper.jar
 :fastqc_dir: /taylorlab/lib/fastqc/fastqc-latest
 :fastx_dir: /taylorlab/lib/fastx/fastx-latest
 :gatk_dir: /taylorlab/lib/gatk/gatk-latest

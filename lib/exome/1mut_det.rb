@@ -3,12 +3,10 @@ require 'hash_table'
 require 'fileutils'
 require 'mutect'
 require 'vcf'
-require 'maf'
 module Exome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
-    has_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf, :indelocator, :strelka
     resources :threads => 1
     runs_on :tumor_samples, :chroms
 
@@ -20,13 +18,13 @@ module Exome
 
     class Mutect
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
+      requires_files :normal_bam, :tumor_bam, :interval_list
       dumps_files :mutect_snvs, :mutect_coverage
 
       def run
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
-          :intervals => config.chrom.chrom_name,
+          :intervals => config.chrom,
           :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
 
         # kludge to make sure mutect completes before ensuring this step
@@ -36,7 +34,7 @@ module Exome
 
     class Pindel
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
+      requires_files :normal_bam, :tumor_bam, :interval_list
       dumps_files :pindel_snv_d
 
       def run
@@ -45,7 +43,7 @@ module Exome
             { :bam => config.tumor_bam, :name => config.sample_name},
             { :bam => config.normal_bam, :name => config.normal_name } ],
           :tempfile => config.pindel_list,
-          :chromosome => config.chrom.chrom_name, :"output-prefix" => config.pindel_snvs or error_exit "Pindel failed"
+          :chromosome => config.chrom, :"output-prefix" => config.pindel_snvs or error_exit "Pindel failed"
       end
     end
 
@@ -67,12 +65,8 @@ module Exome
         unpatched = VCF.read config.pindel_unpatched_vcf
         unpatched.preamble_lines.find{|i| i=~ /ID=AD/}.replace "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n"
         unpatched.preamble_lines.push "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth (only filtered reads used for calling)\">\n"
+        puts "Trying to find genotyes for #{config.normal_name}, #{config.sample_name}"
         unpatched.each do |l|
-          # skip invalid ones
-          if l.alt == "<INS>"
-            l.invalid = true
-            next
-          end
           l.format.push :DP 
           # get the actual depth for this locus
           normal_depth = count_depth config.normal_bam, l.mutation[:chrom], l.mutation[:pos]
@@ -99,26 +93,6 @@ module Exome
         unpatched.write config.pindel_vcf
       end
     end
-
-    class Indelocator
-      include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
-      outs_files :indelocator_bed, :indelocator_metrics
-
-      def run
-        indelocator :somatic => true, :"input_file:normal" => config.normal_bam, :"input_file:tumor" => config.tumor_bam, :verboseOutput => config.indelocator_output, :metrics_file => config.indelocator_metrics, :out => config.indelocator_bed, :intervals => config.chrom.chrom_name or error_exit "Indelocator failed"
-      end
-    end
-
-    class Strelka
-      include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
-      dumps_file :strelka_vcf, :strelka_bam
-      
-      def run
-        strelka :tumor => config.tumor_bam, :normal => config.normal_bam, :output => config.strelka_vcf, :chrom => config.chrom.chrom_name, :realigned_bam => config.strelka_bam or error_exit "Strelka failed"
-      end
-    end
   end
 
   class MutFilter
@@ -130,96 +104,81 @@ module Exome
     class FilterMuts
       include Pipeline::Task
       requires_files :pindel_vcfs, :mutect_snvses, :tumor_cnr_seg
-      outs_file :tumor_maf, :germline_maf
-      dumps_file :all_muts_maf
+      outs_file :tumor_muts
 
       def run
-        somatic_maf = Maf.new
-        germline_maf = Maf.new
-        all_muts_maf = Maf.new
-        addl = [ :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        somatic_maf.headers.concat addl
-        germline_maf.headers.concat addl
-
-        # stupid fixes for absolute
-        all_muts_maf.headers.concat [ :t_ref_count, :t_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        all_muts_maf.headers.map! { |l| l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l }
-
+        log_info "asdf"
+        muts = []
         segs = HashTable.new config.tumor_cnr_seg
+        headers = [ :gene, :sample, :chrom, :pos, :ref_allele, :alt_allele, :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :variant_classification, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr, :dbSNP_RS ]
         config.sample.chroms.each do |chrom|
-          MuTect.read(config.mutect_snvs(chrom), config.mutations_config).each do |l|
-            next unless l.keep_somatic? || l.keep_germline?
+          log_info "Here 9"
+          m = MuTect.read config.mutect_snvs(chrom), config.mutations_config
+          m.each do |l|
+            log_info "Here A"
+            next if l.skip_mutect?
             next if l.skip_oncotator?
-            log_info "Annotating #{l.contig}:#{l.position}"
-            seg = segs.find{|seg| seg[:Chromosome] == l.contig && seg[:Start].to_i < l.position.to_i && seg[:End].to_i > l.position.to_i}
-            mut = {
-              :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.contig.sub(/^chr/,""),
-              :start_position => l.position, :end_position => l.position, :strand => l.onco.txp_strand || "=",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref_allele, :tumor_seq_allele1 => l.alt_allele,
-              :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status, 
-              :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
+            seg = segs.find{|seg| seg[:chrom] == l.contig && seg[:"loc.start"].to_i < l.position.to_i && seg[:"loc.end"].to_i > l.position.to_i}
+            log_info "Here B"
+            muts.push :gene => l.onco.txp_gene,
+              :sample => config.sample_name,
+              :chrom => l.contig,
+              :pos => l.position,
+              :ref_allele => l.ref_allele,
+              :alt_allele => l.alt_allele,
               :tumor_ref_count => l.t_ref_count,
               :tumor_alt_count => l.t_alt_count,
-              :t_ref_count => l.t_ref_count,
-              :t_alt_count => l.t_alt_count,
               :tumor_var_freq => l.t_var_freq,
               :normal_ref_count => l.n_ref_count,
               :normal_alt_count => l.n_alt_count, 
+              :variant_classification => l.onco.txp_variant_classification,
               :protein_change => l.onco.txp_protein_change, 
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class => l.onco.pph2_class,
               :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-            }
-            unless l.skip_oncotator?
-              somatic_maf.add_line(mut) if l.keep_somatic?
-              germline_maf.add_line(mut) if l.keep_germline? && l.onco.Cosmic_overlapping_mutations
-            end
-            all_muts_maf.add_line mut if l.keep_somatic?
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => l.onco.is_snp ? l.onco.dbSNP_RS : nil
           end
-
+          log_info "Here 0"
           v = VCF.read config.pindel_vcf(chrom), config.mutations_config
+          log_info "Here 1"
           v.each do |l|
             next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
             next if l.skip_oncotator?
-            log_info "Annotating #{l.chrom}:#{l.pos}-#{l.end_pos}"
-            seg = segs.find{|seg| seg[:Chromosome] == l.chrom && seg[:Start].to_i < l.pos.to_i && seg[:End].to_i > l.pos.to_i}
-            mut = {
-              :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.chrom.sub(/^chr/,""),
-              :start_position => l.pos, :end_position => l.end_pos, :strand => l.onco.txp_strand || "=",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref, :tumor_seq_allele1 => l.alt,
-              :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status, 
-              :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
+            seg = segs.find{|seg| seg[:chrom] == l.chrom && seg[:"loc.start"].to_i < l.pos.to_i && seg[:"loc.end"].to_i > l.pos.to_i}
+            log_info seg
+            log_info seg[:"seg.mean"].to_f.round(5)
+            log_info l.onco.is_snp
+            log_info l.onco.dbDNP_RS 
+            muts.push :gene => l.onco.txp_gene,
+              :sample => config.sample_name,
+              :chrom => l.chrom,
+              :pos => l.pos,
+              :ref_allele => l.ref,
+              :alt_allele => l.alt,
               :tumor_ref_count => l.genotype(config.sample_name).ref_count,
               :tumor_alt_count => l.genotype(config.sample_name).alt_count,
-              :t_ref_count => l.genotype(config.sample_name).ref_count,
-              :t_alt_count => l.genotype(config.sample_name).alt_count,
               :tumor_var_freq => l.genotype(config.sample_name).alt_freq,
               :normal_ref_count => l.genotype(config.normal_name).ref_count,
               :normal_alt_count => l.genotype(config.normal_name).alt_count,
+              :variant_classification =>  l.onco.txp_variant_classification,
               :protein_change =>          l.onco.txp_protein_change,
               :transcript_change => l.onco.txp_transcript_change, 
               :polyphen2_class  =>                  l.onco.pph2_class,
               :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-            }
-            unless l.skip_oncotator?
-              somatic_maf.add_line(mut)
-            end
-            all_muts_maf.add_line mut
+              :segment_logr => seg ? seg[:"seg.mean"].to_f.round(5) : nil,
+              :dbSNP_RS => nil 
+              #:dbSNP_RS => (l.onco.is_snp ? l.onco.dbSNP_RS : nil)
           end
         end
-        somatic_maf.sort_by! {|l| -l.tumor_var_freq }
-        germline_maf.sort_by! {|l| -l.tumor_var_freq }
-        somatic_maf.write config.tumor_maf
-        germline_maf.write config.germline_maf
-        all_muts_maf.write config.all_muts_maf
+        log_info "Here4"
+        File.open(config.tumor_muts, "w") do |f|
+          f.puts headers.join("\t")
+          muts.sort_by{|m| -1 * m[:tumor_var_freq]}.each do |m|
+            f.puts headers.map{|h| m[h] || "-" }.join("\t")
+          end
+        end
+        log_info "Here 5"
       end
     end
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 module Genome
-  class LibraryMerge
+ class LibraryMerge
     include Pipeline::Step
     runs_tasks :merge_bam
     resources :threads => 12, :walltime => 50
@@ -12,7 +12,7 @@ module Genome
 
       def run
 	log_info "Merging per-sample bam files for bulk recalibration"
-        picard :merge_sam_files, :CREATE_INDEX => :true,
+        picard :merge_sam_files, :CREATE_INDEX => :true, :USE_THREADING => :true,
           :OUTPUT => config.raw_library_bam, :INPUT => config.dedup_sample_bams,
           :SORT_ORDER => :coordinate or error_exit "bam file merge failed."
       end
@@ -129,9 +129,12 @@ module Genome
       outs_file :sample_bam
       
       def run
-        sam_sort config.split_bam, config.sample_bam.sub(/.bam$/,"") or error_exit "Sorting failed"
+	#make_samples needs more memory (-m) default 500000000
+	samtools "sort -m 1000000000", config.split_bam, config.sample_bam.sub(/.bam$/,"") or error_exit "Sorting Failed"
+        #sam_sort config.split_bam, config.sample_bam.sub(/.bam$/,"") or error_exit "Sorting failed"
         sam_index config.sample_bam or error_exit "Indexing failed"
       end
     end
+
   end
 end
