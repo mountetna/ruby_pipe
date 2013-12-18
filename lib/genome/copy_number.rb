@@ -1,11 +1,42 @@
 #!/usr/bin/env ruby
-require '/home/changmt/lib/ruby/hash_table'
+require 'hash_table'
+require 'vcf'
 require 'fileutils'
 module Genome
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg, :compute_purity_ploidy
+    runs_tasks :compute_coverage, :compute_ratio, :copy_seg_cbs, :compute_purity_ploidy
+    has_tasks :compute_baf, :compute_coverage, :compute_ratio, :copy_seg_cbs, :copy_seg_pscbs, :compute_purity_ploidy
     runs_on :tumor_samples
+    resources :threads => 1, :walltime => 50
+
+    class ComputeBaf
+      include Pipeline::Task
+      requires_file :ug_filtered_vcf 
+      outs_file :tumor_baf, :normal_baf
+
+      def run
+        vcf = VCF.read config.ug_filtered_vcf
+        tb = HashTable.new nil, :header => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
+        nb = HashTable.new nil, :header => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
+        vcf.each do |v|
+          next if !v.genotype(config.normal_name).heterozygous?
+          next if !v.genotype(config.sample_name).callable?
+          next if v.filter != "PASS"
+          next if v.id[0..1] != "rs"
+          tb.add_line :chromosome => v.chrom, :position => v.pos,
+            :BAF => v.genotype(config.sample_name).alt_freq,
+            :Alt_count => v.genotype(config.sample_name).alt_count,
+            :Tot_count => v.genotype(config.sample_name).depth
+          nb.add_line :chromosome => v.chrom, :position => v.pos,
+            :BAF => v.genotype(config.normal_name).alt_freq,
+            :Alt_count => v.genotype(config.normal_name).alt_count,
+            :Tot_count => v.genotype(config.normal_name).depth
+        end
+        tb.print config.tumor_baf
+        nb.print config.normal_baf
+      end
+    end    
 
     class ComputeCoverage
       include Pipeline::Task
@@ -47,7 +78,7 @@ module Genome
       end
     end
 
-    class CopySeg
+    class CopySegCbs
       include Pipeline::Task
       requires_file :tumor_exon_cnr
       outs_file :tumor_cnr_rdata, :tumor_cnr_seg
@@ -55,6 +86,16 @@ module Genome
       def run
         r_script :segment, :doSegCbs, config.tumor_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name
       end
+    end
+    class CopySegPscbs
+      include Pipeline::Task
+      requires_file :tumor_ratio, :normal_baf, :tumor_baf
+      outs_file :tumor_cnr_rdata_pscbs, :tumor_cnr_seg_pscbs
+
+      def run
+        # just pass these arguments to the R script
+        r_script :segment, :doSegPscbs, config.tumor_ratio, config.tumor_baf, config.normal_baf, config.tumor_cnr_rdata_pscbs or error_exit "CBS segmentation failed"
+       end
     end
     class ComputePurityPloidy
       include Pipeline::Task
@@ -107,4 +148,3 @@ module Genome
     end
   end
 
-end

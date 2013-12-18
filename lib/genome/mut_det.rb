@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
-require '/home/changmt/lib/ruby/hash_table'
+
+require 'hash_table'
 require 'fileutils'
-require '/home/changmt/lib/ruby/mutect'
-require '/home/changmt/lib/ruby/vcf'
-require '/home/changmt/lib/ruby/maf'
+require 'mutect'
+require 'vcf'
+require 'maf'
 
 module Genome
   class VariantDet

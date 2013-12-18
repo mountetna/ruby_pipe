@@ -1,20 +1,18 @@
-require '/home/changmt/scripts/ruby_pipe/lib/pipeline'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/align'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/sam_merge'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/fix_mate'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/recal'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/collect_qc'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/mut_det'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/config'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/copy_number'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/indel'
-require '/home/changmt/scripts/ruby_pipe/lib/genome/copy_number2'
-#require 'genome/pre_pindel'
+require 'pipeline'
+require 'genome/align'
+require 'genome/sam_merge'
+require 'genome/fix_mate'
+require 'genome/recal'
+require 'genome/collect_qc'
+require 'genome/mut_det'
+require 'genome/config'
+require 'genome/copy_number'
+require 'genome/indel'
 
 module Genome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :sam_merge, :fix_mate, :library_merge, :recal, :library_split, :make_samples, :collect_qc, :collect_qc_summary, :mut_det, :indel_det, :copy_number, :variant_det, :mut_filter, :review_absolute, :copy_number2, :merge_snp
+    runs_steps :align, :sam_merge, :fix_mate, :library_merge, :recal, :library_split, :make_samples, :collect_qc, :collect_qc_summary, :mut_det, :indel_det, :copy_number, :variant_det, :mut_filter, :review_absolute, :merge_snp
 
     def_module :create_bams, {
       :align => true,
@@ -34,7 +32,6 @@ module Genome
     def_module :compute_copy_number, {
       :copy_number => true,
       :merge_snp => true,
-      :copy_number2 => true,
       :format_rdata => true,
       :absolute => true,
       :review_absolute => true,

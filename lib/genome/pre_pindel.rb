@@ -1,19 +1,19 @@
 #!/usr/bin/env ruby
 require 'hash_table'
 require 'fileutils'
-require '/home/changmt/lib/ruby/vcf.rb'
-module Genome
+require 'vcf'
 
-  class PrePindel
+module Genome
+  class PrePindel 
     include Pipeline::Step
-    runs_tasks :pre_pindel
+    runs_tasks :make_pre_pindel 
     resources :threads => 1, :walltime => 50
     runs_on :samples
 
     class MakePrePindel 
       include Pipeline::Task
       requires_files :sample_bam 
-      outs_file :temp_output_for_pindels
+      outs_file :temp_output_for_pindel
 
       def run
         log_info "Creating files for Pindel"
@@ -21,19 +21,21 @@ module Genome
       end
     end 
   end
+
   class PrePindelTwo
-    runs_tasks :cat_pre_pindel 
+    include Pipeline::Step
+    runs_tasks :pre_pindel_cat
     resources :threads => 1, :walltime => 50
     runs_on :tumor_samples
-
-    class CatPrePindel
-      include Pipline::Task
-      require_files :temp_output_for_pindel
+    
+    class PrePindelCat
+      include Pipeline::Task
+      requires_files :temp_output_for_pindels
       outs_file :output_for_pindel
 
       def run
         log_info "Merging files necessary for Pindel"
-        run_cmd "cat #{config.output_for_pindel(config.normal)} #{config.output_for_pindel(config.sample)} > #{config.output_for_pindel}"
+        run_cmd "cat #{config.temp_output_for_pindel(config.normal)} #{config.temp_output_for_pindel(config.sample)} > #{config.output_for_pindel}"
       end
     end
   end
