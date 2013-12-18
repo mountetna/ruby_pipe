@@ -7,19 +7,19 @@ module Pipeline
     include Pipeline::Scheduling
 
     module ClassMethods 
-      attr_reader :steps, :modules
+      attr_reader :steps, :available_modules
       def runs_steps(*step_list)
         @steps = step_list
       end
 
       def def_module mod, steps
-        @modules ||= {}
-        @modules[mod] = steps
+        @available_modules ||= {}
+        @available_modules[mod] = steps
       end
 
       def expand_module m
-        modules[m].map do |n,disp|
-          modules[n] ? expand_module(n) : { n => disp }
+        @available_modules[m].map do |n,disp|
+          @available_modules[n] ? expand_module(n) : { n => disp }
         end.reduce :merge
       end
     end
@@ -30,7 +30,15 @@ module Pipeline
 
     def modules
       @modules ||= config.modules.inject({}) do |mods,m|
-        mods.update self.class.expand_module m.to_sym
+        emod = self.class.expand_module(m.to_sym)
+        emod.each do |k,v|
+          if v.is_a?(Array) && mods[k].is_a?(Array)
+            mods[k].concat v
+          else
+            mods[k] = v
+          end
+        end
+        mods
       end
     end
 
@@ -64,10 +72,10 @@ module Pipeline
       return if config.single_step
 
       # schedule the execution for the current step
-      job, splits = create_step(curr_step).setup_exec
+      job, trials = create_step(curr_step).setup_exec
 
       # schedule the scheduler for the next step
-      create_step(config.next_step).setup_scheduler(job, splits) if config.next_step
+      create_step(config.next_step).setup_scheduler(job, trials) if config.next_step
     end
 
     def create_step(s)
@@ -86,8 +94,8 @@ module Pipeline
       FileUtils.rm(config.error_pid) if File.exists?(config.error_pid)
 
       config.set_config :scheduler, scheduler_type
-      job, splits = create_step(step).setup_exec
-      create_step(config.next_step).setup_scheduler(job,splits) if config.next_step
+      job, trials = create_step(step).setup_exec
+      create_step(config.next_step).setup_scheduler(job,trials) if config.next_step
     end
 
     usage "list_steps <config_file.yml>", "List steps for this pipeline."
@@ -125,6 +133,11 @@ module Pipeline
       config.set_config :scheduler, scheduler_type
       abort "Say please if you want to let the current step finish running before stopping" if args.first && args.first != "please"
       cancel_job(args.first == "please")
+
+      # create an error pid just in case
+      open_error_pid do |f|
+        f.puts "stop"
+      end
     end
 
     def audit(args)
@@ -148,9 +161,9 @@ module Pipeline
           puts "  has tasks #{step.class.available_tasks.join(", ")}".yellow.bold if (step.class.available_tasks - step.class.tasks).size > 0
         end
         puts "Available modules for #{config.script}".red.bold
-        self.class.modules.each do |m,h|
+        self.class.available_modules.each do |m,h|
           puts "module #{m} => ".magenta.bold + h.map{|s,d|
-            (self.class.modules[s] ? "#{s}".magenta.bold : "#{s}".green.bold) + (d == true ? "" : "[#{d.join(", ")}]".blue.bold)
+            (self.class.available_modules[s] ? "#{s}".magenta.bold : "#{s}".green.bold) + (d == true ? "" : "[#{d.join(", ")}]".blue.bold)
           }.join(", ")
         end
       else

@@ -4,8 +4,14 @@ module Pipeline
     module ClassMethods
       def class_init
         @required_files = []
+        @skip_symbols = []
         @dump_files = []
         @out_files = []
+      end
+
+      def skip_without *required
+        requires_file *required
+        @skip_symbols = required
       end
 
       def requires_file(*required)
@@ -24,7 +30,7 @@ module Pipeline
       alias :outs_files :outs_file
 
       def made_files; @out_files + @dump_files; end
-      attr_reader :required_files, :dump_files, :out_files
+      attr_reader :required_files, :skip_symbols, :dump_files, :out_files
     end
   end
   class PipeError < StandardError
@@ -42,9 +48,7 @@ module Pipeline
 
         log_main "#{config.step} trial #{config.job_index} failed to complete at #{task_name}.".red.bold
 
-        ensure_dir config.cohort_scratch
-
-        File.open(config.error_pid,"a") do |f|
+        open_error_pid do |f|
           f.puts "#{config.step} #{config.job_index} #{task_name}"
         end
         exit
@@ -69,12 +73,6 @@ module Pipeline
       @step = s
     end
 
-    def ensure_dir(*dirs)
-      dirs.each do |f|
-        FileUtils.mkdir_p f
-      end
-    end
-
     def config
       step.config
     end
@@ -85,7 +83,7 @@ module Pipeline
       self.class.name.split(/::/).last.snake_case
     end
     
-    class_var :dump_files, :out_files, :made_files, :required_files
+    class_var :dump_files, :out_files, :made_files, :required_files, :skip_symbols
 
     def should_run
       # don't even log it if the script says to skip it
@@ -94,19 +92,22 @@ module Pipeline
 
         log_info "task #{task_name}:".white.bold
 
-        # this will exit the step if it is missing.
-        check_required
+        # if all of the files exist, you shouldn't run
+        return nil if !make_files?
 
+        # this will exit the step if it is missing files.
+        # it will skip if some required symbols are nil
+        return nil if !check_required
         # this will merely move on to the next step
-        return make_files?
       end
+      true
     end
 
     def check_file(filename,f)
       error_exit "Could not get filename for #{f}" if !filename
 
       # make sure the directory is there
-      ensure_dir File.dirname(filename)
+      ensure_dir filename
 
       error_exit "Could not find required file #{f} at #{filename}" if !File.size?(filename) 
       error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
@@ -115,6 +116,10 @@ module Pipeline
     end
 
     def check_required
+      skip_symbols.each do |s|
+        return nil if !config.send s
+      end
+
       required_files.each do |f|
         filename = config.send(f)
         if filename.is_a? Array
@@ -123,6 +128,7 @@ module Pipeline
           check_file filename, f
         end
       end
+      true
     end
 
     def make_file?(filename,f)
@@ -130,7 +136,7 @@ module Pipeline
         log_debug "#{task_name}: #{f} already made at #{filename}" if config.verbose?
         nil
       else
-        ensure_dir File.dirname(filename)
+        ensure_dir filename
         true
       end
     end

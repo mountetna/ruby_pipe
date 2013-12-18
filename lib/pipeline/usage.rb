@@ -30,6 +30,7 @@ module Pipeline
     end
 
     def check_usage cmd, args
+      args ||= []
       required = usages[cmd][1]
       if args.size < required
         usage cmd

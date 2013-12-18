@@ -7,12 +7,15 @@ module Rna
       # add various bells and whistles here
       samples.each do |s|
         s.replicates.each do |r|
-          r.add_member :replicate_name, "r#{r.index}"
+          r.add_member :replicate_name, "r#{r.index}" if !r.replicate_name
         end
       end
     end
 
-    def_var :bam_label do "aligned.merged.sorted" end
+    empty_var :splice_gtf
+
+    def_var :bam_label do "aligned.sorted" end
+    def_var :fdr_cutoff do 0.10 end
     def_var :normal_bams do replicate_bams normal end
 
     def_var :replicate_bams do |s| (s||sample).replicates.map{ |r| replicate_bam r} end
@@ -21,12 +24,22 @@ module Rna
     def_var :replicate_name do |r| (r || job_item).property :replicate_name end
     def_var :replicates do samples.collect(&:replicates).flatten end
 
+    def_var :diff_exps do samples.collect(&:diff_exp).compact.flatten end
+
     def_var :sample_replicate_name do |r| "#{sample_name(r)}.#{replicate_name(r)}" end
 
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {
           "@replicate_name" => {
+            "coverage.sam" => :coverage_sam,
+            "splice.sam" => :splice_sam,
+            "chimera1.fastq" => :chimera_fq1,
+            "chimera2.fastq" => :chimera_fq2,
+            "chimerascan" => {
+              "." => :chimera_dir,
+              "chimeras.bedpe" => :chimera_bedpe
+            },
             "tophat" => {
               "." => :tophat_scratch,
               "accepted_hits.bam" => :accepted_bam,
@@ -34,8 +47,6 @@ module Rna
               "merged.bam" => :merged_bam,
               "merged.sorted.bam" => :sorted_bam,
               "sorted_header.txt" => :sorted_header,
-              "coverage.sam" => :coverage_sam,
-              "transcripts.cov" => :transcripts_cov
             },
             "cufflinks" => {
               "." => :cufflinks_scratch,
@@ -43,10 +54,21 @@ module Rna
               "genes.fpkm_tracking" => :gene_tracking
             },
             "rsem" => {
-              "." => :rsem_scratch
+              "." => :rsem_scratch_dir,
+              "tmp" => :rsem_tmp_dir,
+              "@sample_name.@replicate_name.genes.results" => :rsem_scratch_genes_results,
+              "@sample_name.@replicate_name.isoforms.results" => :rsem_scratch_isoforms_results,
+              "@sample_name.@replicate_name.transcript.bam" => :rsem_scratch_txp_unsorted_bam,
+              "@sample_name.@replicate_name.transcript.sorted.bam" => :rsem_scratch_txp_bam,
+              "@sample_name.@replicate_name.transcript.sorted.bam.bai" => :rsem_scratch_txp_bai,
+              "@sample_name.@replicate_name.genome.bam" => :rsem_scratch_genome_unsorted_bam,
+              "@sample_name.@replicate_name.genome.header" => :rsem_scratch_genome_header,
+              "@sample_name.@replicate_name.genome.sorted.bam" => :rsem_scratch_genome_sorted_bam,
+              "@sample_name.@replicate_name.genome.patched.bam" => :rsem_scratch_genome_patched_bam,
+              "@sample_name.@replicate_name.genome.sorted.bam.bai" => :rsem_scratch_genome_bai,
             }
           },
-          "cuffdiff" => {
+          "cuffdiff_@normal_name" => {
             "." => :cuffdiff_dir,
             "gene_exp.diff" => :gene_exp_diff
           }
@@ -72,20 +94,23 @@ module Rna
         "@sample_name" => {
           "@sample_name.@replicate_name.transcripts.gtf" => :output_gtf,
           "@sample_name.@replicate_name.:bam_label.bam" => :output_bam,
+          "@sample_name.@replicate_name.:bam_label.unpatched.bam" => :output_unpatched_bam,
+          "@sample_name.@replicate_name.header" => :output_header,
+          "@sample_name.@replicate_name.:bam_label.bai" => :output_bai,
+          "@sample_name.@replicate_name.genes.results" => :rsem_genes_results,
+          "@sample_name.@replicate_name.isoforms.results" => :rsem_isoforms_results,
           "@sample_name.mutations" => :sample_mutations,
-          "@sample_name.diff_exp" => :diff_exp_table,
-          "@replicate_name" => {
-            "rsem" => {
-              "." => :rsem_output_dir,
-              "@sample_name.@replicate_name.genes.results" => :rsem_genes_results
-            }
-          }
+          "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
+          "@sample_name.@replicate_name.transcripts.cov" => :transcripts_cov,
+          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
           "@cohort_name.ug.annotated.vcf" => :ug_annotated_vcf,
           "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf,
-          "@cohort_name.fpkm_table" => :fpkm_table
+          "@cohort_name.fpkm_table" => :fpkm_table,
+          "@cohort_name.tpm_table" => :tpm_table,
+          "@cohort_name.coverage_table" => :coverage_table
         }
       }
     })
@@ -99,9 +124,14 @@ module Rna
 
     # assemble_transcripts
     def_var :gene_trackings do replicates.map{|r| gene_tracking(r) } end
+    def_var :rsem_genes_resultses do replicates.map{|r| rsem_genes_results(r) } end
+    def_var :transcripts_covs do replicates.map{|r| transcripts_cov(r) } end
 
     # qc
     def_var :qc_bam do replicate_bam end
+
+    # diff_exp
+    def_var :q_value_cutoff do 0.001 end
     
     def_var :mutations_config do "#{config_dir}/rna_mutations.yml" end
 

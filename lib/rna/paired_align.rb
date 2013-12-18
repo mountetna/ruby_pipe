@@ -7,6 +7,8 @@ require 'rna/assemble_transcripts'
 require 'rna/compare_expn'
 require 'rna/univ_geno'
 require 'rna/diff_exp'
+require 'rna/splice_count'
+require 'rna/detect_fusions'
 require 'rna/filter_muts'
 require 'rna/qc'
 require 'rna/config'
@@ -14,17 +16,26 @@ require 'rna/config'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :tophat_align, :qc, :count_transcripts, :diff_exp, :assemble_transcripts #, :univ_geno, :filter_muts
+    runs_steps :rsem_count, :rsem_format, :tophat_align, :qc, :cufflinks_count, :cuff_diff_exp, :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
 
-    def_module :rsem, :tophat_align => true,
+    def_module :rsem,
+      :rsem_count => true,
+      :rsem_format => true,
       :qc => true,
-      :count_transcripts => [ :rsem_count ]
+      :assemble_rsem_transcripts => true,
+      :deseq_diff_exp => true
+
+    def_module :count_splice, :splice_count => true
+
+    def_module :fusion_detect, :detect_fusions => true
+
+    def_module :cufflinks_count_denovo, :cufflinks_count => [ :cufflink_denovo, :format_transcript, :sort_sam, :count_coverage ]
 
     def_module :default, :tophat_align => true,
       :qc => true,
-      :count_transcripts => true,
+      :cufflinks_count => true,
       :assemble_transcripts => true,
-      :diff_exp => true
+      :cuff_diff_exp => true
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator
@@ -41,7 +52,7 @@ module Rna
       end
       usage "input <sample name>", "Input fastqs for the given sample"
 
-      def normal(args)
+      def diff_exp(args)
         sample = find_sample args[0]
         normal = find_sample args[1]
         if !sample || !normal
@@ -53,9 +64,10 @@ module Rna
           return
         end
 
-        sample[:normal_name] = normal[:sample_name]
+        sample[:diff_exp] ||= []
+        sample[:diff_exp].push :normal_name => normal[:sample_name]
       end
-      usage "normal <sample name> <normal sample name>", "Set the normal name for the given sample (the first sample is assumed to be the normal)"
+      usage "diff_exp <sample name> <normal sample name>", "Differential expression between two samples"
 
       def frag_size(args)
         config[:frag_size] = args.first

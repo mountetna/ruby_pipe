@@ -40,7 +40,7 @@ segPSCBS=function(tumor_logr,tumor_baf,normal_baf) {
 }
 
 load_logr_file = function(logr_file) {
-	tumor_logr=read.csv(logr_file,header=T,as.is=T,sep="\t")
+	tumor_logr=read.table(logr_file,header=T,as.is=T,sep="\t")
 	tumor_logr = tumor_logr[tumor_logr$chr != "chrY",]
 	return(tumor_logr)
 }
@@ -62,7 +62,6 @@ sort_cbs_seg = function(cbs_seg) {
 recenter_cbs_seg = function(cbs_seg) {
 	z = density(cbs_seg$output$seg.mean,bw="SJ")
 	cbs_seg$output$seg.mean = cbs_seg$output$seg.mean - z$x[z$y == max(z$y)]
-        cbs_seg$data[,3]=cbs_seg$data[,3]-z$x[z$y == max(z$y)]
 	return(cbs_seg)
 }
 
@@ -80,28 +79,27 @@ doSegCbs=function(logr_file, rdata_file, seg_file, sample_name) {
 	tumor_logr = load_logr_file(logr_file)
 	# generate 
 	print.noquote("Creating CNA...")
-	d=sort_cbs_seg(segCBS( smoothCNA(tumor_logr, sample_name) ))
+	cbs_seg=sort_cbs_seg(segCBS( smoothCNA(tumor_logr, sample_name) ))
 
 	# recenter the chromosome segments by estimating the mode
-	d=recenter_cbs_seg(d)
+	cbs_seg=recenter_cbs_seg(cbs_seg)
 
-	save(d,file=rdata_file)
-	save_seg_obj(d,seg_file)
+	save(cbs_seg,file=rdata_file)
+
+	save_seg_obj(cbs_seg,seg_file)
 }
 
 doSegPscbs=function(logr_file,tumor_baf_file,normal_baf_file,rdata_file) {
 	print.noquote("Segmenting with PSCBS...")
-	verbose <- Arguments$getVerbose(-10*interactive(), timestamp=TRUE)
 
 	tumor_logr = load_logr_file(logr_file)
+
 	tumor_baf = load_baf(tumor_baf_file)
 	normal_baf = load_baf(normal_baf_file)
 
-	rdata_file=paste(rdata_file,"n3_sd20_tcn&dh",sep="_")
-
 	pscbs_seg = segPSCBS(tumor_logr, tumor_baf, normal_baf)
-        save(pscbs_seg,file=rdata_file)
 
+    save(pscbs_seg,file=rdata_file)
 #        deltaAB=estimateDeltaAB(pscbs_seg,flavor="qq(DH)")
 #        fit=callAB(pscbs_seg,delta=deltaAB,verbose=verbose)
 #        save(fit,file=paste(rdata_file,"_fit",sep=""))
@@ -117,7 +115,6 @@ doSegPscbs=function(logr_file,tumor_baf_file,normal_baf_file,rdata_file) {
 #        toPNG(paste(rdata_file,"png",sep="."), tags=c(chrTag, "PairedPSCBS"), width=840, aspectRatio=0.6, {
 #           plotTracks(pscbs_seg);
 #        });
-
 }
 
 getASCAT=function(ascatpcf) {

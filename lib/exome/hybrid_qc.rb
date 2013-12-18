@@ -51,11 +51,10 @@ module Exome
 
     class CoverageMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :qc_bam, :interval_bed
       outs_file :qc_coverage_metrics
 
       def run
-        create_interval_bed
         gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.qc_bam,
           :omitDepthOutputAtEachBase => true,
           :omitIntervalStatistics => true,

@@ -1,7 +1,7 @@
 module Ribo
   class Coverage
     include Pipeline::Step
-    runs_tasks :normal_coverage, :random_coverage
+    runs_tasks :normal_coverage, :null_coverage
     runs_on :samples
 
     class NormalCoverage
@@ -17,14 +17,14 @@ module Ribo
         #coverage_bed config.sample_bam, config.reference_gtf, config.normal_cov or error_exit "Computing normal coverage failed."
       end
     end
-    class RandomCoverage
+    class NullCoverage
       include Pipeline::Task
       requires_file :sample_bam
-      outs_file :random_cov
+      outs_file :null_cov
 
       def run
         log_info "Mapping coverage to randomized genes"
-        coverage_bed config.sample_bam, config.hg19_null_gtf, config.random_cov or error_exit "Computing random coverage failed."
+        coverage_bed config.sample_bam, config.hg19_null_gtf, config.null_cov or error_exit "Computing random coverage failed."
       end
     end
   end

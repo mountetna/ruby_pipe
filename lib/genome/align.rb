@@ -1,42 +1,13 @@
 module Genome 
-  class CreateFastq
-    include Pipeline::Step
-    runs_tasks :create_fastq 
-    runs_on :samples
-
-    class CreateFastq
-      include Pipeline::Task
-      requires_file :pre_sample_bam
-      outs_file :reads1_fastq, :reads2_fastq
-
-      def run
-        log_info "Converting BAM to FastQs (reads 1 and 2)"
-        picard :sam_to_fastq, :INPUT => config.chaste_bam, :FASTQ => ">(gzip -c > #{config.reads1_fastq})", :SECOND_END_FASTQ => ">(gzip -c > #{config.reads2_fastq})" or error_exit "Could not split bam file to fastqs"
-      end
-    end
-  end 
-
   class Align 
     include Pipeline::Step
-    runs_tasks :align_first, :align_second, :pair_reads#, :verify_mate
-    runs_on :samples, :inputs#:chunks
+    runs_tasks :align_first, :align_second, :pair_reads
+    runs_on :samples
     resources :threads => 12
-  
-    class ChunkFastq
-      include Pipeline::Task
-      requires_files :reads1_fastq, :reads2_fastq
-      dumps_file :chunk1_fastq, :chunk2_fastq
-     
-      def run
-        log_info "Chunking fastqs...chunk chunk chunk"
-        run_cmd "split -l 5000000 -a 3 -d <(zcat #{config.reads1_fastqs.join(" ")}) | gzip -c > #{config.chunk1_fastq}" or error_exit "Couldn't chunk file"
-        run_cmd "split -l 5000000 -a 3 -d <(zcat #{config.reads2_fastqs.join(" ")}) | gzip -c > #{config.chunk2_fastq}" or error_exit "Couldn't chunk file"
-      end
-    end
 
     class AlignFirst 
       include Pipeline::Task
-      requires_file :input_fastq1 #:chunk1_fastq
+      requires_file :input_fastq1
       dumps_file :read1_sai
 
       def run
@@ -47,7 +18,7 @@ module Genome
 
     class AlignSecond 
       include Pipeline::Task
-      requires_file :input_fastq2 #:chunk2_fastq
+      requires_file :input_fastq2
       dumps_file :read2_sai
 
       def run
@@ -67,17 +38,5 @@ module Genome
           :fq1 =>  config.input_fastq1, :fq2 => config.input_fastq2, :out => config.paired_sam or error_exit "BWA sampe failed"
       end
     end
-
-#    class VerifyMate 
-#      include Pipeline::Task
-#      requires_file :
-#      dumps_file :mated_sam
-
-#      def run
-#        log_info "Verifying mate information"
-#        picard :fix_mate_information, :INPUT => config.paired_sam, :OUTPUT=> config.mated_sam or error_exit "Verify mate information failed"
-#      end
-#    end
-
   end
 end

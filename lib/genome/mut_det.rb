@@ -71,7 +71,7 @@ module Genome
 
   class MergeSnp
     include Pipeline::Step
-    runs_tasks :merge_snp#, :filter_snp
+    runs_tasks :merge_snp
     resources :threads => 12, :walltime => 50
     runs_on :tumor_samples
 
@@ -129,8 +129,6 @@ module Genome
   class MutDet
     include Pipeline::Step
     runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
-
-          #:somatic_indel, :annot_indel#:pindel, :pindel_vcf, :patch_pindel_vcf
     resources :threads => 1, :walltime => 50
     runs_on :tumor_samples, :chroms
 
@@ -156,50 +154,7 @@ module Genome
         FileUtils.mv config.mutect_snvs_tmp, config.mutect_snvs
       end
     end
-=begin
-    class SomaticIndel 
-      include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
-      dumps_files :raw_indel_vcf
-
-      def run
-        log_info "Running GATK Somatic Indel Detector"
-        gatk :somatic_indel_detector, :out => config.raw_indel_vcf, "-I:normal" => config.normal_bam, :baq =>  :CALCULATE_AS_NECESSARY, 
-             "-I:tumor" => config.tumor_bam, :intervals => config.chrom, :"maxNumberOfReads" => 100000,
-             :"filter_expressions" => %Q/"T_COV<14||N_COV<8||T_INDEL_F<0.1||T_INDEL_CF<0.7||T_CONS_CNT<2"/, 
-             :"window_size" => 225 or error_exit "GATK SomaticIndelDetector failed"
-      end
-    end
-
-    class AnnotIndel
-      include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam, :raw_indel_vcf
-      dumps_files :annot_indel_vcf
-
-      def run
-        log_info "Annotating GATK Somatic Indel Detector"
-        gatk :variant_annotator, :intervals => config.chrom, :"input_file:normal" => config.normal_bam,
-             :"input_file:tumor" => config.tumor_bam, :variant => config.raw_indel_vcf, :out => config.annot_indel_vcf,
-             :dbsnp => config.reference_snp_vcf, :group => "StandardAnnotation" or error_exit "Annotating GATK SomaticIndelDetector failed"
-      end
-    end
-#  end
-=end
-=begin CHANGMT: this is for non-BWA aligned sequences
-    class Pindel
-      include Pipeline::Task
-      requires_file :output_for_pindel
-      dumps_file :pindel_snv_d
-
-      def run
-        log_info "Running pindel"
-        pindel :"pindel-file" => config.output_for_pindel,
-          :chromosome => config.chrom, :"output-prefix" => config.pindel_snvs or error_exit "Pindel failed"
-      end
-    end
-=end
-
-#CHANGMT: this is for BWA-aligned sequences
+    #CHANGMT: this is for BWA-aligned sequences
     class Pindel
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam
@@ -367,74 +322,6 @@ module Genome
       end
     end
 
-=begin
-    class FilterMuts
-      include Pipeline::Task
-      requires_files :pindel_vcfs, :mutect_snvses, :tumor_cnr_seg
-#      requires_files :strelka_vcf, :mutect_snvses, :tumor_cnr_seg
-      outs_file :tumor_muts
-
-      def run
-        maf = Maf.new
-        maf.headers.concat [ :t_ref_count, :t_alt_count, :tumor_var_freq, :n_ref_count, :n_alt_count,
-              :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        segs = HashTable.new config.tumor_cnr_seg
-        config.sample.chroms.each do |chrom|
-          m = MuTect.read config.mutect_snvs(chrom), config.mutations_config
-          m.each do |l|
-            next if l.skip_mutect?
-            next if l.skip_oncotator?
-            seg = segs.find{|seg| seg[:Chromosome] == l.contig && seg[:Start].to_i < l.position.to_i && seg[:End].to_i > l.position.to_i}
-            maf.add_line :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.contig.gsub("chr",""),
-              :start_position => l.position, :end_position => l.position, :strand => "+",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref_allele, :tumor_seq_allele1 => l.alt_allele,
-              :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status,
-              :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
-              :t_ref_count => l.t_ref_count,
-              :t_alt_count => l.t_alt_count,
-              :tumor_var_freq => l.t_var_freq,
-              :n_ref_count => l.n_ref_count,
-              :n_alt_count => l.n_alt_count,
-              :protein_change => l.onco.txp_protein_change,
-              :transcript_change => l.onco.txp_transcript_change,
-              :polyphen2_class => l.onco.pph2_class,
-              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-          end
-       end
-       v = VCF.read config.pindel_vcfs, config.mutations_config
-       v.each do |l|
-         next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
-         next if l.skip_oncotator?
-         seg = segs.find{|seg| seg[:Chromosome] == l.chrom && seg[:Start].to_i < l.pos.to_i && seg[:End].to_i > l.pos.to_i}
-         maf.add_line :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-           :ncbi_build => 37, :chromosome => l.chrom.gsub("chr",""),
-           :start_position => l.pos, :end_position => l.end_pos, :strand => "+",
-           :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-           :reference_allele => l.ref, :tumor_seq_allele1 => l.alt,
-           :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status,
-           :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-           :bam_file => config.sample_bam,
-           :t_ref_count => l.genotype("TUMOR").ref_count,
-           :t_alt_count => l.genotype("TUMOR").alt_count,
-           :tumor_var_freq => l.genotype("TUMOR").alt_freq,
-           :n_ref_count => l.genotype("NORMAL").ref_count,
-           :n_alt_count => l.genotype("NORMAL").alt_count,
-           :protein_change =>          l.onco.txp_protein_change,
-           :transcript_change => l.onco.txp_transcript_change,
-           :polyphen2_class  =>                  l.onco.pph2_class,
-           :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-           :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-       end
-       
-        maf.sort_by! {|l| -l.tumor_var_freq}
-        maf.write config.tumor_muts
-      end
-    end
-=end
     class ConcatChroms
       include Pipeline::Task
       requires_files :pindel_vcfs, :mutect_snvses
@@ -451,7 +338,6 @@ module Genome
           end
         end
         mutect.write config.mutect_all_snvs if mutect
-        #system "cat #{config.mutect_snvses.join(" ")} > #{config.mutect_all_snvs}"
         vcf = nil
         config.pindel_vcfs.each do |vf|
           v = VCF.read vf

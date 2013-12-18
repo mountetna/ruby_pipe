@@ -9,7 +9,7 @@ module Genome
 
     class ComputeCoverage
       include Pipeline::Task
-      #requires_files :tumor_bam, :normal_bam, :interval_bed
+      requires_files :tumor_bam, :normal_bam, :interval_bed
       dumps_files :tumor_cov, :normal_cov
 
       def run
@@ -63,7 +63,6 @@ module Genome
 
       def run
         r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
-#        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.absolute_scratch, config.tumor_muts
       end
     end
   end

@@ -2,16 +2,16 @@ module Pipeline
 
   module Step
     def each_task(task)
-      log_console "Files for #{config.splits} trials".yellow.bold
+      log_console "Files for #{config.trials} trials".yellow.bold
 
       files = {}
-      if config.splits
-        config.splits.times do |i|
-          config.set_config :job_index, i
+      if config.trials
+        config.trials.times do |i|
+          config.set_opt :job_number, i+1
           task_files files
         end
       else
-        config.set_config :job_index, 0
+        config.set_config :job_number, nil
         task_files files
       end
       files.each do |t,f|

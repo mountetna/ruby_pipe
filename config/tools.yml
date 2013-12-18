@@ -1,6 +1,5 @@
-
-:java_1_6: /opt/java/jdk1.6.0_latest/bin/java
-:java_1_7: /opt/java/jdk1.7.0_latest/bin/java
+:java: /opt/java/jdk1.7.0_latest/bin/java
+:java6: /opt/java/jdk1.6.0_latest/bin/java
 
 :tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
 
@@ -13,16 +12,16 @@
 :indelocator_jar: IndelGenotyper.jar
 :fastqc_dir: /taylorlab/lib/fastqc/fastqc-latest
 :fastx_dir: /taylorlab/lib/fastx/fastx-latest
-:gatk_dir: /taylorlab/lib/gatk/GenomeAnalysisTK-2.2-10-gbbafb72
-#:gatk_dir: /taylorlab/lib/gatk/gatk-latest
+:gatk_dir: /taylorlab/lib/gatk/gatk-latest
 :gatk_jar: GenomeAnalysisTK.jar
-#:mutect_dir: /taylorlab/lib/mutect/mutect-latest
-#:mutect_jar:  muTect.jar
-:mutect_dir: /home/changmt/mutects
-:mutect_jar:  muTect_verNoFiltMate.jar 
+:mutect_dir: /taylorlab/lib/mutect/mutect-latest
+:mutect_jar: muTect.jar
+:indelocator_dir: /taylorlab/lib/indelocator/indelocator-latest
+:indelocator_jar: IndelGenotyper.jar
 :picard_dir: /taylorlab/lib/picard/picard-latest
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest
 :rsem_dir: /taylorlab/lib/rsem/rsem-latest
 :samtools_dir: /taylorlab/lib/samtools/samtools-latest
 :tophat_dir: /taylorlab/lib/tophat/tophat-latest
 :vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
+:strelka_dir: /taylorlab/lib/strelka/strelka-latest

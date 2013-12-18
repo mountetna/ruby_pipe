@@ -11,5 +11,3 @@
 
 # if set to true, temp files will not be deleted after a step is complete.
 #:keep_temp_files: true
-# set to exome to perform additional analysis for full exomes
-#:unit: capture

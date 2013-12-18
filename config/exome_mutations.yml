@@ -5,19 +5,29 @@
   :tumor:
     :min_alt_count: 2
     :min_depth: 14
-    :max_alt_length: 15
-    :max_ref_length: 15
+    :max_alt_length: 50
+    :max_ref_length: 50
+    :min_alt_freq: 0.03
 :mutect:
-  :has_judgement: KEEP
-  :include_dbsnp_site: [ COSMIC, NOVEL ]
-  :has_covered: COVERED
+  :germline:
+    :has_dbsnp_site: COSMIC
+    :has_covered: COVERED
+    :min_n_var_freq: 0.1
+    :min_t_var_freq: 0.1
+  :somatic:
+    :has_judgement: KEEP
+    :has_covered: COVERED
+    :max_q0_ratio: 1
+    #:whitelisted: whitelist.gtf
+  #:include_dbsnp_site: [ COSMIC, NOVEL ]
 :oncotator:
-  :exclude_txp_variant_classification: [ "5\'Flank", "3\'Flank", "5\'UTR", "3\'UTR", Intron, RNA ]
+  :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
+  :has_txp_gene: true
   #:is_snp: false
 :univ_geno_normal:
   :vcf:
     :min_alt_freq: 0.25
     :min_depth: 14
   :oncotator:
-    :exclude_txp_variant_classification: [ IGR, Intron, UTR, Flank, RNA ]
+    :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
     :is_cancerous: true

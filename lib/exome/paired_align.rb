@@ -1,4 +1,5 @@
 require 'pipeline'
+require 'exome/prep'
 require 'exome/align'
 require 'exome/merge'
 require 'exome/recal'
@@ -7,19 +8,62 @@ require 'exome/mut_det'
 require 'exome/univ_geno'
 require 'exome/config'
 require 'exome/copy_number'
+require 'exome/fastqc'
 
 module Exome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :merge, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number_prep, :copy_number, :review_absolute, :mut_det, :mut_filter, :univ_geno_normals
+    runs_steps :prep, 
+      :fast_qc,
+      :dump_fastqs, :combine_fastqs, :align, :merge,
+      :lane_recal, :table_recal,
+      :patient_realign, 
+      :make_samples,
+      :hybrid_qc, :hybrid_qc_summary, 
+      :sample_coverage, :prep_normal, :compute_normals, :copy_number, 
+      :run_ascat,
+      :mut_det, :mut_filter,
+      :univ_geno_call, :univ_geno_annotate,
+      :run_absolute, :review_absolute
+
+    def_module :prep_pipe, {
+      :prep => true
+    }
+
+    def_module :verify_fastqs, {
+      :fast_qc => true
+    }
+
+    def_module :align_bams, {
+      :dump_fastqs => true,
+      :combine_fastqs => true,
+      :align => true,
+      :merge => true
+    }
+
+    def_module :align_bwa_mem, {
+      :align => [ :make_fastq_chunk, :align_mem, :verify_mate, :mark_duplicates, :enforce_label ]
+    }
+
+    def_module :recal_by_lane, {
+      :lane_recal => true,
+      :table_recal => true
+    }
+
+    def_module :realign_by_patient, {
+      :patient_realign => true,
+      :patient_split => true
+    }
+
+    def_module :finalize_samples, {
+      :make_samples => true
+    }
 
     def_module :create_bams, {
-      :align => true,
-      :merge => true,
-      :library_merge => true,
-      :recal => true,
-      :library_split => true,
-      :make_samples => true, 
+      :align_bams => true,
+      :recal_by_lane => true,
+      :realign_by_patient => true,
+      :finalize_samples => true
     }
 
     def_module :calculate_qc, {
@@ -27,10 +71,23 @@ module Exome
       :hybrid_qc_summary => true,
     }
 
-    def_module :compute_copy_number, {
-      :copy_number_prep => true,
+    def_module :ascat_purity, {
+      :prep_normal => true,
+      :sample_coverage => true,
+      :compute_normals => true,
       :copy_number => true,
+      :run_ascat => true
+    }
+
+    def_module :absolute_purity, {
+      :run_absolute => true,
       :review_absolute => true
+    }
+
+    def_module :compute_copy_number, {
+      :prep => true,
+      :sample_coverage => true,
+      :copy_number => true
     }
 
     def_module :find_mutations, {
@@ -38,8 +95,21 @@ module Exome
       :mut_filter => true
     }
 
-    def_module :find_normal_mutations, {
-      :univ_geno_normals => true
+    def_module :find_mutations_indelocator, {
+      :mut_det => [ :indelocator ]
+    }
+
+    def_module :find_mutations_pindel, {
+      :mut_det => [ :pindel, :pindel_vcf, :patch_pindel_vcf ]
+    }
+
+    def_module :find_mutations_strelka, {
+      :mut_det => [ :strelka ]
+    }
+
+    def_module :find_germline_muts, {
+      :univ_geno_call => true,
+      :univ_geno_annotate => true
     }
 
     def_module :mut_filter_annovar, {
@@ -48,10 +118,12 @@ module Exome
 
     def_module :default, {
       # the default sequence of events. The order is dictated by runs_steps
+      :prep_pipe => true,
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,
-      :find_mutations => true
+      :find_mutations => true,
+      :absolute_purity => true
     }
 
     def exclude_task? task

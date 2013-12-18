@@ -49,7 +49,7 @@ module Genome
 
       def run
       log_info "Mark duplicates"
-      picard :mark_duplicates, :INPUT => config.raw_sample_bam,#config.merged_library_bam,
+      picard :mark_duplicates, :INPUT => config.raw_sample_bam,
               :OUTPUT => config.dedup_sample_bam, :METRICS_FILE => config.duplication_metrics, 
               :ASSUME_SORTED => :true,
               :REMOVE_DUPLICATES => :false, :CREATE_INDEX => :false or error_exit "Mark duplicates failed"

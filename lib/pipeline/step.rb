@@ -7,7 +7,7 @@ module Pipeline
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      attr_reader :job_items, :tasks
+      attr_reader :job_items, :tasks, :audit_vars
       def runs_task(*tasklist)
         @tasks = tasklist
       end
@@ -32,6 +32,10 @@ module Pipeline
 
       def input
         required - made
+      end
+
+      def audit_report *vars
+        @audit_vars = vars
       end
 
       def job_list &block
@@ -60,7 +64,7 @@ module Pipeline
       setup_logging unless config.action == :audit || config.action == :clean
     end
 
-    class_var :job_items, :tasks, :available_tasks, :resources
+    class_var :job_items, :tasks, :available_tasks, :resources, :audit_vars
 
     def set_tasks t
       @tasks = self.class.available_tasks.map{|e|
@@ -86,20 +90,20 @@ module Pipeline
     def script; @script; end
     def config; @script.config; end
 
-    def setup_scheduler(prevjob, splits)
+    def setup_scheduler(prevjob, trials)
       # setup the scheduler to run this task.
       prevjob.strip!
 
-      log_main "Scheduling #{step_name}".yellow.bold
-      schedule_job :schedule, :wait => prevjob, :prev_splits => splits
+      log_main "Scheduling #{step_name} with #{trials} trials".yellow.bold
+      schedule_job :schedule, :wait => prevjob, :prev_trials => trials
     end
 
     def setup_exec
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      job = schedule_job :exec, :splits => config.splits, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
-      [ job, config.splits ]
+      job = schedule_job :exec, :trials => config.trials, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
+      [ job, config.trials ]
     end
 
     def make_error_file errors
@@ -118,6 +122,9 @@ module Pipeline
 
     def get_errors
       errors = File.foreach(config.error_pid).map do |l|
+        # if you were asked to stop, just exit, don't worry about errors
+        exit if l.chomp == "stop"
+
         Hash[[ :step, :trial, :task ].zip( l.chomp.split)]
       end.group_by{ |l| l[:step] }
       FileUtils.rm(config.error_pid)

@@ -20,7 +20,7 @@ module Pipeline
         f.puts [ config_header, '', config.to_yaml, '', config_comments ]
       end
     end
-    usage "print", "print the currante config file to a local file"
+    usage "print", "print the current config file to a local file"
 
     def samples(args=nil)
       config[:samples] = []

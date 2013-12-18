@@ -1,4 +1,5 @@
 require 'patches/class'
+require 'patches/file'
 require 'patches/hash'
 require 'patches/numeric'
 require 'patches/enumerable'

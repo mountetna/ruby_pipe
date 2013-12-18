@@ -23,8 +23,8 @@ module Genome
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {
-          "input.@input_name.read1.sai" => :read1_sai,
-          "input.@input_name.read2.sai" => :read2_sai,
+          "input.read1.sai" => :read1_sai,
+          "input.read2.sai" => :read2_sai,
           "@input_name.paired.bwa.sam" => :paired_sam,
 
           "paired_merge.sam" => :paired_merge_sam,
@@ -46,24 +46,14 @@ module Genome
           "@sample_name.snvs.raw.mutect.txt" => :mutect_all_snvs,
           "@chrom_name.snvs.coverage.mutect.wig" => :mutect_coverage,
           "@chrom_name.insert_mutations" => :insert_mutations,
-#indelocator
-          "@chrom_name.indelocator.bed" => :indelocator_bed,
-          "@chrom_name.indelocator.txt" => :indelocator_output,
-          "@chrom_name.indelocator" => :indelocator_metrics,
 
-#          "@chrom_name.indels.raw.gatk.vcf" => :raw_indel_vcf,
-#          "@chrom_name.indels.annot.gatk.vcf" => :annot_indel_vcf,
           "@chrom_name.snvs.pindel" => :pindel_snvs,
           "@chrom_name.snvs.pindel_D" => :pindel_snv_d,
           "@chrom_name.pindel.conf" => :pindel_list,
           "@chrom_name.indels.unpatched.pindel.vcf" => :pindel_unpatched_vcf,
           "@chrom_name.indels.raw.pindel.vcf" => :pindel_vcf,
-          "passed.somatic.indels.vcf" => :strelka_vcf,
           "@sample_name.indels.raw2.pindel.vcf" => :pindel_all_vcf,
           "@sample_name.ratio" => :tumor_ratio,
-#          "@sample_name.ug.raw.vcf" => :ug_raw_vcf,
-#          "@sample_name.ug.annotated.vcf" => :ug_annotated_vcf,
-#          "@sample_name.ug.filtered.vcf" => :ug_filtered_vcf,
           "@sample_name.all_muts.maf" => :all_muts_maf,
           "@sample_name.pindel.output.txt" => :output_for_pindel,
           "@sample_name.temp.pindel.output.txt" => :temp_output_for_pindel,
@@ -108,7 +98,6 @@ module Genome
         "@sample_name" => {
           "@sample_name.flagstat" => :qc_flag,
           "@sample_name.histogram" => :qc_histogram,
-          #"@sample_name.hybrid_selection_metrics" => :qc_hybrid,
           "@sample_name.alignment_metrics" => :qc_align_metrics,
           "@sample_name.insert_sizes" => :qc_inserts,
           "@sample_name.sample_summary" => :qc_coverage_metrics,
@@ -158,11 +147,7 @@ module Genome
     def_var :input_fastq2 do job_item.fq2 end
     def_var :paired_sams do sample.inputs.map{|input| paired_sam input } end
  
-
-    #def_var :split_sample_bam do |chrom| config.sample_bam.sub(/.bam/,"#{chrom}.bam") end
-
     # Merge 
-    #def_var :paired_merge_sam do samples.map { |s| paired_merge_sam s } end 
     def_var :aligned_bams do sample.inputs.map { |input| aligned_bam input } end
           
     # Library Merge
@@ -183,7 +168,6 @@ module Genome
     def_var :absolute_rdatas do tumor_samples.map{|s| absolute_rdata s } end
 
     #mut_filter
-    #def_var :output_for_pindels do samples.map{|s| output_for_pindel(s) } end
     def_var :output_for_pindels do samples.map{ |s| output_for_pindel(s)} end
     def_var :temp_output_for_pindels do samples.map{ |s| temp_output_for_pindel s} end
     def_var :pindel_vcfs do sample.chroms.map{|c| pindel_vcf c } end

@@ -6,16 +6,18 @@ require 'ribo/tophat'
 require 'ribo/combine'
 require 'ribo/coverage'
 require 'ribo/qc'
+require 'ribo/summary'
 
 module Ribo
   class ProfAlign 
     include Pipeline::Script
-    runs_steps :align, :tophat, :combine, :coverage, :qc
+    runs_steps :align, :tophat, :combine, :coverage, :qc, :summary
     def_module :default, :align => true,
       :tophat => true,
       :combine => true,
       :coverage => true,
-      :qc => true
+      :qc => true,
+      :summary => true
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator
