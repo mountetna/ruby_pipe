@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 #PBS -M matt.chang@ucsf.edu
 
-ENV['LIB_DIR'] = '/home/changmt/scripts/ruby_pipe'
+ENV['LIB_DIR'] = '/taylorlab/scripts/ruby_pipe'
   #File.dirname(File.realdirpath(__FILE__))
 
 $: << ENV['LIB_DIR'] + "/lib"
