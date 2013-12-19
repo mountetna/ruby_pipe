@@ -12,16 +12,41 @@ require 'genome/indel'
 module Genome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :align, :sam_merge, :fix_mate, :library_merge, :recal, :library_split, :make_samples, :collect_qc, :collect_qc_summary, :mut_det, :indel_det, :copy_number, :variant_det, :mut_filter, :review_absolute, :merge_snp
+    runs_steps :dump_fastqs, :combine_fastqs, :align,
+      :merge,
+      :lane_recal, :table_recal,
+      :patient_realign, 
+      :make_samples, 
+      :collect_qc, :collect_qc_summary,
+      :mut_det, :indel_det, :copy_number, 
+      :variant_det, :mut_filter, :review_absolute, :merge_snp
+
+    def_module :align_bams, {
+      :dump_fastqs => true,
+      :combine_fastqs => true,
+      :align => true,
+      :merge => true
+    }
+
+    def_module :recal_by_lane, {
+      :lane_recal => true,
+      :table_recal => true
+    }
+
+    def_module :realign_by_patient, {
+      :patient_realign => true,
+      :patient_split => true
+    }
+
+    def_module :finalize_samples, {
+      :make_samples => true
+    }
 
     def_module :create_bams, {
-      :align => true,
-      :sam_merge => true,
-      :fix_mate => true,
-      :library_merge => true,
-      :recal => true,
-      :library_split => true,
-      :make_samples => true, 
+      :align_bams => true,
+      :recal_by_lane => true,
+      :realign_by_patient => true,
+      :finalize_samples => true
     }
 
     def_module :calculate_qc, {
@@ -41,7 +66,7 @@ module Genome
       :variant_det => true,
       :merge_snp => true,
       :mut_det => true,
-      :indel_det => true,
+      #:indel_det => true,
       :mut_filter => true,
     }
 

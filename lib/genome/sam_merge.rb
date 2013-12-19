@@ -1,5 +1,5 @@
 module Genome 
-  class SamMerge
+  class Merge
     include Pipeline::Step
     runs_tasks :merge_sam
     runs_on :samples#,:inputs
@@ -7,13 +7,12 @@ module Genome
 
     class MergeSam
       include Pipeline::Task
-      requires_files :paired_sams
-      dumps_file :paired_merge_sam
+      requires_files :aligned_bams
+      dumps_file :raw_sample_bam
 
       def run
         log_info "Merging samll reads into one SAM file"
-        picard :merge_sam_files, :CREATE_INDEX => :false, :SORT_ORDER => "unsorted", :USE_THREADING => "true",
-          :OUTPUT => config.paired_merge_sam, :INPUT => config.paired_sams or error_exit "bam file merge failed."
+        picard :merge_sam_files, :O => config.raw_sample_bam, :I => config.aligned_bams, :CREATE_INDEX => :true or error_exit "BAM file merge failed."
       end
     end
   end
