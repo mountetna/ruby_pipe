@@ -105,6 +105,7 @@ module Pipeline
     usage "run_step <config_file.yml> <step_name>", "Run just the named step"
     usage "stop <config_file.yml> [please]", "stop the pipeline, optionally waiting for the current step to finish"
     usage "clean <config_file.yml> <scratch|output|list> <step|all> [<task>]", "Clean up files from a given run"
+    usage "timer <config_file.yml>", "Generate table of time to completion for each step. Must be run after pipeline is finished. Must be run from directory where config file is located."
 
     def generate(args)
       self.class.daughter_class(:config_generator).new *args
@@ -148,6 +149,11 @@ module Pipeline
     def clean(args)
       args = set_config args, :clean
       clean_job(args)
+    end
+
+    def timer(args)
+      args = set_config args, :timer
+      timer_job(args)
     end
 
     def list_steps(args)

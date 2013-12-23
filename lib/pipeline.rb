@@ -18,6 +18,7 @@ require 'pipeline/script'
 require 'pipeline/step'
 require 'pipeline/tools'
 require 'pipeline/task'
+require 'pipeline/timer'
 
 require 'colored'
 require 'extlib'
