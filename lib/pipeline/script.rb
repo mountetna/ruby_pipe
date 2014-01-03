@@ -152,7 +152,7 @@ module Pipeline
     end
 
     def timer(args)
-      args = set_config args, :timer
+      args = set_config args, :audit
       timer_job(args)
     end
 

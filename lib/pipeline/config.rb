@@ -80,7 +80,10 @@ module Pipeline
         "@cohort_name" => {
           "." => :cohort_scratch
         }
-      }
+      },
+      ":metrics_dir" => {
+        "timer_metrics" => :timer_metrics
+      },
     })
 
     def_var :modules do [ :default ] end

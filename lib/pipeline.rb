@@ -4,6 +4,7 @@ require 'patches/hash'
 require 'patches/numeric'
 require 'patches/enumerable'
 
+require 'pipeline/time'
 require 'pipeline/auditing'
 require 'pipeline/cleaning'
 require 'pipeline/base'
