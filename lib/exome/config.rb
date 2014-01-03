@@ -126,8 +126,7 @@ module Exome
           }
         },
         "@cohort_name.duplication_metrics" => :duplication_metrics,
-        "@cohort_name.qc_summary" => :qc_summary,
-        # "@cohort_name.timer_metrics" => :timer_metrics
+        "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
         "@sample_name" => {
