@@ -12,7 +12,7 @@ if (length(args) < 1) {
 
 suppressMessages(library(DNAcopy))
 suppressMessages(library(PSCBS))
-source("/home/changmt/scripts/ruby_pipe/bin/chrom.R")
+source(paste(lib_dir,"bin", "chrom.R",sep="/"))
 # okay, using this, first generate the CBS segmentation. Return the segmentation object.
 segCBS=function(cna) {
 	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=5))
