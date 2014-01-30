@@ -3,7 +3,7 @@ module Genome
   class CollectQc
   #class Qc
     include Pipeline::Step
-    runs_tasks :calc_flags, :collect_insert_sizes, :collect_align_metrics, :coverage_metrics
+    runs_tasks :calc_flags, :collect_insert_sizes, :collect_align_metrics #, :coverage_metrics
     runs_on :samples
 
     class CalcFlags
@@ -84,9 +84,9 @@ module Genome
           sample_qc[:median_insert_size] = inserts[:median_insert_size]
           sample_qc[:mean_insert_size] = inserts[:mean_insert_size]
 
-          coverage = File.foreach(config.qc_coverage_metrics s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
-          coverage = Hash[coverage.first.map(&:downcase).map(&:to_sym).zip coverage.last]
-          sample_qc[:mean_coverage] = coverage[:mean]
+          #coverage = File.foreach(config.qc_coverage_metrics s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
+          #coverage = Hash[coverage.first.map(&:downcase).map(&:to_sym).zip coverage.last]
+          #sample_qc[:mean_coverage] = coverage[:mean]
 
           qc[s.sample_name] = sample_qc
         end
