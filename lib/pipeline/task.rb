@@ -19,6 +19,10 @@ module Pipeline
       end
       alias :requires_files :requires_file
 
+      def no_requirements
+        @required_files = []
+      end
+
       def dumps_file(*dump)
         @dump_files = dump
       end

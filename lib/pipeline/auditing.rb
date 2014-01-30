@@ -2,7 +2,7 @@ module Pipeline
   module Script
     def audit_step s
       step = create_step s
-      log_console "runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+      log_console "runs on #{(step.run_chain || [:cohort]).join(".")}".cyan.bold
 
       if config.trials
         config.trials.times do |i|
@@ -78,8 +78,12 @@ module Pipeline
           @files.map{|f| @config.send f}.compact.size
         end
 
+        def has_files?
+          total != 0 && !missing?
+        end
+
         def needed?
-          total != 0 && missing?
+          total == 0 || missing?
         end
 
         def count
@@ -165,7 +169,7 @@ module Pipeline
           end
           return
         end
-        if !dump.missing? && !out.missing?
+        if dump.has_files? && out.has_files?
           log_console "won't run, all files are present".blue
           out.print_files do |f,fn|
             log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
@@ -193,6 +197,9 @@ module Pipeline
           out.print_files do |f,fn|
             log_console "#{f} => #{fn}".red if empty? fn
           end if !config.verbose
+        end
+        if out.total == 0 && dump.total == 0
+          log_console "will run".green
         end
       end
     end
