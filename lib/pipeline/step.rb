@@ -7,7 +7,7 @@ module Pipeline
     include Pipeline::Scheduling
     # This creates a new step in a pipeline
     module ClassMethods
-      attr_reader :job_items, :tasks, :audit_vars
+      attr_reader :run_chain, :tasks, :audit_vars
       def runs_task(*tasklist)
         @tasks = tasklist
       end
@@ -38,12 +38,8 @@ module Pipeline
         @audit_vars = vars
       end
 
-      def job_list &block
-        @job_array = block
-      end
-
       def runs_on *job_item_keys
-        @job_items = job_item_keys
+        @run_chain = job_item_keys
       end
 
       def resources(opts = nil)
@@ -55,8 +51,14 @@ module Pipeline
       base.extend(ClassMethods)
     end
 
+    def init_hook
+    end
+
     def initialize(s,tasks)
       @script = s
+
+      init_hook
+
       set_tasks tasks if tasks.is_a? Array
       config.set_opt :step, step_name
       config.set_opt :job_array, job_array
@@ -64,7 +66,7 @@ module Pipeline
       setup_logging unless config.action == :audit || config.action == :clean
     end
 
-    class_var :job_items, :tasks, :available_tasks, :resources, :audit_vars
+    class_var :run_chain, :tasks, :available_tasks, :resources, :audit_vars
 
     def set_tasks t
       @tasks = self.class.available_tasks.map{|e|
@@ -77,10 +79,10 @@ module Pipeline
     end
 
     def job_array
-      if job_items
-        obj = config.send job_items.first
-        if job_items.size > 1
-          obj = obj.collect(&job_items[1]).flatten
+      if run_chain
+        obj = [ config ]
+        run_chain.each do |key|
+          obj = obj.collect(&key).flatten
         end
         return obj
       end
@@ -102,7 +104,7 @@ module Pipeline
       # setup the scheduler to execute this task.
 
       log_main "Starting execution for #{step_name}".yellow.bold
-      job = schedule_job :exec, :trials => config.trials, :walltime => config.walltime || resources[:walltime], :threads => resources[:threads]
+      job = schedule_job :exec, { :trials => config.trials, :walltime => config.walltime }.merge(resources)
       [ job, config.trials ]
     end
 
