@@ -1,8 +1,8 @@
 require 'pipeline'
 require 'genome/align'
-require 'genome/sam_merge'
-require 'genome/fix_mate'
 require 'genome/recal'
+require 'genome/realign'
+require 'genome/rearrangement'
 require 'genome/collect_qc'
 require 'genome/mut_det'
 require 'genome/config'
@@ -13,7 +13,6 @@ module Genome
   class PairedAlign 
     include Pipeline::Script
     runs_steps :dump_fastqs, :combine_fastqs, :align,
-      :merge,
       :lane_recal, :table_recal,
       :patient_realign, 
       :make_samples, 

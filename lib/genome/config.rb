@@ -27,23 +27,22 @@ module Genome
           "input.@input_name.reads1.fastq.gz" => :reads1_fastq,
           "input.@input_name.reads2.fastq.gz" => :reads2_fastq,
 
-          "chunk_info" => :chunk_info,
+          "input.@input_name.chunk_info" => :chunk_info,
 
           "input.read1.sai" => :read1_sai,
           "input.read2.sai" => :read2_sai,
           "@input_name.paired.bwa.sam" => :paired_sam,
 
-          "chunk.@chunk_name.read1.fastq.gz" => :chunk1_fastq,
-          "chunk.@chunk_name.read2.fastq.gz" => :chunk2_fastq,
-          "chunk.@chunk_name.read1.sai" => :read1_sai,
-          "chunk.@chunk_name.read2.sai" => :read2_sai,
-          "chunk.@chunk_name.mate_fixed.bwa.bam" => :mated_bam,
-          "chunk.@chunk_name.paired.bwa.sam" => :paired_sam,
-          "chunk.@chunk_name.dedup.bwa.bam" => :dedup_bam,
-          "chunk.@chunk_name.aligned.bwa.bam" => :aligned_bam,
+          "chunk.@input_name.@chunk_name.read1.fastq.gz" => :chunk1_fastq,
+          "chunk.@input_name.@chunk_name.read2.fastq.gz" => :chunk2_fastq,
+          "chunk.@input_name.@chunk_name.read1.sai" => :read1_sai,
+          "chunk.@input_name.@chunk_name.read2.sai" => :read2_sai,
+          "chunk.@input_name.@chunk_name.mate_fixed.bwa.bam" => :mated_bam,
+          "chunk.@input_name.@chunk_name.paired.bwa.sam" => :paired_sam,
+          "chunk.@input_name.@chunk_name.dedup.bwa.bam" => :dedup_bam,
+          "chunk.@input_name.@chunk_name.aligned.bwa.bam" => :aligned_bam,
 
-          "raw_sample.bam" => :raw_sample_bam,
-          "raw_sample.bai" => :raw_sample_bai,
+          "@sample_name.@input_name.recal.bam" => :recal_bam,
 
           "@chrom_name.normal.snp.txt" => :normal_mut,
 
@@ -78,15 +77,12 @@ module Genome
           }
         },
         "@lane_name" => {
-          "merged_lane.bam" => :merged_lane_bam,
           "recal.grp" => :recal_grp,
           "recal_plot.pdf" => :recal_plot_pdf,
           "_splitbam_" => :lane_split_bam_root,
           "_splitbam_SAMPLE.bam" => :lane_split_bam
         },
         "@patient_name" => {
-          "merged_patient.bam" => :merged_patient_bam,
-          "raw_patient.bam" => :raw_patient_bam,
           "duplication_metrics" => :duplication_metrics,
           "@chrom_name.patient.intervals" => :patient_intervals,
           "@chrom_name.realigned_patient.bam" => :realigned_patient_bam,
@@ -152,8 +148,8 @@ module Genome
     end
 
     def make_lanes
-      samples.group_by(&:lane_name).map do |lane,samples|
-        { :lane_name => lane, :samples => samples }
+      samples.map(&:inputs).flatten.group_by(&:lane_name).map do |lane,inputs|
+        { :lane_name => lane, :inputs => inputs }
       end
     end
 
@@ -176,20 +172,17 @@ module Genome
         if s.inputs
           s.inputs.each do |i|
             i.add_member :input_name, i.index
+            i.add_member :lane_name, "lane0" if !i.lane_name
+            i.extend_with :chunks => make_chunks(i)
           end
           s.extend_with :fastqs => s.inputs.map{|i|
             [ make_fastq(i.fq1), make_fastq(i.fq2) ]
           }.flatten
         end
         s.extend_with :chroms => chromosomes
-        s.extend_with :chunks => make_chunks(s)
-        s.add_member :lane_name, "lane#{s.lane || 0}"
         s.add_member :patient_name, "patient#{s.patient || 0}"
       end
       @config.extend_with :lanes => make_lanes
-      lanes.each do |lane|
-        lane.extend_with :chroms => chromosomes
-      end
       @config.extend_with :patients => make_patients
       patients.each do |patient|
         patient.extend_with :chroms => chromosomes
@@ -199,28 +192,30 @@ module Genome
 
     def_var :initial_bam do |s| (s || job_item).initial_bam end
     
-    def_var :lane_name do |l| (l||job_item).property :lane_name end
     def_var :chunk_size do 4_000_000 end
-    job_items :chrom, :lane, :patient, :chunk, :fastq
+    job_items :chrom, :lane, :patient, :chunk, :fastq, :input
 
     # Align
     def_var :reads_bam do job_item.reads_bam end
     def_var :paired_sams do sample.inputs.map{|input| paired_sam input } end
-    def_var :input_fastq1 do |i| (i || job_item).fq1 end
-    def_var :input_fastq2 do |i| (i || job_item).fq2 end
+    def_var :input_fastq1 do |i| (i || job_item).property(:fq1) || (i || job_item).property(:reads1_fastq) end
+    def_var :input_fastq2 do |i| (i || job_item).property(:fq2) || (i || job_item).property(:reads2_fastq) end
 
-    def_var :reads1_fastqs do |s| (s || sample).inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
-    def_var :reads2_fastqs do |s| (s || sample).inputs.map{|input| input_fastq2(input) || reads2_fastq(input) } end
- 
     # Merge 
     def_var :aligned_bams do sample.chunks.map { |chunk| aligned_bam chunk } end
           
     # Lane Merge
-    def_var :lane_raw_sample_bams do lane.samples.map{|s| raw_sample_bam(s) } end
+    def_var :lane_aligned_bams do lane.inputs.map{|i| i.chunks.map{|c| aligned_bam c} }.flatten end
+    def_var :input_aligned_bams do input.chunks.map{|c| aligned_bam c} end
 
     # Patient Merge
-    def_var :patient_raw_sample_bams do patient.samples.map {|s| find_prop :patient_raw_sample_bam, s } end
-    def_var :patient_raw_sample_bam do |s| find_prop :recal_bam, s end
+    def_var :patient_recal_bams do
+      patient.samples.map do |s|
+        s.inputs.map do |i|
+          recal_bam i
+        end
+      end.flatten
+    end
 
     # PatientSplit
     def_var :realigned_patient_bams do patient.chroms.map{|c| realigned_patient_bam(c) } end
@@ -230,7 +225,7 @@ module Genome
 
     #copy number
     def_var :tumor_cnr_rdatas do sample.chroms.map{ |c| tumor_cnr_rdata c } end
-    
+
     # Hybrid qc
     def_var :qc_bam do tumor_bam end
 

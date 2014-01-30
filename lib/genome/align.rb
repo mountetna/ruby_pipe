@@ -30,17 +30,17 @@ module Genome
   class CombineFastqs
     include Pipeline::Step
     runs_task :compute_chunks
-    runs_on :samples
+    runs_on :samples, :inputs
 
     class ComputeChunks
       include Pipeline::Task
-      requires_files :reads1_fastqs, :reads2_fastqs
+      requires_files :input_fastq1, :input_fastq2
       outs_file :chunk_info
 
       def run
-        lines1 =  read_cmd("wc -l <(zcat #{config.reads1_fastqs.join(" ")})") or error_exit "Could not count fastq files"
+        lines1 =  read_cmd("wc -l <(zcat #{config.input_fastq1})") or error_exit "Could not count fastq files"
         lines1 = lines1.split.first.to_i 
-        lines2 =  read_cmd("wc -l <(zcat #{config.reads2_fastqs.join(" ")})") or error_exit "Could not count fastq files"
+        lines2 =  read_cmd("wc -l <(zcat #{config.input_fastq2})") or error_exit "Could not count fastq files"
         lines2 = lines2.split.first.to_i 
         error_exit "Fastq files differ in size" if lines1 != lines2
         error_exit "Fastq files are not properly formatted" if lines1 % 4 != 0
@@ -53,20 +53,20 @@ module Genome
     include Pipeline::Step
     runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :mark_duplicates, :enforce_label
     has_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :align_mem, :verify_mate, :mark_duplicates, :enforce_label
-    runs_on :samples, :chunks
+    runs_on :samples, :inputs, :chunks
     resources :threads => 12
 
     class MakeFastqChunk
       include Pipeline::Task
-      requires_files :reads1_fastqs, :reads2_fastqs
+      requires_files :input_fastq1, :input_fastq2
       dumps_file :chunk1_fastq, :chunk2_fastq
 
       def run
         # get some lines from the middle
         chunk_start = config.chunk_size * config.chunk.chunk_number + 1
         chunk_end = chunk_start + config.chunk_size - 1
-        run_cmd "sed -n '#{chunk_start}, #{chunk_end}p; #{chunk_end}q' <(zcat #{config.reads1_fastqs.join(" ")}) | gzip -c > #{config.chunk1_fastq}" or error_exit "Couldn't chunk file"
-        run_cmd "sed -n '#{chunk_start}, #{chunk_end}p; #{chunk_end}q' <(zcat #{config.reads2_fastqs.join(" ")}) | gzip -c > #{config.chunk2_fastq}" or error_exit "Couldn't chunk file"
+        run_cmd "sed -n '#{chunk_start}, #{chunk_end}p; #{chunk_end}q' <(zcat #{config.input_fastq1}) | gzip -c > #{config.chunk1_fastq}" or error_exit "Couldn't chunk file"
+        run_cmd "sed -n '#{chunk_start}, #{chunk_end}p; #{chunk_end}q' <(zcat #{config.input_fastq2}) | gzip -c > #{config.chunk2_fastq}" or error_exit "Couldn't chunk file"
       end
     end
 
