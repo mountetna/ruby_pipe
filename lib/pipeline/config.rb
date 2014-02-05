@@ -254,6 +254,20 @@ module Pipeline
       item.property(property) || send(property, item)
     end
 
+    def is_proc_collection? meth
+      meth =~ /^\w+__\w+s$/
+    end
+
+    def proc_collect m, args
+      term,meth = m.to_s.split(/__/)
+      meth = meth.sub(/s$/,"").to_sym
+      item = args.first || job_item
+      array = item.send term.to_sym
+      array.map do |i|
+        send meth, i
+      end
+    end
+
     def method_missing(meth,*args,&block)
       # always look in the config file first, so we can overrule things there
       meth = meth.to_sym if meth.is_a? String
@@ -265,6 +279,9 @@ module Pipeline
       # if not there, it could be in the procs table, to be found interactively
       elsif @procs[meth]
         return instance_exec( *args, &@procs[meth])
+      # if not there, it might be automatically collecting procs
+      elsif is_proc_collection?(meth)
+        return proc_collect(meth, args)
       # if not there, it is likely in options. These can be nil for empty variables
       elsif @opts.has_key? meth
         return @opts[meth]
