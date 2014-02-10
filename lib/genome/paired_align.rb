@@ -1,36 +1,73 @@
 require 'pipeline'
+require 'genome/align'
+require 'genome/sam_merge'
 require 'genome/fix_mate'
 require 'genome/recal'
-require 'genome/hybrid_qc'
+require 'genome/collect_qc'
 require 'genome/mut_det'
 require 'genome/config'
 require 'genome/copy_number'
+require 'genome/indel'
 
 module Genome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :fix_mate, :library_merge, :recal, :library_split, :make_samples, :hybrid_qc, :hybrid_qc_summary, :copy_number, :mut_det, :mut_filter
+    runs_steps :dump_fastqs, :combine_fastqs, :align,
+      :merge,
+      :lane_recal, :table_recal,
+      :patient_realign, 
+      :make_samples, 
+      :collect_qc, :collect_qc_summary,
+      :mut_det, :indel_det, :copy_number, 
+      :variant_det, :mut_filter, :review_absolute, :merge_snp
+
+    def_module :align_bams, {
+      :dump_fastqs => true,
+      :combine_fastqs => true,
+      :align => true,
+      :merge => true
+    }
+
+    def_module :recal_by_lane, {
+      :lane_recal => true,
+      :table_recal => true
+    }
+
+    def_module :realign_by_patient, {
+      :patient_realign => true,
+      :patient_split => true
+    }
+
+    def_module :finalize_samples, {
+      :make_samples => true
+    }
 
     def_module :create_bams, {
-      :fix_mate => true,
-      :library_merge => true,
-      :recal => true,
-      :library_split => true,
-      :make_samples => true, 
+      :align_bams => true,
+      :recal_by_lane => true,
+      :realign_by_patient => true,
+      :finalize_samples => true
     }
 
     def_module :calculate_qc, {
-      :hybrid_qc => true,
-      :hybrid_qc_summary => true,
+      :collect_qc => true,
+      :collect_qc_summary => true,
     }
 
     def_module :compute_copy_number, {
       :copy_number => true,
+      :merge_snp => true,
+      :format_rdata => true,
+      :absolute => true,
+      :review_absolute => true,
     }
 
     def_module :find_mutations, {
+      :variant_det => true,
+      :merge_snp => true,
       :mut_det => true,
-      :mut_filter => true
+      #:indel_det => true,
+      :mut_filter => true,
     }
 
     def_module :mut_filter_annovar, {

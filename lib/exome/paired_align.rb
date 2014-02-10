@@ -22,7 +22,8 @@ module Exome
       :hybrid_qc, :hybrid_qc_summary, 
       :sample_coverage, :prep_normal, :compute_normals, :copy_number, 
       :run_ascat,
-      :mut_det, :univ_geno_normals, :mut_filter,
+      :mut_det, :mut_filter,
+      :univ_geno_call, :univ_geno_annotate,
       :run_absolute, :review_absolute
 
     def_module :prep_pipe, {
@@ -106,8 +107,9 @@ module Exome
       :mut_det => [ :strelka ]
     }
 
-    def_module :find_normal_mutations, {
-      :univ_geno_normals => true
+    def_module :find_germline_muts, {
+      :univ_geno_call => true,
+      :univ_geno_annotate => true
     }
 
     def_module :mut_filter_annovar, {

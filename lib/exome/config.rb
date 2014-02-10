@@ -59,10 +59,7 @@ module Exome
           "@chrom_name.indelocator.txt" => :indelocator_output,
           "@chrom_name.indelocator" => :indelocator_metrics,
 
-          "@sample_name.ug.raw.vcf" => :ug_raw_vcf,
           "@sample_name.ug.SNPs.vcf" => :ug_snps_vcf,
-          "@sample_name.ug.annotated.vcf" => :ug_annotated_vcf,
-          "@sample_name.ug.filtered.vcf" => :ug_filtered_vcf,
 
           "@sample_name.tumor.baf" => :tumor_baf,
           "@sample_name.normal.baf" => :normal_baf,
@@ -92,7 +89,10 @@ module Exome
           "@chrom_name.realigned_patient.bam" => :realigned_patient_bam,
           "@chrom_name.split." => :patient_split_bam_root,
           "@chrom_name.split.@sample_name.bam" => :patient_split_bam,
-          "_splitbam_@sample_name.bam" => :sample_split_bam
+          "_splitbam_@sample_name.bam" => :sample_split_bam,
+          "@patient_name.ug.raw.vcf" => :ug_raw_vcf,
+          "@patient_name.ug.annotated.vcf" => :ug_annotated_vcf,
+          "@patient_name.ug.filtered.vcf" => :ug_filtered_vcf
         },
         "@cohort_name" => {
           "@chrom_name.realigned.bam" => :realigned_bam,
@@ -145,7 +145,7 @@ module Exome
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.absolute.seg" => :tumor_absolute_seg,
           "@sample_name.mutations" => :tumor_mutations,
-          "@sample_name.normal_mut.txt" => :normal_muts,
+          "@sample_name.univ_geno_muts.vcf" => :ug_muts,
         },
         "@cohort_name" => {
           "@cohort_name.ABSOLUTE.table.txt" => :absolute_calls

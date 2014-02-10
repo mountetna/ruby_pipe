@@ -11,32 +11,36 @@ if (length(args) < 1) {
 }
 
 suppressMessages(library(DNAcopy))
-
+suppressMessages(library(PSCBS))
+source(paste(lib_dir,"bin", "chrom.R",sep="/"))
 # okay, using this, first generate the CBS segmentation. Return the segmentation object.
 segCBS=function(cna) {
-	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=1.5))
+	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=5))
 }
 
 segPSCBS=function(tumor_logr,tumor_baf,normal_baf) {
 	print.noquote("Running PSCBS.")
+        verbose <- Arguments$getVerbose(-10*interactive(), timestamp=TRUE)
 	# get the baf and CNR into one matrix
 	return(segmentByPairedPSCBS(
-		tumor_logr$logR,
-		tumor_baf$BAF, 
-		normal_baf$BAF, 
-		muN=rep(0.5,length(tumor_logr$logR)),
+		CT=(3*tumor_logr$ratio),
+		betaT=tumor_baf$BAF, 
+		betaN=normal_baf$BAF, 
+		#muN=rep(0.5,length(tumor_logr$ratio)),
 		chromosome=chr_int(tumor_baf$chromosome), 
 		x=tumor_baf$position, 
-		tbn=F,
-		#alphaTCN=0.009, alphaDH=0.001, undoTCN=Inf, undoDH=Inf,
+		#tbn=F,
+		alphaTCN=0.009, alphaDH=0.001, undoTCN=25, undoDH=25,
 		#..., 
-		#flavor=c("tcn&dh", "tcn,dh", "sqrt(tcn),dh", "sqrt(tcn)&dh", "tcn")
-		flavor="tcn&dh"
+		#flavor=c("tcn&dh", "tcn,dh", "sqrt(tcn),dh", "sqrt(tcn)&dh", "tcn"),
+		flavor="tcn&dh",
+                joinSegments=T,
+                verbose=verbose
 		))
 }
 
 load_logr_file = function(logr_file) {
-	tumor_logr=read.table(logr_file,header=T,as.is=T)
+	tumor_logr=read.table(logr_file,header=T,as.is=T,sep="\t")
 	tumor_logr = tumor_logr[tumor_logr$chr != "chrY",]
 	return(tumor_logr)
 }
@@ -73,7 +77,6 @@ doSegCbs=function(logr_file, rdata_file, seg_file, sample_name) {
 
 	# load coverage data (made using coverageBed from the BAMs)
 	tumor_logr = load_logr_file(logr_file)
-
 	# generate 
 	print.noquote("Creating CNA...")
 	cbs_seg=sort_cbs_seg(segCBS( smoothCNA(tumor_logr, sample_name) ))
@@ -92,11 +95,26 @@ doSegPscbs=function(logr_file,tumor_baf_file,normal_baf_file,rdata_file) {
 	tumor_logr = load_logr_file(logr_file)
 
 	tumor_baf = load_baf(tumor_baf_file)
-	normal_baf = load_baf(tumor_baf_file)
+	normal_baf = load_baf(normal_baf_file)
 
 	pscbs_seg = segPSCBS(tumor_logr, tumor_baf, normal_baf)
 
-	save(pscbs_seg,file=rdata_file)
+    save(pscbs_seg,file=rdata_file)
+#        deltaAB=estimateDeltaAB(pscbs_seg,flavor="qq(DH)")
+#        fit=callAB(pscbs_seg,delta=deltaAB,verbose=verbose)
+#        save(fit,file=paste(rdata_file,"_fit",sep=""))
+
+#       deltaLOH=estimateDeltaLOH(pscbs_seg, flavor="minC1|nonAB")
+#        fit=callLOH(pscbs_seg,delta=deltaLOH,verbose=verbose)
+#        save(fit,file=paste(rdata_file,"LOH",sep="_"))
+
+#        tab=getSegments(pscbs_seg,simplify=T)
+#        write.table(tab,file=paste(rdata_file,".txt",sep=""),row.names=F,quote=F)
+
+#        chrTag <- sprintf("Chr%s", seqToHumanReadable(getChromosomes(pscbs_seg)));
+#        toPNG(paste(rdata_file,"png",sep="."), tags=c(chrTag, "PairedPSCBS"), width=840, aspectRatio=0.6, {
+#           plotTracks(pscbs_seg);
+#        });
 }
 
 getASCAT=function(ascatpcf) {

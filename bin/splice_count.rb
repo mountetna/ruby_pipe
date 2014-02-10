@@ -26,7 +26,7 @@ def count_splice exon_1, exon_2
 end
 
 def get_splice_exons splice
-  exons = splice.map{|l| l.feature == "exon" ? [ l.start.to_i, l.end.to_i ] : nil }.compact.uniq.sort_by(&:first)
+  exons = splice.map{|l| l.feature == "exon" ? [ l.start.to_i, l.stop.to_i ] : nil }.compact.uniq.sort_by(&:first)
   exons.reverse! if splice.first.strand == "-"
   return exons
 end
