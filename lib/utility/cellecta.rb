@@ -5,6 +5,25 @@ module Utility
   class Config
     extend Pipeline::Config
     include Pipeline::BaseConfig
+    
+    def make_genesets s
+      if File.exists? gene_list(s)
+        genes = File.foreach(gene_list(s)).map &:chomp
+        # genes.each_slice(500).map do |gs|
+        genes.each_slice(50).map do |gs|
+          { :genes => gs }
+        end
+      else
+        [ { :genes => [ "DUMMY" ]} ]
+      end
+    end
+
+    def init_hook
+      #see make_chunks in genome config.rb
+      samples.each do |s|
+        s.extend_with :gene_sets => make_genesets(s)
+      end
+    end
 
     def_var :feature_name do cohort_name end
     # def_var :t0 sample do ...
@@ -16,9 +35,21 @@ module Utility
     dir_tree({
       ":output_dir" => {
         "@sample_name.barcode_count.txt" => :barcode_count,
-        "@sample_name.normalized_counts.txt" => :normalized_counts
-      }
+        "@sample_name.normalized_counts.txt" => :normalized_counts,
+        "@sample_name.permutation_results.txt" => :permutation_results
+      },
       ":scratch_dir" => {
+        "@sample_name.gene_list.txt" => :gene_list,
+        "@sample_name" => {
+          "@sample_name.gene_fragments" => {
+            "." => :gene_fragment_dir,
+            "idk" => :dummy_because_this_folder_wont_be_created_without_it
+          },
+          "@sample_name.output_fragments" => {
+            "." => :results_fragment_dir,
+            "@sample_name.fragments.txt" => :fragments
+          }
+        }
       }
     })
   end
@@ -32,7 +63,7 @@ module Utility
     class DecipherBarcode
       include Pipeline::Task
       requires_file :inputs, :cellecta_module
-      outs_file :barcode_count
+      outs_file :barcode_count, :gene_list
 
       def get_barcode file
         io = IO.popen("zcat #{file}")
@@ -63,6 +94,15 @@ module Utility
         genes[ bc.hugo_symbol ][ bc.barcodeID ] += 1
       end
 
+      def write_gene_list genes
+        genes.delete 'unknown'
+        File.open(config.gene_list, "w") do |f|
+          genes.each do |gene, x|
+            f.puts gene
+          end
+        end
+      end
+
       def run
         mod = HashTable.new config.cellecta_module, :idx => [ :barcode, :hugo_symbol ]
         barcode_alias = build_barcode_alias mod
@@ -86,6 +126,7 @@ module Utility
             end
           end
         end
+        write_gene_list genes
       end
     end
   end
@@ -122,28 +163,46 @@ module Utility
     end
   end
 
-  # class PermutationTest
-  #   include Pipeline::Step
-  #   runs_tasks :permuatation_test
-  #   runs_on :test_samples_normalized
-  #   audit_report :sample_name
+  class PermutationTest
+    include Pipeline::Step
+    runs_tasks :permutation
+    runs_on :test_samples, :gene_sets
+    audit_report :sample_name
 
-  #   class Permutation
-  #     include Pipeline::Task
-  #     requires_file :normalized_counts
-  #     outs_file :fragments_idk
+    class Permutation
+      include Pipeline::Task
+      requires_file :normalized_counts
+      outs_file :fragments, :dummy_because_this_folder_wont_be_created_without_it
 
-  #     def run
-  #     end
-  #   end
-  # end
+      def write_gene_list gene_set, job_index
+        fragment_dir = config.gene_fragment_dir[0...-1] #get rid of period at the end...
+        File.open("#{fragment_dir}#{job_index}_genes.txt", "w") do |f|
+          gene_set.each do |g|
+            if g != 'unknown'
+              f.puts g
+            end
+          end
+        end
+      end
+
+      def run
+          # print "config.genes #{config.genes}\n"
+          # print "config.results_fragment_dir #{config.results_fragment_dir}\n"
+          # print "config.job_index #{config.job_index}\n"
+          # print "config.gene_fragment_dir #{config.gene_fragment_dir}\n"
+          write_gene_list config.genes, config.job_index
+          r_script :cellecta_permutation_test, :permute, config.normalized_counts, config.job_index, config.gene_fragment_dir, config.results_fragment_dir 
+      end
+    end
+  end
 
   class Cellecta
     include Pipeline::Script
-    runs_steps :decipher_barcodes, :preprocess_barcodes
+    runs_steps :decipher_barcodes, :preprocess_barcodes, :permutation_test
     def_module :default, {
       :decipher_barcodes => true,
       :preprocess_barcodes => true,
+      :permutation_test => true
     }
 
     class ConfigGenerator
