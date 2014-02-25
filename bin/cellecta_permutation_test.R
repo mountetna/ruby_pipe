@@ -47,7 +47,7 @@ iterate = function(genes, curr_table){
     count_higher = 0
     count_lower = 0
     num_permutations = 1:10000
-    # num_permutations = 1:100
+    # num_permutations = 1:1000
 
     count_vec = as.data.frame(t(sapply(num_permutations, function(x){
       s = sample(nrow(curr_table), nrow(curr_set), replace=F)
@@ -66,24 +66,21 @@ iterate = function(genes, curr_table){
   return(df)
 }
 
-read_gene_set = function(gene_set_num, gene_set_loc){
-  gene_set_loc = substr(gene_set_loc, 1, nchar(gene_set_loc)-1) #get rid of period at the end
-  con = file(paste(gene_set_loc, gene_set_num, '_genes.txt', sep=''), open='r')
+read_gene_set = function(gene_set_loc){
+  con = file(gene_set_loc, open='r')
   genes = readLines(con)
   close(con)
   return(genes)
 }
 
-permute = function(input_file, gene_set_num, gene_set_loc, output_dir){
-  output_dir = substr(output_dir, 1, nchar(output_dir)-1)
+permute = function(input_file, gene_set_loc, output_loc){
   df = read.table(input_file, sep='\t', header = TRUE)
   print(head(df))
-  genes = read_gene_set (gene_set_num, gene_set_loc)
+  genes = read_gene_set(gene_set_loc)
   print(head(genes))
   print(paste('number of genes', length(genes)))
   results = iterate(genes, df)
-  print(head(results))
-  write.table(results, paste(output_dir, '/__', gene_set_num, '.tsv', sep=''), sep='\t', quote=F, row.names=F)
+  write.table(results, output_loc, sep='\t', quote=F, row.names=F)
 
 }
 

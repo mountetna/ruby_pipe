@@ -15,6 +15,8 @@ read_tables = function(ctrl_loc, cond_loc){
   # will have to do something like this: merged[is.na(all_sets)] = 0
   merged = merge(control, condition, by= c('bc', 'gene'), all = T)
   merged = merged[!merged$gene == 'unknown',]
+  merged$ctrl_count[is.na(merged$ctrl_count)] = 0
+  merged$cond_count[is.na(merged$cond_count)] = 0
   return(merged)
 }
 
@@ -22,7 +24,6 @@ normalize_data = function(df){
   # add 10 to thwart errors from 0
   df$ctrl_count = df$ctrl_count + 10
   df$cond_count = df$cond_count + 10
-
   df$ctrl_count = (df$ctrl_count/sum(df$ctrl_count))*1e6
   df$cond_count = (df$cond_count/sum(df$cond_count))*1e6
 
@@ -43,8 +44,6 @@ normalize_and_log_fold_change = function(out_file, ctrl_loc, cond_loc){
   df = normalize_data(df)
   df = calc_log_fold_change(df)
   write_combined_table(df, out_file)
-  print('end!')
-  # return(df)
 }
 
 args = commandArgs(TRUE)

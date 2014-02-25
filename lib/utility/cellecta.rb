@@ -9,45 +9,43 @@ module Utility
     def make_genesets s
       if File.exists? gene_list(s)
         genes = File.foreach(gene_list(s)).map &:chomp
-        # genes.each_slice(500).map do |gs|
-        genes.each_slice(50).map do |gs|
-          { :genes => gs }
-        end
+        # genes.each_slice(50).map do |gs|
+        genes.each_slice(160).with_index.map{ |gs,i| { :genes => gs, :geneset_name => "geneset#{i}" } }
       else
-        [ { :genes => [ "DUMMY" ]} ]
+        [ { :genes => [ "DUMMY" ], :geneset_name => "geneset0"} ]
       end
     end
 
     def init_hook
       #see make_chunks in genome config.rb
       samples.each do |s|
-        s.extend_with :gene_sets => make_genesets(s)
+        s.extend_with :genesets => make_genesets(s)
       end
     end
 
-    def_var :feature_name do cohort_name end
-    # def_var :t0 sample do ...
-    # def_var :control_sample do ...
-    # def_var :experimental_samples do ...
-
+    # def_var :feature_name do cohort_name end
     def_var :test_samples do samples.select{|s| s.test_against} end
+    def_var :permutation_fragments do genesets.map{|gs| permutation_fragment(gs)} end
 
     dir_tree({
       ":output_dir" => {
-        "@sample_name.barcode_count.txt" => :barcode_count,
-        "@sample_name.normalized_counts.txt" => :normalized_counts,
-        "@sample_name.permutation_results.txt" => :permutation_results
+        "@sample_name.permutation_result.txt" => :permutation_result,
+        "pdfs" => {
+          "@sample_name.high_pval_plot.pdf" => :high_pval_plot,
+          "@sample_name.low_pval_plot.pdf" => :low_pval_plot,
+          "@sample_name.log_fold_change_plot.pdf" => :log_fold_change_plot
+        }
       },
       ":scratch_dir" => {
-        "@sample_name.gene_list.txt" => :gene_list,
         "@sample_name" => {
+          "@sample_name.gene_list.txt" => :gene_list,
+          "@sample_name.barcode_count.txt" => :barcode_count,
+          "@sample_name.normalized_counts.txt" => :normalized_counts,
+          "@sample_name.genes_of_interest.txt" => :genes_to_plot,
           "@sample_name.gene_fragments" => {
             "." => :gene_fragment_dir,
-            "idk" => :dummy_because_this_folder_wont_be_created_without_it
-          },
-          "@sample_name.output_fragments" => {
-            "." => :results_fragment_dir,
-            "@sample_name.fragments.txt" => :fragments
+            "@sample_name.@geneset_name.genelist_fragment.txt" => :gene_fragment,
+            "@sample_name.@geneset_name.permutation_fragment.txt" => :permutation_fragment
           }
         }
       }
@@ -139,26 +137,13 @@ module Utility
 
     class NormalizeCounts
       include Pipeline::Task
-      requires_file :barcode_count, :cellecta_module
+      requires_file :barcode_count#, :cellecta_module
       outs_file :normalized_counts
 
       def run
         ctrl_name = config.test_against
-        ctrl_samp = config.samples.select{|s| s.sample_name == ctrl_name}
-        # ctrl_bc_count_loc = ctrl_samp.select{|s| s.barcode_count} #returns nothing
-        # ctrl_bc_count_loc = ctrl_samp.collect(&:barcode_count) # throws error
-        # print "ctrl name: #{ctrl_name}\n" # works
-        # print "ctrl sample: #{ctrl_samp}\n" #works
-        # print "ctr; barcode count loc: #{ctrl_bc_count_loc}\n"  
-        # print "ctr; barcode count loc: #{ctrl_samp.length}\n" # returns 1
-        # print "ctrl samp.barcode_conut: #{ctrl_samp.barcode_count}\n" # throws error 'undefined method barcode_count for array' 
-        # print "ctr; barcode count loc[0]: #{ctrl_samp[0]}\n" # returns #<Pipeline::SampleObject:0x0000000227f0b8>
-        # print "ctr; barcode count loc[0].barcode_count: #{ctrl_samp[0].barcode_count}\n" #returns blank
-        # print "ctr; barcode count loc: #{ctrl_samp[0].select{|s| s.barcode_count}}\n" # returns blank
-
-        ctrl_bc_count_loc = "./output/#{ctrl_name}.barcode_count.txt"
-
-        r_script :cellecta_preprocessing, :normalize_and_log_fold_change, config.normalized_counts, ctrl_bc_count_loc, config.barcode_count
+        ctrl_samp = config.samples.find{|s| s.sample_name == ctrl_name}
+        r_script :cellecta_preprocessing, :normalize_and_log_fold_change, config.normalized_counts, config.barcode_count(ctrl_samp), config.barcode_count
       end
     end
   end
@@ -166,17 +151,16 @@ module Utility
   class PermutationTest
     include Pipeline::Step
     runs_tasks :permutation
-    runs_on :test_samples, :gene_sets
+    runs_on :test_samples, :genesets
     audit_report :sample_name
 
     class Permutation
       include Pipeline::Task
       requires_file :normalized_counts
-      outs_file :fragments, :dummy_because_this_folder_wont_be_created_without_it
+      outs_file :permutation_fragment
 
-      def write_gene_list gene_set, job_index
-        fragment_dir = config.gene_fragment_dir[0...-1] #get rid of period at the end...
-        File.open("#{fragment_dir}#{job_index}_genes.txt", "w") do |f|
+      def write_gene_list gene_set, geneset_name
+        File.open(config.gene_fragment, "w") do |f|
           gene_set.each do |g|
             if g != 'unknown'
               f.puts g
@@ -186,23 +170,80 @@ module Utility
       end
 
       def run
-          # print "config.genes #{config.genes}\n"
-          # print "config.results_fragment_dir #{config.results_fragment_dir}\n"
-          # print "config.job_index #{config.job_index}\n"
-          # print "config.gene_fragment_dir #{config.gene_fragment_dir}\n"
-          write_gene_list config.genes, config.job_index
-          r_script :cellecta_permutation_test, :permute, config.normalized_counts, config.job_index, config.gene_fragment_dir, config.results_fragment_dir 
+        write_gene_list config.genes, config.geneset_name
+        r_script :cellecta_permutation_test, :permute, config.normalized_counts, config.gene_fragment, config.permutation_fragment
+        File.delete config.gene_fragment
+      end
+    end
+  end
+
+  class AssembleFragments
+    include Pipeline::Step
+    runs_tasks :glue_fragments
+    runs_on :test_samples
+
+    class GlueFragments
+      include Pipeline::Task
+      requires_file :permutation_fragments
+      outs_file :permutation_result
+
+      def run
+        open(config.permutation_result, 'a') do |f|
+          f.puts "gene\tsecond_highest\thigh_pval\tsecond_lowest\tlow_pval"
+          Dir.glob("#{config.gene_fragment_dir}/*") do |fname|
+            f.puts File.readlines(fname)[1..-1].join() #removes header line
+          end
+        end
+      end
+    end
+  end
+
+  class GraphCellectaResults
+    include Pipeline::Step
+    runs_tasks :graph_pvals, :graph_log_fold_change
+    runs_on :test_samples
+
+    class GraphPvals
+      include Pipeline::Task
+      requires_file :permutation_result
+      outs_file :high_pval_plot, :low_pval_plot
+
+      def run
+        r_script :cellecta_plots, :make_pval_plots, config.permutation_result, config.sample_name, config.high_pval_plot, config.low_pval_plot
+        r_script :cellecta_plots, :make_lfc_plots, config.normalized_counts, config.sample_name, config.log_fold_change_plot
+      end
+    end
+
+    class GraphLogFoldChange
+      include Pipeline::Task
+      requires_file :normalized_counts
+      outs_file :log_fold_change_plot
+
+      def write_genes_of_interest
+        File.open(config.genes_to_plot, "w") do |f|
+          config.genes_of_interest.each do |g|
+            print "g = #{g}"
+            f.puts g
+          end
+        end
+      end
+
+      def run
+        write_genes_of_interest
+        r_script :cellecta_plots, :make_lfc_plots, config.normalized_counts, config.sample_name, config.log_fold_change_plot, config.genes_to_plot
       end
     end
   end
 
   class Cellecta
     include Pipeline::Script
-    runs_steps :decipher_barcodes, :preprocess_barcodes, :permutation_test
+    runs_steps :decipher_barcodes, :preprocess_barcodes, :permutation_test, :assemble_fragments, :graph_cellecta_results
     def_module :default, {
       :decipher_barcodes => true,
       :preprocess_barcodes => true,
-      :permutation_test => true
+      :permutation_test => true,
+      :assemble_fragments => true,
+      :graph_cellecta_results => true
     }
 
     class ConfigGenerator
