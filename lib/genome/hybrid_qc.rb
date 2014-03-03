@@ -7,56 +7,56 @@ module Genome
 
     class CalcFlags
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_file :qc_flag
 
       def run
 	log_info "Calculate flag statistics"
-        sam_flags config.qc_bam, config.qc_flag or error_exit "Collecting flag statistics failed"
+        sam_flags config.sample_bam, config.qc_flag or error_exit "Collecting flag statistics failed"
       end
     end
 
     class CalcMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_file :qc_hybrid
 
       def run
 	log_info "Calculate hybrid selection metrics"
-        picard :calculate_hs_metrics, :BAIT_INTERVALS => config.interval_list, :TARGET_INTERVALS => config.interval_list, :INPUT => config.qc_bam, :OUTPUT => config.qc_hybrid or error_exit "Calculating metrics failed"
+        picard :calculate_hs_metrics, :BAIT_INTERVALS => config.interval_list, :TARGET_INTERVALS => config.interval_list, :INPUT => config.sample_bam, :OUTPUT => config.qc_hybrid or error_exit "Calculating metrics failed"
       end
     end
 
     class CollectInsertSizes
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_files :qc_inserts, :qc_histogram
 
       def run
         log_info "Calculating insert metrics"
-        picard :collect_insert_size_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram or error_exit "Collecting insert sizes failed"
+        picard :collect_insert_size_metrics, :INPUT => config.sample_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram or error_exit "Collecting insert sizes failed"
       end
     end
 
     class CollectAlignMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_files :qc_align_metrics
 
       def run
         log_info "Calculating alignment metrics"
-        picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics or error_exit "Collecting alignment metrics failed"
+        picard :collect_alignment_summary_metrics, :INPUT => config.sample_bam, :OUTPUT => config.qc_align_metrics or error_exit "Collecting alignment metrics failed"
       end
     end
 
     class CoverageMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_file :qc_coverage_metrics
 
       def run
         create_interval_bed
-        gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.qc_bam,
+        gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.sample_bam,
           :omitDepthOutputAtEachBase => true,
           :omitIntervalStatistics => true,
           :omitLocusTable => true,
