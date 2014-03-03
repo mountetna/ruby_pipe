@@ -20,7 +20,9 @@ module Genome
       :make_samples, 
       :collect_qc, :collect_qc_summary,
       :mut_det, :indel_det, :copy_number, 
-      :variant_det, :mut_filter, :review_absolute, :merge_snp
+      :variant_det, :merge_variants, :mut_filter, :combine_muts,
+      :extract_sclips, :combine_sclips, :run_crest, :combine_rearrs,
+      :absolute, :review_absolute
 
     def_module :align_bams, {
       :dump_fastqs => true,
@@ -61,7 +63,6 @@ module Genome
 
     def_module :compute_copy_number, {
       :copy_number => true,
-      :merge_snp => true,
       :format_rdata => true,
       :absolute => true,
       :review_absolute => true,
@@ -69,7 +70,7 @@ module Genome
 
     def_module :find_mutations, {
       :variant_det => true,
-      :merge_snp => true,
+      :merge_variants => true,
       :mut_det => true,
       #:indel_det => true,
       :mut_filter => true,
@@ -79,12 +80,22 @@ module Genome
       :mut_filter => [ :concat_chroms, :filter_muts_annovar ]
     }
 
+    def_module :crest_rearrangements, {
+      #:start_blat => true,
+      :extract_sclips => true,
+      :combine_sclips => true,
+      :run_crest => true,
+      :combine_rearrs => true
+      #:stop_blat => true
+    }
+
     def_module :default, {
       # the default sequence of events. The order is dictated by runs_steps
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,
-      :find_mutations => true
+      :find_mutations => true,
+      :crest_rearrangements => true
     }
 
     def exclude_task? task

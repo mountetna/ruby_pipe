@@ -11,121 +11,94 @@ module Genome
     include Pipeline::Step
     runs_tasks :variant_caller, :variant_annot, :quality_filter
     resources :threads => 1, :walltime => 50
-    runs_on :tumor_samples, :chroms
+    runs_on :patients, :chroms
 
     class VariantCaller
       include Pipeline::Task
-      requires_files :normal_bam, :tumor_bam
-      dumps_files :snp_vcf
+      requires_files :samples__sample_bams
+      dumps_files :ug_raw_vcf
       def run
         log_info "Running GATK UnifiedGenotypeCaller on normal/tumor sample"
         gatk :unified_genotyper, 
              :genotype_likelihoods_model => :BOTH,
              :genotyping_mode => :DISCOVERY,
-             :intervals => config.chrom,
-             :input_file => config.output_bams, 
+             :intervals => config.chrom.chrom_name,
+             :input_file => config.samples__sample_bams, 
              :"dbsnp" => config.reference_snp_vcf,
              :"standard_min_confidence_threshold_for_calling" => 30.0,
              :"standard_min_confidence_threshold_for_emitting" => 10.0,
              :"min_base_quality_score" => 20,
              :"output_mode" => "EMIT_VARIANTS_ONLY",
-             :"out" => config.snp_vcf or error_exit "GATK UnifiedGenotypeCaller failed"
+             :"out" => config.ug_raw_vcf or error_exit "GATK UnifiedGenotypeCaller failed"
       end
     end
 
     class VariantAnnot
       include Pipeline::Task
-      requires_file :snp_vcf
-      outs_files :snp_annotated_vcf 
+      requires_file :ug_raw_vcf
+      outs_files :ug_annotated_vcf 
 
       def run
         log_info "Running GATK VariantRecal on VCFs"
         gatk :variant_annotator, :input_file => config.normal_bam, 
-             :intervals => config.chrom, :variant => config.snp_vcf, :num_threads => 1,
-             :dbsnp => config.reference_snp_vcf, :baq =>  :CALCULATE_AS_NECESSARY,
-             :annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, 
-                               :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, 
-                               :ReadPosRankSumTest, :DepthOfCoverage ],
-             :out => config.snp_annotated_vcf or error_exit "GATK VariantRecalibrator failed" 
+             :intervals => config.chrom.chrom_name, 
+             :variant => config.ug_raw_vcf, :num_threads => 1,
+             :dbsnp => config.reference_snp_vcf, 
+             :baq =>  :CALCULATE_AS_NECESSARY,
+             :annotation => [ :QualByDepth, :RMSMappingQuality,
+                              :MappingQualityZero, :LowMQ,
+                              :MappingQualityRankSumTest, :FisherStrand,
+                              :HaplotypeScore, :ReadPosRankSumTest, 
+                              :Coverage ],
+             :out => config.ug_annotated_vcf or error_exit "GATK VariantRecalibrator failed" 
       end
     end
 
     class QualityFilter
       include Pipeline::Task
-      requires_files :snp_annotated_vcf
-      dumps_file :snp_filtered_vcf
+      requires_files :ug_annotated_vcf
+      dumps_file :ug_filtered_vcf
 
       def run
         log_info "Filtering Unified Genotyper SNPs"
         gatk :variant_filtration,
-                :variant => config.snp_annotated_vcf,
-                :intervals => config.chrom,
+                :variant => config.ug_annotated_vcf,
+                :intervals => config.chrom.chrom_name,
                 :num_threads => 1,
                 :baq => :CALCULATE_AS_NECESSARY,
-                :filterExpression => [ '"QD < 2.0"', '"MQ < 40.0"', '"FS > 60.0"', '"HaplotypeScore > 13.0"', '"MQRankSum < -12.5"', '"ReadPosRankSum < -8.0"' ],
-                :filterName => [ :QDFilter, :MQFilter, :FSFilter, :HaplotypeScoreFilter, :MQRankSumFilter, :ReadPosFilter ],
-                :out => config.snp_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
+                :filterExpression => [ '"QD < 2.0"',
+                                       '"MQ < 40.0"',
+                                       '"FS > 60.0"',
+                                       '"HaplotypeScore > 13.0"',
+                                       '"MQRankSum < -12.5"',
+                                       '"ReadPosRankSum < -8.0"' ],
+                :filterName => [ :QDFilter, :MQFilter, :FSFilter,
+                                 :HaplotypeScoreFilter, :MQRankSumFilter,
+                                 :ReadPosFilter ],
+                :out => config.ug_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
 
       end
     end
   end
 
-  class MergeSnp
+  class MergeVariants
     include Pipeline::Step
-    runs_tasks :merge_snp
+    runs_tasks :merge_variants
     resources :threads => 12, :walltime => 50
-    runs_on :tumor_samples
+    runs_on :patients
 
-    class MergeSnp
+    class MergeVariants
       include Pipeline::Task
-      requires_files :snp_filtered_vcfs
-      dumps_file :ug_filtered_vcf
+      requires_files :chroms__ug_filtered_vcfs
+      dumps_file :ug_vcf
 
       def run
         log_info "Combining annotated, filatered VCFs"
-        gatk :combine_variants, :variant => config.snp_filtered_vcfs, :num_threads => 1,
-             :out => config.ug_filtered_vcf, :"genotypemergeoption" => "UNSORTED" or error_exit "Merging UnifiedGenotyper failed"
+        gatk :combine_variants, :variant => config.chroms__ug_filtered_vcfs, :num_threads => 1,
+             :out => config.ug_vcf, :"genotypemergeoption" => "UNSORTED" or error_exit "Merging UnifiedGenotyper failed"
       end
     end
-
-    class FilterSnp
-      include Pipeline::Task
-      requires_files :ug_filtered_vcf
-      outs_file :normal_mut
-
-      def run
-        maf = Maf.new
-        maf.headers.concat [ :ref_count, :alt_count, :var_freq,
-              :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :dbsnp_rs ]
-        v = VCF.read config.ug_filtered_vcf, config.mutations_config
-        v.each do |l|
-          puts(l.chrom)
-          puts(l.pos)
-          next if l.skip_genotype?([:univ_geno_normal, :vcf] => config.sample_name)
-          next if l.skip_oncotator?([:univ_geno_normal, :oncotator])
-          puts(l.onco.txp_gene) 
-          maf.add_line :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.chrom,
-              :start_position => l.pos, :end_position => l.pos, :strand => "+",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref, :tumor_seq_allele1 => l.alt,
-              :sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
-              :ref_count => l.genotype(config.sample_name).ref_count,
-              :alt_count => l.genotype(config.sample_name).alt_count,
-              :var_freq => l.genotype(config.sample_name).alt_freq,
-              :protein_change =>          l.onco.txp_protein_change,
-              :transcript_change => l.onco.txp_transcript_change,
-              :polyphen2_class  =>                  l.onco.pph2_class,
-              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :dbSNP_RS => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status 
-        end
-        maf.sort_by! {|l| -l.var_freq}
-        maf.write config.normal_mut
-      end
-    end
-
- end 
+  end 
 
   class MutDet
     include Pipeline::Step
