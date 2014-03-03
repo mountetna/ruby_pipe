@@ -74,6 +74,17 @@ module Genome
       :mut_det => true,
       #:indel_det => true,
       :mut_filter => true,
+      :combine_muts => true
+    }
+
+    def_module :mut_det_indelocator, {
+      :mut_det => [ :mutect, :indelocator, :patch_indelocator_vcf ],
+      :mut_filter => [ :filter_muts_indelocator ]
+    }
+
+    def_module :mut_det_somaticindel, {
+      :mut_det => [ :mutect, :somatic_indel_detector, :patch_somatic_indel_vcf ],
+      :mut_filter => [ :filter_muts_somatic_indel ]
     }
 
     def_module :mut_filter_annovar, {

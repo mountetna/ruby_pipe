@@ -102,7 +102,8 @@ module Genome
 
   class MutDet
     include Pipeline::Step
-    runs_tasks :mutect, :pindel, :pindel_vcf, :patch_pindel_vcf
+    runs_tasks :mutect, :pindel, :make_pindel_vcf, :patch_pindel_vcf
+    has_tasks :mutect, :pindel, :make_pindel_vcf, :patch_pindel_vcf, :indelocator, :patch_indelocator_vcf, :somatic_indel_detector, :patch_somatic_indel_vcf
     resources :threads => 1, :walltime => 50
     runs_on :tumor_samples, :chroms
 
@@ -115,17 +116,16 @@ module Genome
     class Mutect
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam
-      dumps_files :mutect_snvs, :mutect_coverage
+      dumps_files :mutect_snv, :mutect_coverage
 
       def run
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
-          #intervals option removed because running on whole genome
-	  :intervals => config.chrom, 
-          :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
+	  :intervals => config.chrom.chrom_name, 
+          :out => config.mutect_snv_tmp, 
+          :coverage_file => config.mutect_coverage or error_exit "muTect failed"
 
-        # kludge to make sure mutect completes before ensuring this step
-        FileUtils.mv config.mutect_snvs_tmp, config.mutect_snvs
+        FileUtils.mv config.mutect_snv_tmp, config.mutect_snv
       end
     end
     #CHANGMT: this is for BWA-aligned sequences
@@ -140,11 +140,11 @@ module Genome
             { :bam => config.tumor_bam, :name => config.sample_name},
             { :bam => config.normal_bam, :name => config.normal_name } ],
           :tempfile => config.pindel_list,
-          :chromosome => config.chrom, :"output-prefix" => config.pindel_snvs or error_exit "Pindel failed"
+          :chromosome => config.chrom.chrom_name, :"output-prefix" => config.pindel_snvs or error_exit "Pindel failed"
       end
     end
 
-    class PindelVcf
+    class MakePindelVcf
       include Pipeline::Task
       dumps_file :pindel_unpatched_vcf
 
@@ -194,116 +194,326 @@ module Genome
         unpatched.write config.pindel_vcf
       end
     end
+
+    class Indelocator
+      include Pipeline::Task
+      requires_files :normal_bam, :tumor_bam
+      outs_files :indelocator_unpatched_vcf, :indelocator_metrics
+
+      def run
+        indelocator :somatic => true, :"input_file:normal" => config.normal_bam, :"input_file:tumor" => config.tumor_bam, :verboseOutput => config.indelocator_output, :metrics_file => config.indelocator_metrics, :out => config.indelocator_unpatched_vcf, :intervals => config.chrom.chrom_name or error_exit "Indelocator failed"
+      end
+    end
+    class PatchIndelocatorVcf
+      include Pipeline::Task
+      requires_file :indelocator_unpatched_vcf
+      dumps_file :indelocator_vcf
+
+      def run
+        unpatched = VCF.read config.indelocator_unpatched_vcf
+        unpatched.preamble_lines.push "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n"
+        unpatched.preamble_lines.push "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth (only filtered reads used for calling)\">\n"
+        unpatched.each do |l|
+          l.format.push :DP, :AD
+          l.genotype(config.normal_name).info[:DP] = l.info[:N_DP]
+          l.genotype(config.normal_name).info[:AD] = [ l.info[:N_DP].to_i - l.info[:N_AC].split(/,/).first.to_i,
+                                                       l.info[:N_AC].split(/,/).first.to_i ].join(",")
+
+          l.genotype(config.sample_name).info[:DP] = l.info[:T_DP]
+          l.genotype(config.sample_name).info[:AD] = [ l.info[:T_DP].to_i - l.info[:T_AC].split(/,/).first.to_i,
+                                                       l.info[:T_AC].split(/,/).first.to_i ].join(",")
+        end
+        unpatched.write config.indelocator_vcf
+      end
+    end
+
+    class SomaticIndelDetector
+      include Pipeline::Task
+      requires_files :normal_bam, :tumor_bam
+      outs_files :somaticindel_unpatched_vcf, :somaticindel_verbose
+
+      def run
+        somatic_indel_detector :"input_file:normal" => config.normal_bam, 
+          :"input_file:tumor" => config.tumor_bam, 
+          :verboseOutput => config.somaticindel_verbose, 
+          :out => config.somaticindel_unpatched_vcf, 
+          :filter_expressions => "'T_COV<6||N_COV<4||T_INDEL_CF<0.7'",
+          :intervals => config.chrom.chrom_name or error_exit "SomaticIndelDetector failed"
+      end
+    end
+
+    class SomaticIndelOut
+      include Enumerable
+      FIELDS = %r{
+        (?<field_name> [A-Z_]+ ){0}
+        (?<params> [A-Z\/]+ ){0}
+        (?<fields> [\d\.\/-]+){0}
+        \A\g<field_name>(\[\g<params>\])?:?\g<fields>?\Z
+      }x
+      def initialize file
+        @muts = Hash[File.foreach(file).map do |l|
+           mut = SomaticIndelOut::Indel.new l.chomp.split(/\t/)
+           [ mut.key, mut ]
+        end]
+      end
+
+      class Indel
+        def initialize arr
+          @mut = {
+            :chrom => arr.shift,
+            :start => arr.shift,
+            :stop => arr.shift,
+            :indel => arr.shift
+          }
+          read_fields arr
+        end
+
+        def read_fields arr
+          arr.each do |blob|
+            r = blob.match(FIELDS)
+            @mut[ r[:field_name].downcase.to_sym ] = case
+            when r[:fields] && r[:params]
+              Hash[r[:params].split(%r!/!).zip(r[:fields].split(%r!/!))]
+            when r[:fields] && !r[:params]
+              r[:fields]
+            else
+              true
+            end
+          end
+        end
+
+        def key
+          [ @mut[:chrom], @mut[:start].to_i, @mut[:stop].to_i ]
+        end
+
+        def method_missing meth, *args, &block
+          @mut[meth] || super(meth, *args, &block)
+        end
+        
+        def normal_depth
+          @normal_depth ||= n_obs_counts["T"].to_i
+        end
+        def normal_alt_count
+          @normal_alt ||= n_obs_counts["C"].to_i
+        end
+        def normal_allelic_depth
+          [ normal_depth - normal_alt_count, normal_alt_count ].join ","
+        end
+
+        def tumor_depth
+          @tumor_depth ||= t_obs_counts["T"].to_i
+        end
+        def tumor_alt_count
+          @tumor_alt ||= t_obs_counts["C"].to_i
+        end
+        def tumor_allelic_depth
+          [ tumor_depth - tumor_alt_count, tumor_alt_count ].join ","
+        end
+      end
+
+      def [] ind
+        @muts[ind]
+      end
+
+      def each
+        @muts.each do |loc,mut|
+          yield mut
+        end
+      end
+    end
+    class PatchSomaticIndelVcf
+      include Pipeline::Task
+      requires_file :somaticindel_unpatched_vcf, :somaticindel_verbose
+      dumps_file :somaticindel_vcf
+
+      def run
+        verbose = SomaticIndelOut.new config.somaticindel_verbose
+        unpatched = VCF.read config.somaticindel_unpatched_vcf
+        unpatched.each do |l|
+          mut = verbose[ [ l.chrom, l.start.to_i, l.stop.to_i ] ]
+          next if !mut
+          l.genotype(config.normal_name).info[:DP] = mut.normal_depth
+          l.genotype(config.normal_name).info[:AD] = mut.normal_allelic_depth
+          l.genotype(config.sample_name).info[:DP] = mut.tumor_depth
+          l.genotype(config.sample_name).info[:AD] = mut.tumor_allelic_depth
+        end
+        unpatched.write config.somaticindel_vcf
+      end
+    end
   end
 
   class MutFilter
     include Pipeline::Step
-    runs_tasks :filter_muts
-    has_tasks :filter_muts, :concat_chroms, :filter_muts_annovar
-    runs_on :tumor_samples
+    runs_tasks :filter_muts_pindel
+    has_tasks :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_indelocator, :filter_muts_somatic_indel
+    runs_on :tumor_samples, :chroms
 
     class FilterMuts
       include Pipeline::Task
-      requires_files :pindel_vcfs, :mutect_snvses, :tumor_cnr_seg
-      outs_file :tumor_maf, :germline_maf
-      dumps_file :all_muts_maf
 
-      def run
-        somatic_maf = Maf.new
-        germline_maf = Maf.new
-        all_muts_maf = Maf.new
-        addl = [ :tumor_ref_count, :tumor_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        somatic_maf.headers.concat addl
-        germline_maf.headers.concat addl
+      EXTRA_HEADERS = [
+        :tumor_ref_count, :tumor_alt_count, :tumor_var_freq,
+        :normal_ref_count, :normal_alt_count,
+        :protein_change, :transcript_change,
+        :polyphen2_class, :cosmic_mutations, :segment_logr 
+      ]
+      ABSOLUTE_HEADERS = [
+        :t_ref_count, :t_alt_count, :tumor_var_freq,
+        :normal_ref_count, :normal_alt_count, :protein_change,
+        :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr
+      ]
 
-        # stupid fixes for absolute
-        all_muts_maf.headers.concat [ :t_ref_count, :t_alt_count, :tumor_var_freq, :normal_ref_count, :normal_alt_count, :protein_change, :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr ]
-        all_muts_maf.headers.map! { |l| l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l }
+      def mut_to_maf mut
+        seg = @segs.find do |seg| 
+          seg[:Chromosome] == mut.short_chrom && 
+            seg[:Start].to_i < mut.start.to_i &&
+            seg[:End].to_i > mut.stop.to_i
+        end
+        {
+          :hugo_symbol => mut.onco.txp_gene, 
+          :chromosome => mut.short_chrom,
+          :start_position => mut.start,
+          :end_position => mut.stop,
+          :reference_allele => mut.ref_allele,
+          :tumor_seq_allele1 => mut.alt_allele,
+          :center => "taylorlab.ucsf.edu",
+          :ncbi_build => 37,
+          :strand => "+",
+          :variant_classification => mut.onco.txp_variant_classification,
+          :variant_type => mut.onco.variant_type,
+          :dbsnp_rs => (mut.onco.is_snp ? mut.onco.dbSNP_RS : nil), 
+          :dbsnp_val_status => mut.onco.dbSNP_Val_Status,
+          :tumor_sample_barcode => config.sample_name,
+          :matched_norm_sample_barcode => config.normal_name,
+          :bam_file => config.sample_bam,
+          :protein_change => mut.onco.txp_protein_change,
+          :transcript_change => mut.onco.txp_transcript_change,
+          :polyphen2_class => mut.onco.pph2_class,
+          :cosmic_mutations => mut.onco.Cosmic_overlapping_mutations,
+          :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
+        }
+      end
+      
+      def mutect_to_maf mut
+        mut_to_maf(mut).merge({
+          :tumor_ref_count => mut.t_ref_count,
+          :tumor_alt_count => mut.t_alt_count,
+          :t_ref_count => mut.t_ref_count,
+          :t_alt_count => mut.t_alt_count,
+          :tumor_var_freq => mut.t_var_freq,
+          :normal_ref_count => mut.n_ref_count,
+          :normal_alt_count => mut.n_alt_count,
+        })
+      end
 
-        segs = HashTable.new config.tumor_cnr_seg
-        config.sample.chroms.each do |chrom|
-          MuTect.read(config.mutect_snvs(chrom), config.mutations_config).each do |l|
-            next unless l.keep_somatic? || l.keep_germline?
-            log_info "Annotating #{l.contig}:#{l.position}"
-            seg = segs.find{|seg| seg[:Chromosome] == l.contig && seg[:Start].to_i < l.position.to_i && seg[:End].to_i > l.position.to_i}
-            mut = {
-              :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.contig.sub(/^chr/,""),
-              :start_position => l.position, :end_position => l.position, :strand => "+",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref_allele, :tumor_seq_allele1 => l.alt_allele,
-              :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status,
-              :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
-              :tumor_ref_count => l.t_ref_count,
-              :tumor_alt_count => l.t_alt_count,
-              :t_ref_count => l.t_ref_count,
-              :t_alt_count => l.t_alt_count,
-              :tumor_var_freq => l.t_var_freq,
-              :normal_ref_count => l.n_ref_count,
-              :normal_alt_count => l.n_alt_count,
-              :protein_change => l.onco.txp_protein_change,
-              :transcript_change => l.onco.txp_transcript_change,
-              :polyphen2_class => l.onco.pph2_class,
-              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-            }
-            unless l.skip_oncotator?
-              somatic_maf.add_line(mut) if l.keep_somatic?
-              germline_maf.add_line(mut) if l.keep_germline? && l.onco.Cosmic_overlapping_mutations
-            end
-            all_muts_maf.add_line mut if l.keep_somatic?
+      def indel_vcf_to_maf mut
+        mut_to_maf(mut).merge({
+          :tumor_ref_count => mut.genotype(config.sample_name).ref_count,
+          :tumor_alt_count => mut.genotype(config.sample_name).alt_count,
+          :t_ref_count => mut.genotype(config.sample_name).ref_count,
+          :t_alt_count => mut.genotype(config.sample_name).alt_count,
+          :tumor_var_freq => mut.genotype(config.sample_name).alt_freq,
+          :normal_ref_count => mut.genotype(config.normal_name).ref_count,
+          :normal_alt_count => mut.genotype(config.normal_name).alt_count,
+        })
+      end
+
+      def create_mafs
+        @somatic_maf = Maf.new
+        @germline_maf = Maf.new
+        @all_muts_maf = Maf.new
+
+        @somatic_maf.headers.concat EXTRA_HEADERS
+        @germline_maf.headers.concat EXTRA_HEADERS
+        @all_muts_maf.headers.concat ABSOLUTE_HEADERS
+        @all_muts_maf.headers.map! do |l|
+          l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l 
+        end
+      end
+
+      def write_mafs
+        @somatic_maf.sort_by! {|l| -l.tumor_var_freq }
+        @germline_maf.sort_by! {|l| -l.tumor_var_freq }
+        @somatic_maf.write config.tumor_chrom_maf
+        @germline_maf.write config.germline_chrom_maf
+        @all_muts_maf.write config.all_muts_chrom_maf
+      end
+
+      def load_mutect_snvs chrom
+        MuTect.read(config.mutect_snv(chrom), config.mutations_config).each do |l|
+          next unless l.keep_somatic? || l.keep_germline?
+          log_info "Annotating #{l.contig}:#{l.position}"
+          mut = mutect_to_maf l
+          unless l.skip_oncotator?
+            @somatic_maf.add_line(mut) if l.keep_somatic?
+            @germline_maf.add_line(mut) if l.keep_germline? && l.onco.Cosmic_overlapping_mutations
           end
+          @all_muts_maf.add_line mut if l.keep_somatic?
+        end
+      end
 
-          v = VCF.read config.pindel_vcf(chrom), config.mutations_config
-          v.each do |l|
-	    log_info "Checking #{l.chrom}:#{l.pos}-#{l.end_pos}"
-	    next if l.alt.include? "N"
-            next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
+      def load_indel_snvs chrom
+        VCF.read(indel_vcf(chrom), config.mutations_config).each do |l|
+          begin
+            log_info "Checking #{l.chrom}:#{l.pos}-#{l.end_pos}"
+            next if l.alt.include?("N") || l.ref.include?("N")
+            next if l.skip_genotype?([indel_caller, :normal] => config.normal_name) || l.skip_genotype?([indel_caller, :tumor] => config.sample_name)
             next if l.skip_oncotator?
             log_info "Annotating #{l.chrom}:#{l.pos}-#{l.end_pos}"
-            seg = segs.find{|seg| seg[:Chromosome] == l.chrom && seg[:Start].to_i < l.pos.to_i && seg[:End].to_i > l.pos.to_i}
-            mut = {
-              :hugo_symbol => l.onco.txp_gene, :center => "taylorlab.ucsf.edu",
-              :ncbi_build => 37, :chromosome => l.chrom.sub(/^chr/,""),
-              :start_position => l.pos, :end_position => l.end_pos, :strand => "+",
-              :variant_classification => l.onco.txp_variant_classification, :variant_type => l.onco.variant_type,
-              :reference_allele => l.ref, :tumor_seq_allele1 => l.alt,
-              :dbsnp_rs => (l.onco.is_snp ? l.onco.dbSNP_RS : nil), :dbsnp_val_status => l.onco.dbSNP_Val_Status,
-              :tumor_sample_barcode => config.sample_name, :matched_norm_sample_barcode => config.normal_name,
-              :bam_file => config.sample_bam,
-              :tumor_ref_count => l.genotype(config.sample_name).ref_count,
-              :tumor_alt_count => l.genotype(config.sample_name).alt_count,
-              :t_ref_count => l.genotype(config.sample_name).ref_count,
-              :t_alt_count => l.genotype(config.sample_name).alt_count,
-              :tumor_var_freq => l.genotype(config.sample_name).alt_freq,
-              :normal_ref_count => l.genotype(config.normal_name).ref_count,
-              :normal_alt_count => l.genotype(config.normal_name).alt_count,
-              :protein_change =>          l.onco.txp_protein_change,
-              :transcript_change => l.onco.txp_transcript_change,
-              :polyphen2_class  =>                  l.onco.pph2_class,
-              :cosmic_mutations => l.onco.Cosmic_overlapping_mutations,
-              :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
-            }
-            somatic_maf.add_line mut
+            mut = indel_vcf_to_maf l
+            @somatic_maf.add_line mut
+          rescue ArgumentError => e
+            log_info e.message
           end
         end
-        somatic_maf.sort_by! {|l| -l.tumor_var_freq }
-        germline_maf.sort_by! {|l| -l.tumor_var_freq }
-        somatic_maf.write config.tumor_maf
-        germline_maf.write config.germline_maf
-        all_muts_maf.write config.all_muts_maf
       end
+
+      def run
+        create_mafs
+
+        @segs = HashTable.new config.tumor_cnr_seg
+
+        load_mutect_snvs config.chrom
+        load_indel_snvs config.chrom
+
+        write_mafs
+      end
+    end
+
+    class FilterMutsPindel < FilterMuts
+      class_init
+      requires_files :pindel_vcf, :mutect_snv, :tumor_cnr_seg
+      dumps_file :tumor_chrom_maf, :germline_chrom_maf, :all_muts_chrom_maf
+
+      def indel_caller; :pindel; end
+      def indel_vcf chrom; config.pindel_vcf chrom; end
+    end
+    
+    class FilterMutsIndelocator < FilterMuts
+      class_init
+      requires_files :indelocator_vcf, :mutect_snv, :tumor_cnr_seg
+      dumps_file :tumor_chrom_maf, :germline_chrom_maf, :all_muts_chrom_maf
+
+      def indel_caller; :indelocator; end
+      def indel_vcf chrom; config.indelocator_vcf chrom; end
+    end
+    class FilterMutsSomaticIndel < FilterMuts
+      class_init
+      requires_files :somaticindel_vcf, :mutect_snv, :tumor_cnr_seg
+      dumps_file :tumor_chrom_maf, :germline_chrom_maf, :all_muts_chrom_maf
+
+      def indel_caller; :somaticindel; end
+      def indel_vcf chrom; config.somaticindel_vcf chrom; end
     end
 
     class ConcatChroms
       include Pipeline::Task
-      requires_files :pindel_vcfs, :mutect_snvses
+      requires_files :chroms__pindel_vcfs, :chroms__mutect_snvs
       dumps_file :mutect_all_snvs, :pindel_all_vcf
 
       def run
         mutect = nil
-        config.mutect_snvses.each do |mf|
+        config.chroms__mutect_snvs.each do |mf|
           m = MuTect.read mf
           if mutect
             mutect.lines.concat m.lines
@@ -313,7 +523,7 @@ module Genome
         end
         mutect.write config.mutect_all_snvs if mutect
         vcf = nil
-        config.pindel_vcfs.each do |vf|
+        config.chroms__pindel_vcfs.each do |vf|
           v = VCF.read vf
           v.lines.select! do |l|
             (l.ref.size == 1 || l.alt.size == 1) && l.alt !~ /[^ATGC]/  && l.ref !~ /[^ATGC]/
@@ -336,6 +546,47 @@ module Genome
       def run
         log_info "Filtering mutect and indel output..."
         filter_muts config.mutect_all_snvs, config.pindel_all_vcf, config.tumor_muts or error_exit "Filtering failed"
+      end
+    end
+  end
+
+  class CombineMuts
+    include Pipeline::Step
+    runs_on :tumor_samples
+    runs_tasks :concat_mafs
+
+    class ConcatMafs
+      include Pipeline::Task
+      requires_files :chroms__tumor_chrom_mafs, :chroms__germline_chrom_mafs, :chroms__all_muts_chrom_mafs
+      outs_files :tumor_maf, :germline_maf, :all_muts_maf
+
+      def write_mafs
+        @somatic_maf.sort_by! {|l| -l.tumor_var_freq }
+        @germline_maf.sort_by! {|l| -l.tumor_var_freq }
+        @somatic_maf.write config.tumor_maf
+        @germline_maf.write config.germline_maf
+        @all_muts_maf.write config.all_muts_maf
+      end
+
+      def run
+        @somatic_maf = Maf.new
+        @germline_maf = Maf.new
+        @all_muts_maf = Maf.new
+
+        config.sample.chroms.each do |chrom|
+          m = Maf.read config.tumor_chrom_maf(chrom)
+          @somatic_maf.headers = m.headers
+          @somatic_maf.lines.concat m.lines
+
+          m = Maf.read config.germline_chrom_maf(chrom)
+          @germline_maf.headers = m.headers
+          @germline_maf.lines.concat m.lines
+
+          m = Maf.read config.all_muts_chrom_maf(chrom)
+          @all_muts_maf.headers = m.headers
+          @all_muts_maf.lines.concat m.lines
+        end
+        write_mafs
       end
     end
   end

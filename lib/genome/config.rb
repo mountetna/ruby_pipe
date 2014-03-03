@@ -53,11 +53,8 @@ module Genome
 
           "@sample_name.snps.baf"=> :tumor_baf,
           ":normal_name.snps.baf"=> :normal_baf,
-          "@chrom_name.snvs.raw.mutect.txt" => :mutect_snvs,
-          "@sample_name.@chrom_name.snvs.joint.raw.variant.vcf" => :snp_vcf,
-          "@sample_name.@chrom_name.snvs.snp.annotated.vcf" => :snp_annotated_vcf,
-          "@sample_name.@chrom_name.snvs.snp.filtered.vcf" => :snp_filtered_vcf,
-          "@chrom_name.snvs.raw.mutect.tmp.txt" => :mutect_snvs_tmp,
+          "@chrom_name.snvs.raw.mutect.txt" => :mutect_snv,
+          "@chrom_name.snvs.raw.mutect.tmp.txt" => :mutect_snv_tmp,
           "@sample_name.snvs.raw.mutect.txt" => :mutect_all_snvs,
           "@chrom_name.snvs.coverage.mutect.wig" => :mutect_coverage,
           "@chrom_name.insert_mutations" => :insert_mutations,
@@ -67,15 +64,32 @@ module Genome
           "@chrom_name.pindel.conf" => :pindel_list,
           "@chrom_name.indels.unpatched.pindel.vcf" => :pindel_unpatched_vcf,
           "@chrom_name.indels.raw.pindel.vcf" => :pindel_vcf,
+          "@chrom_name.indelocator.vcf" => :indelocator_unpatched_vcf,
+          "@chrom_name.indels.raw.indelocator.vcf" => :indelocator_vcf,
+          "@chrom_name.indelocator.txt" => :indelocator_output,
+
+          "@chrom_name.somaticindel.unpatched.vcf" => :somaticindel_unpatched_vcf,
+          "@chrom_name.indels.raw.somaticindel.vcf" => :somaticindel_vcf,
+          "@chrom_name.somaticindel.verbose.txt" => :somaticindel_verbose,
           "@sample_name.indels.raw2.pindel.vcf" => :pindel_all_vcf,
           "@sample_name.ratio" => :tumor_ratio,
+          "@chrom_name.somatic.maf" => :tumor_chrom_maf,
+          "@chrom_name.germline.maf" => :germline_chrom_maf,
+          "@chrom_name.all_muts.maf" => :all_muts_chrom_maf,
           "@sample_name.all_muts.maf" => :all_muts_maf,
           "@sample_name.pindel.output.txt" => :output_for_pindel,
           "@sample_name.temp.pindel.output.txt" => :temp_output_for_pindel,
 
+          "@sample_name.@chrom_name.sclip.txt" => :sclip_file,
+          "@sample_name.@chrom_name.cover" => :cover_file,
+          "@sample_name.cover" => :sample_cover_file,
+          "@sample_name.@chrom_name.predSV.txt" => :crest_rearr,
+          "@sample_name.predSV.txt" => :sample_crest_rearr,
+
           ":normal_name.cov" => :normal_cov,
           "@sample_name.cov" => :tumor_cov,
-          "@sample_name.recal.bam" => :recal_bam,
+          ":normal_name.gc_corrected.cov" => :normal_cov_gc,
+          "@sample_name.gc_corrected.cov" => :tumor_cov_gc,
           "absolute" => {
             "." => :absolute_scratch,
             "@sample_name.ABSOLUTE.RData" => :absolute_rdata
@@ -93,12 +107,11 @@ module Genome
           "@chrom_name.realigned_patient.bam" => :realigned_patient_bam,
           "@chrom_name.split." => :patient_split_bam_root,
           "@chrom_name.split.@sample_name.bam" => :patient_split_bam,
-          "@patient_name.ug.raw.vcf" => :ug_raw_vcf,
-          "@patient_name.ug.annotated.vcf" => :ug_annotated_vcf,
-          "@patient_name.ug.filtered.vcf" => :ug_filtered_vcf
+          "@patient_name.@chrom_name.ug.raw.vcf" => :ug_raw_vcf,
+          "@patient_name.@chrom_name.ug.annotated.vcf" => :ug_annotated_vcf,
+          "@patient_name.@chrom_name.ug.filtered.vcf" => :ug_filtered_vcf
         },
         "@cohort_name" => {
-          "@cohort_name.bed" => :interval_bed,
           "absolute" => {
             "." => :absolute_review_dir,
             "@cohort_name.PP-calls_tab.txt" => :review_table,
@@ -130,16 +143,18 @@ module Genome
           "@sample_name.somatic.maf" => :tumor_maf,
           "@sample_name.germline.maf" => :germline_maf,
           "@sample_name.mutations" => :sample_mutations,
-          "@sample_name.snp.filtered.annotated.vcf" => :ug_filtered_vcf,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :tumor_exon_cnr,
-          "@{sample_name}__.Rdata" => :tumor_cnr_rdata,
+          "@{sample_name}.cnr.RData" => :tumor_cnr_rdata,
           "@{sample_name}_pscbs.Rdata" => :tumor_cnr_rdata_pscbs,
           "@sample_name.pscbs.cnr.seg" => :tumor_cnr_seg_pscbs,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.mutations" => :tumor_mutations,
+        },
+        "@patient_name" => {
+          "@patient_name.ug.filtered.vcf" => :ug_vcf
         }
-      }
+      },
     })
 
     def make_chunks s
@@ -198,23 +213,18 @@ module Genome
       @config.extend_with :chroms => chromosomes
     end
 
-    def_var :initial_bam do |s| (s || job_item).initial_bam end
-    
     def_var :chunk_size do 4_000_000 end
+
     job_items :chrom, :lane, :patient, :chunk, :fastq, :input
 
-    # Align
     def_var :reads_bam do job_item.reads_bam end
-    def_var :paired_sams do sample.inputs.map{|input| paired_sam input } end
+
+    # Align
     def_var :input_fastq1 do |i| (i || job_item).property(:fq1) || (i || job_item).property(:reads1_fastq) end
     def_var :input_fastq2 do |i| (i || job_item).property(:fq2) || (i || job_item).property(:reads2_fastq) end
 
-    # Merge 
-    def_var :aligned_bams do sample.chunks.map { |chunk| aligned_bam chunk } end
-          
     # Lane Merge
     def_var :lane_aligned_bams do lane.inputs.map{|i| i.chunks.map{|c| aligned_bam c} }.flatten end
-    def_var :input_aligned_bams do input.chunks.map{|c| aligned_bam c} end
 
     # Patient Merge
     def_var :patient_recal_bams do
@@ -226,26 +236,9 @@ module Genome
     end
 
     # PatientSplit
-    def_var :realigned_patient_bams do patient.chroms.map{|c| realigned_patient_bam(c) } end
     def_var :patient_split_bams do patient.samples.map{|s| patient_split_bam s.chroms.find{|c| c.chrom_name == chrom.chrom_name} } end
-    def_var :patient_sample_bams do patient.samples.map{|s| sample_bam(s) } end
-    def_var :sample_patient_bams do sample.chroms.map{|c| patient_split_bam c } end
-
-    #copy number
-    def_var :tumor_cnr_rdatas do sample.chroms.map{ |c| tumor_cnr_rdata c } end
-
-    # Hybrid qc
-    def_var :qc_bam do tumor_bam end
-
-    # Absolute
-    def_var :absolute_rdatas do tumor_samples.map{|s| absolute_rdata s } end
 
     #mut_filter
-    def_var :output_for_pindels do samples.map{ |s| output_for_pindel(s)} end
-    def_var :temp_output_for_pindels do samples.map{ |s| temp_output_for_pindel s} end
-    def_var :pindel_vcfs do sample.chroms.map{|c| pindel_vcf c } end
-    def_var :mutect_snvses do sample.chroms.map{|c| mutect_snvs c } end
-    def_var :snp_filtered_vcfs do sample.chroms.map{|c| snp_filtered_vcf c } end
     def_var :mutations_config do "#{config_dir}/genome_mutations.yml" end
   end
 end
