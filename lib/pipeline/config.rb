@@ -69,8 +69,10 @@ module Pipeline
     def_var :reference_snp_vcf do send "#{genome}_snp_vcf".to_sym end
     def_var :reference_indel_vcf do send "#{genome}_indel_vcf".to_sym end
     def_var :reference_gtf do send "#{genome}_reference_gtf".to_sym end
-    def_var :reference_2bit do send "#{genome}_reference_2bit".to_sym end
+    def_var :reference_2bit do send "#{genome}_2bit".to_sym end
     def_var :reference_rsem do send "#{genome}_rsem".to_sym end
+    def_var :reference_interval_bed do send "#{genome}_interval_bed".to_sym end
+    def_var :reference_gc do send "#{genome}_gc".to_sym end
 
     dir_tree({
       ":scratch_dir" => {
@@ -259,13 +261,16 @@ module Pipeline
     end
 
     def proc_collect m, args
-      term,meth = m.to_s.split(/__/)
-      meth = meth.sub(/s$/,"").to_sym
-      item = args.first || job_item
-      array = item.send term.to_sym
-      array.map do |i|
-        send meth, i
+      terms = m.to_s.split(/__/)
+      meth = terms.pop.sub!(/s$/,"").to_sym
+      obj = [ job_item ]
+      terms.each do |key|
+        key = key.to_sym
+        obj = obj.collect{|o| o.property key}.flatten
       end
+      obj.map do |o|
+        send meth, o
+      end.flatten
     end
 
     def method_missing(meth,*args,&block)
