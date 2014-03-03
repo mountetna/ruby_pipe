@@ -60,11 +60,11 @@ module Genome
 
     class MergeFiles
       include Pipeline::Task
-      requires_file :sample_patient_bams
+      requires_file :chroms__patient_split_bams
       outs_file :sample_bam
 
       def run
-        picard :merge_sam_files, :CREATE_INDEX => :true, :OUTPUT => config.sample_bam, :INPUT => config.sample_patient_bams or error_exit "bam file merge failed."
+        picard :merge_sam_files, :CREATE_INDEX => :true, :OUTPUT => config.sample_bam, :INPUT => config.chroms__patient_split_bams or error_exit "bam file merge failed."
       end
     end
   end

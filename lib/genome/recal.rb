@@ -29,14 +29,14 @@ module Genome
 
     class TableRecal
       include Pipeline::Task
-      requires_file :recal_grp, :input_aligned_bams
+      requires_file :recal_grp, :chunks__aligned_bams
       dumps_file :recal_bam
 
       def run
 	log_info "Base-quality recalibration: Table Recalibration"
 	gatk :print_reads,
 		:BQSR => config.recal_grp,
-		:input_file => config.input_aligned_bams,
+		:input_file => config.chunks__aligned_bams,
                 :num_threads => nil,
 		:out => config.recal_bam or error_exit "TableRecalibration failed"
       end
