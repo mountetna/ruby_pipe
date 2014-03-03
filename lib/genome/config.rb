@@ -23,6 +23,11 @@ module Genome
     dir_tree({
       ":scratch_dir" => {
         "@sample_name" => {
+          "@{fastq_name}_fastqc" => {
+            "." => :fastqc_output_dir,
+            "summary.txt" => :fastqc_summary,
+            "fastqc_report.html" => :fastqc_html
+          },
           "input.@input_name.chaste.bam" => :chaste_bam,
           "input.@input_name.reads1.fastq.gz" => :reads1_fastq,
           "input.@input_name.reads2.fastq.gz" => :reads2_fastq,
@@ -112,6 +117,9 @@ module Genome
           "@sample_name.sample_summary" => :qc_coverage_metrics,
           "@sample_name" => :qc_coverage_base,
           "@sample_name.duplication_metrics" => :duplication_metrics,
+          "fastqc" => {
+            "@sample_name.@fastq_name.pdf" => :fastqc_pdf
+          }
         },
         "@cohort_name.qc_summary" => :qc_summary
       },

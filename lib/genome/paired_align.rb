@@ -1,5 +1,6 @@
 require 'pipeline'
 require 'genome/align'
+require 'genome/fastqc'
 require 'genome/recal'
 require 'genome/realign'
 require 'genome/rearrangement'
@@ -12,7 +13,8 @@ require 'genome/indel'
 module Genome
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :dump_fastqs, :combine_fastqs, :align,
+    runs_steps :fast_qc,
+      :dump_fastqs, :combine_fastqs, :align,
       :lane_recal, :table_recal,
       :patient_realign, 
       :make_samples, 
@@ -25,6 +27,10 @@ module Genome
       :combine_fastqs => true,
       :align => true,
       :merge => true
+    }
+
+    def_module :verify_fastqs, {
+      :fast_qc => true
     }
 
     def_module :recal_by_lane, {
