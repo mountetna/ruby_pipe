@@ -21,11 +21,11 @@ module Pipeline
     end
 
     def task_files mem
-      self.class.tasks.each do |t|
+      tasks.each do |t|
         mem[t] ||= { :dump_files => [], :out_files => [] }
         task = create_task(t)
-        mem[t][:dump_files].concat task.dump_files.map{|d| config.send d}.flatten
-        mem[t][:out_files].concat task.out_files.map{|d| config.send d}.flatten
+        mem[t][:dump_files].concat task.dump_files.keys.map{|d| config.send d}.flatten
+        mem[t][:out_files].concat task.out_files.keys.map{|d| config.send d}.flatten
       end
     end
   end

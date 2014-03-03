@@ -75,11 +75,11 @@ module Pipeline
         end
 
         def symbol_count
-          @files.map{|f| @config.send f}.compact.size
+          @files.map{|f,type| @config.send f}.compact.size
         end
 
-        def has_files?
-          total != 0 && !missing?
+        def unmade_files?
+          total != 0 && missing?
         end
 
         def needed?
@@ -88,6 +88,7 @@ module Pipeline
 
         def count
           @count ||= @files.count do |f|
+            f, type = f.first
             begin
               filename = @config.send f
             rescue => e
@@ -97,15 +98,16 @@ module Pipeline
             end
             if filename && filename.is_a?(Array)
               filename.all? do |fn|
-                fn && File.size?(fn) && File.readable?(fn)
+                fn && (type != :has_data || File.size?(fn)) && File.readable?(fn)
               end
             else
-              filename && File.size?(filename) && File.readable?(filename)
+              filename && (type != :has_data || File.size?(filename)) && File.readable?(filename)
             end
           end
         end
         def print_files no_array=nil
           @files.each do |f|
+            f,type = f.first
             filename = @config.send f
             if filename && filename.is_a?(Array) && !no_array
               filename.each do |fn|
@@ -169,8 +171,8 @@ module Pipeline
           end
           return
         end
-        if dump.has_files? && out.has_files?
-          log_console "won't run, all files are present".blue
+        if !dump.unmade_files? && !out.unmade_files?
+          log_console "will skip, all files are present".cyan
           out.print_files do |f,fn|
             log_console "#{f} => #{fn} (#{File.human_size(fn)})".green
           end if !config.verbose
