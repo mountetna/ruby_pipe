@@ -1,0 +1,4 @@
+:pipe: utility
+:script: blat
+:log_dir: ./log
+:scratch_dir: ./scratch
