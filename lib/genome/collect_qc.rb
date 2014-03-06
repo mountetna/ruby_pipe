@@ -3,50 +3,50 @@ module Genome
   class CollectQc
   #class Qc
     include Pipeline::Step
-    runs_tasks :calc_flags, :collect_insert_sizes, :collect_align_metrics, :coverage_metrics
+    runs_tasks :calc_flags, :collect_insert_sizes, :collect_align_metrics #, :coverage_metrics
     runs_on :samples
 
     class CalcFlags
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_file :qc_flag
 
       def run
 	log_info "Calculate flag statistics"
-        sam_flags config.qc_bam, config.qc_flag or error_exit "Collecting flag statistics failed"
+        sam_flags config.sample_bam, config.qc_flag or error_exit "Collecting flag statistics failed"
       end
     end
 
     class CollectInsertSizes
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_files :qc_inserts, :qc_histogram
 
       def run
         log_info "Calculating insert metrics"
-        picard :collect_insert_size_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram or error_exit "Collecting insert sizes failed"
+        picard :collect_insert_size_metrics, :INPUT => config.sample_bam, :OUTPUT => config.qc_inserts, :HISTOGRAM_FILE => config.qc_histogram or error_exit "Collecting insert sizes failed"
       end
     end
 
     class CollectAlignMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_files :qc_align_metrics
 
       def run
         log_info "Calculating alignment metrics"
-        picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics or error_exit "Collecting alignment metrics failed"
+        picard :collect_alignment_summary_metrics, :INPUT => config.sample_bam, :OUTPUT => config.qc_align_metrics or error_exit "Collecting alignment metrics failed"
       end
     end
 
     class CoverageMetrics
       include Pipeline::Task
-      requires_file :qc_bam
+      requires_file :sample_bam
       outs_file :qc_coverage_metrics
 
       def run
         #create_interval_bed
-        gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.qc_bam,
+        gatk :depth_of_coverage, :out => config.qc_coverage_base, :input_file =>  config.sample_bam,
           :omitDepthOutputAtEachBase => true,
           :omitIntervalStatistics => true,
           :omitLocusTable => true
@@ -84,9 +84,9 @@ module Genome
           sample_qc[:median_insert_size] = inserts[:median_insert_size]
           sample_qc[:mean_insert_size] = inserts[:mean_insert_size]
 
-          coverage = File.foreach(config.qc_coverage_metrics s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
-          coverage = Hash[coverage.first.map(&:downcase).map(&:to_sym).zip coverage.last]
-          sample_qc[:mean_coverage] = coverage[:mean]
+          #coverage = File.foreach(config.qc_coverage_metrics s).reject{|i| i=~ /^(#|$)/}.map(&:split)[0..1]
+          #coverage = Hash[coverage.first.map(&:downcase).map(&:to_sym).zip coverage.last]
+          #sample_qc[:mean_coverage] = coverage[:mean]
 
           qc[s.sample_name] = sample_qc
         end

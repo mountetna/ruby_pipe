@@ -3,34 +3,45 @@ module Pipeline
   module Task
     module ClassMethods
       def class_init
-        @required_files = []
-        @skip_symbols = []
-        @dump_files = []
-        @out_files = []
+        @required_files = {}
+        @skip_symbols = {}
+        @dump_files = {}
+        @out_files = {}
       end
 
       def skip_without *required
         requires_file *required
-        @skip_symbols = required
+        @skip_symbols = @required_files
       end
 
       def requires_file(*required)
-        @required_files = required
+        add_files @required_files, required
       end
       alias :requires_files :requires_file
 
       def dumps_file(*dump)
-        @dump_files = dump
+        add_files @dump_files, dump
       end
       alias :dumps_files :dumps_file
 
       def outs_file(*outs)
-        @out_files = outs
+        add_files @out_files, outs
       end
       alias :outs_files :outs_file
 
-      def made_files; @out_files + @dump_files; end
+      def made_files; @out_files.merge @dump_files; end
       attr_reader :required_files, :skip_symbols, :dump_files, :out_files
+
+      private
+      def add_files hsh, files
+        files.each do |r|
+          if r.is_a? Hash
+            hsh.update r
+          else
+            hsh.update r => :has_data
+          end
+        end
+      end
     end
   end
   class PipeError < StandardError
@@ -93,46 +104,46 @@ module Pipeline
         log_info "task #{task_name}:".white.bold
 
         # if all of the files exist, you shouldn't run
-        return nil if !make_files?
+        return nil unless make_files?
 
         # this will exit the step if it is missing files.
         # it will skip if some required symbols are nil
-        return nil if !check_required
+        return nil unless has_required?
         # this will merely move on to the next step
       end
       true
     end
 
-    def check_file(filename,f)
+    def check_file(filename,f, type)
       error_exit "Could not get filename for #{f}" if !filename
 
       # make sure the directory is there
       ensure_dir filename
 
-      error_exit "Could not find required file #{f} at #{filename}" if !File.size?(filename) 
+      error_exit "Could not find required file #{f} at #{filename}" if type == :has_data && !File.size?(filename)
       error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
 
       log_debug "#{f} ok at #{filename}" if config.verbose?
     end
 
-    def check_required
-      skip_symbols.each do |s|
+    def has_required?
+      skip_symbols.each do |s,type|
         return nil if !config.send s
       end
 
-      required_files.each do |f|
+      required_files.each do |f,type|
         filename = config.send(f)
         if filename.is_a? Array
-          filename.each {|ff| check_file ff, f }
+          filename.each {|ff| check_file ff, f, type }
         else
-          check_file filename, f
+          check_file filename, f, type
         end
       end
       true
     end
 
-    def make_file?(filename,f)
-      if File.size?(filename) && File.readable?(filename)
+    def make_file?(filename,f, type)
+      if (type != :has_data || File.size?(filename)) && File.readable?(filename)
         log_debug "#{task_name}: #{f} already made at #{filename}" if config.verbose?
         nil
       else
@@ -143,12 +154,12 @@ module Pipeline
 
     def make_files?
       all_made = made_files.any?
-      made_files.each do |f|
+      made_files.each do |f,type|
         filename = config.send(f)
         if filename.is_a? Array
-          filename.each { |fn| all_made = nil if make_file? fn, f }
+          filename.each { |fn| all_made = nil if make_file? fn, f, type }
         else
-          all_made = nil if make_file? filename, f
+          all_made = nil if make_file? filename, f, type
         end
       end
       log_info "#{task_name}: skipping, all files made".blue if all_made

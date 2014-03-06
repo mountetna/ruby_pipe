@@ -21,7 +21,7 @@ module Pipeline
     def usages
       self.class.ancestors.map{ |c|
         c.respond_to?(:usages) ? c.usages : nil
-      }.compact.reduce(:merge) || {}
+      }.compact.reverse.reduce(:merge) || {}
     end
 
     def print_usage c, u

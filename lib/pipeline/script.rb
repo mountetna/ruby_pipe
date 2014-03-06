@@ -98,14 +98,14 @@ module Pipeline
       create_step(config.next_step).setup_scheduler(job,trials) if config.next_step
     end
 
-    usage "list_steps <config_file.yml>", "List steps for this pipeline."
     usage "generate <cohort_name>", "Generate a new config file for a cohort of samples."
     usage "audit <config_file.yml>", "Audit the pipeline to see which steps are complete."
     usage "start <config_file.yml> [<step>]", "Start the pipeline at the beginning or at <step>"
     usage "run_step <config_file.yml> <step_name>", "Run just the named step"
+    usage "list_steps <config_file.yml>", "List steps for this pipeline."
     usage "stop <config_file.yml> [please]", "stop the pipeline, optionally waiting for the current step to finish"
     usage "clean <config_file.yml> <scratch|output|list> <step|all> [<task>]", "Clean up files from a given run"
-    usage "timer <config_file.yml>", "Generate table of time to completion for each step. Must be run after pipeline is finished. Must be run from directory where config file is located."
+    usage "timer <config_file.yml>", "Generate table of time to completion for each step."
 
     def generate(args)
       self.class.daughter_class(:config_generator).new *args
@@ -162,7 +162,7 @@ module Pipeline
         puts "Available steps for #{config.script}".red.bold
         self.class.steps.each do |s|
           step = create_step s
-          puts "step #{config.step},".green.bold + " runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+          puts "step #{config.step},".green.bold + " runs on #{(step.run_chain || [:cohort]).join(".")}".cyan.bold
           puts "  runs tasks #{step.class.tasks.join(", ")}".blue.bold
           puts "  has tasks #{step.class.available_tasks.join(", ")}".yellow.bold if (step.class.available_tasks - step.class.tasks).size > 0
         end
@@ -176,7 +176,7 @@ module Pipeline
         puts "Steps for #{config.script}".red.bold
         steps.each do |s|
           step = create_step s
-          puts "step #{config.step},".green.bold + " runs on #{(step.job_items || [:cohort]).join(".")}".cyan.bold
+          puts "step #{config.step},".green.bold + " runs on #{(step.run_chain || [:cohort]).join(".")}".cyan.bold
           puts "  runs tasks #{step.tasks.join(", ")}".blue.bold
         end
       end

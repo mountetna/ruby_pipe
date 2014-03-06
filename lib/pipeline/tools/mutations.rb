@@ -3,13 +3,20 @@ module Pipeline
     module IndelDetection
       def indelocator(opts)
         opts = { :logging_level => config.logging_level,
-          :num_threads => config.threads,
           :baq => "CALCULATE_AS_NECESSARY",
-          #:"rodBind:dbsnp,vcf" => config.reference_snp_vcf,
           :reference_sequence => config.reference_fa,
           :analysis_type => "IndelGenotyperV2"
         }.merge(opts)
         java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.indelocator_dir}/#{config.indelocator_jar}", :args => format_opts(opts)
+      end
+
+      def somatic_indel_detector(opts)
+        opts = { :logging_level => config.logging_level,
+          :baq => "CALCULATE_AS_NECESSARY",
+          :reference_sequence => config.reference_fa,
+          :analysis_type => :SomaticIndelDetector
+        }.merge(opts)
+        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.somaticindel_dir}/#{config.somaticindel_jar}", :args => format_opts(opts)
       end
 
       def pindel(opts)
@@ -51,10 +58,14 @@ module Pipeline
           :dbsnp => config.reference_snp_vcf,
           :num_threads => config.threads,
           :cosmic => config.cosmic_vcf,
+        }.merge(opts)
+
+        opts = {
           :max_alt_alleles_in_normal_count => 100000,
           :max_alt_alleles_in_normal_qscore_sum => 100000,
           :max_alt_allele_in_normal_fraction => 1
-        }.merge(opts)
+        }.merge(opts) if opts.delete :no_normal_filter
+
         java :bin => config.java6, :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
       end
     end

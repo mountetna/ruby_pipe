@@ -69,8 +69,10 @@ module Pipeline
     def_var :reference_snp_vcf do send "#{genome}_snp_vcf".to_sym end
     def_var :reference_indel_vcf do send "#{genome}_indel_vcf".to_sym end
     def_var :reference_gtf do send "#{genome}_reference_gtf".to_sym end
-    def_var :reference_2bit do send "#{genome}_reference_2bit".to_sym end
+    def_var :reference_2bit do send "#{genome}_2bit".to_sym end
     def_var :reference_rsem do send "#{genome}_rsem".to_sym end
+    def_var :reference_interval_bed do send "#{genome}_interval_bed".to_sym end
+    def_var :reference_gc do send "#{genome}_gc".to_sym end
 
     dir_tree({
       ":scratch_dir" => {
@@ -254,6 +256,23 @@ module Pipeline
       item.property(property) || send(property, item)
     end
 
+    def is_proc_collection? meth
+      meth =~ /^\w+__\w+s$/
+    end
+
+    def proc_collect m, args
+      terms = m.to_s.split(/__/)
+      meth = terms.pop.sub!(/s$/,"").to_sym
+      obj = [ job_item ]
+      terms.each do |key|
+        key = key.to_sym
+        obj = obj.collect{|o| o.property key}.flatten
+      end
+      obj.map do |o|
+        send meth, o
+      end.flatten
+    end
+
     def method_missing(meth,*args,&block)
       # always look in the config file first, so we can overrule things there
       meth = meth.to_sym if meth.is_a? String
@@ -265,6 +284,9 @@ module Pipeline
       # if not there, it could be in the procs table, to be found interactively
       elsif @procs[meth]
         return instance_exec( *args, &@procs[meth])
+      # if not there, it might be automatically collecting procs
+      elsif is_proc_collection?(meth)
+        return proc_collect(meth, args)
       # if not there, it is likely in options. These can be nil for empty variables
       elsif @opts.has_key? meth
         return @opts[meth]

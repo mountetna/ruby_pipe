@@ -196,4 +196,32 @@ map_to_logr = function(baf,logr) {
 	))
 }
 
+add_gc = function(cov, gc) {
+  cov$pctGC=gc$X5_pct_gc
+  cutoff=mean(cov$reads)+1.5*sd(cov$reads)
+  cov=cov[-which(cov$reads>cutoff),]
+  cov=cov[-which(cov$pctGC < 0.33),]
+  return(cov)
+}
+
+gc_correct=function(coverage,span=0.75,degree=2) {
+  lo=loess(coverage$reads ~ coverage$pctGC,
+  	span=span,
+	degree=degree,
+	data.frame(reads=coverage$reads, gc=coverage$pctGC))
+  center=mean(coverage$reads)
+  adj=lo$fitted-center
+  coverage$reads=coverage$reads-adj
+  return(coverage)
+}
+
+doGcCorrect=function(cov_file, corr_file, gc_file) {
+	cov = read.table(cov_file,header=F,sep="\t")
+	colnames(cov) = c("contig","start","end","reads")
+	gc = read.table(gc_file,header=T,sep="\t")
+	cov = add_gc(cov, gc)
+	cov = gc_correct(cov)
+	write.table(cov, corr_file, quote=F, sep="\t",col.names = FALSE, row.names = FALSE)
+}
+
 do.call(cmd,as.list(args[-1:-2]))

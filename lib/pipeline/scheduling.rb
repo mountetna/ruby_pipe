@@ -12,6 +12,12 @@ module Pipeline
   module Scheduling
     class TorqueScheduler
       def run_job vars, opts
+        opts = {
+          :nodes => "1",
+          :threads => "1",
+          :memory => "1gb"
+        }.merge(opts)
+
         fields = {
           :N => opts[:name],
           :W => opts[:wait] ? wait_string(opts[:wait],opts[:prev_trials]) : nil,
@@ -25,8 +31,8 @@ module Pipeline
 
         res = []
         res.push "walltime=#{opts[:walltime]}:00:00:00" if opts[:walltime]
-        res.push "nodes=1:ppn=#{opts[:threads]}" if opts[:threads]
-        res.push "pmem=1gb"
+        res.push "nodes=#{opts[:nodes]}:ppn=#{opts[:threads]}"
+        res.push "pmem=#{opts[:memory]}"
 
         yield res, fields
       end
@@ -39,7 +45,8 @@ module Pipeline
 
       def run vars,opts
         run_job vars,opts do |res,fields|
-        `/opt/moab/bin/msub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1`
+          cmd = "/opt/moab/bin/msub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1"
+          %x{#{cmd}}
         end
       end
 
@@ -83,7 +90,8 @@ module Pipeline
       def run vars, opts
         run_job vars,opts do |res,fields|
           fields[:o] = "/dev/null"
-          `qsub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1`
+          cmd = "qsub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1"
+          %x{#{cmd}}
         end
       end
 

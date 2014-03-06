@@ -4,9 +4,13 @@
 :tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
 
 :bedtools_dir: /taylorlab/lib/bedtools/bedtools-latest/bin
+:blat_dir: /taylorlab/lib/blat/blat-latest/bin
+:blat_node: n0
+:blat_port: 3333
 :bowtie2_dir: /taylorlab/lib/bowtie/bowtie2-latest
 :bowtie_dir: /taylorlab/lib/bowtie/bowtie-latest
 :bwa_dir: /taylorlab/lib/bwa/bwa-latest
+:crest_dir: /taylorlab/lib/crest/crest-latest
 :cufflinks_dir: /taylorlab/lib/cufflinks/cufflinks-latest
 :indelocator_dir: /taylorlab/lib/indelocator/indelocator-latest
 :indelocator_jar: IndelGenotyper.jar
@@ -14,6 +18,8 @@
 :fastx_dir: /taylorlab/lib/fastx/fastx-latest
 :gatk_dir: /taylorlab/lib/gatk/gatk-latest
 :gatk_jar: GenomeAnalysisTK.jar
+:somaticindel_dir: /taylorlab/lib/somaticindeldetector/somaticindeldetector-latest
+:somaticindel_jar: GenomeAnalysisTK.jar
 :mutect_dir: /taylorlab/lib/mutect/mutect-latest
 :mutect_jar: muTect.jar
 :indelocator_dir: /taylorlab/lib/indelocator/indelocator-latest
@@ -22,6 +28,6 @@
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest
 :rsem_dir: /taylorlab/lib/rsem/rsem-latest
 :samtools_dir: /taylorlab/lib/samtools/samtools-latest
+:strelka_dir: /taylorlab/lib/strelka/strelka-latest
 :tophat_dir: /taylorlab/lib/tophat/tophat-latest
 :vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
-:strelka_dir: /taylorlab/lib/strelka/strelka-latest

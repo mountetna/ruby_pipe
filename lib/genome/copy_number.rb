@@ -5,8 +5,8 @@ require 'fileutils'
 module Genome
   class CopyNumber
     include Pipeline::Step
-    runs_tasks :compute_coverage, :compute_ratio, :copy_seg_cbs, :compute_purity_ploidy
-    has_tasks :compute_baf, :compute_coverage, :compute_ratio, :copy_seg_cbs, :copy_seg_pscbs, :compute_purity_ploidy
+    runs_tasks :compute_coverage, :correct_gc, :compute_ratio, :copy_seg_cbs
+    has_tasks :compute_baf, :compute_coverage, :compute_ratio, :copy_seg_cbs, :copy_seg_pscbs
     runs_on :tumor_samples
     resources :threads => 1, :walltime => 50
 
@@ -38,27 +38,39 @@ module Genome
       end
     end    
 
+    # Reference_interval_bed in this case just partitions the genome into 50kb windows. Could be anything.
     class ComputeCoverage
       include Pipeline::Task
-      requires_files :tumor_bam, :normal_bam, :interval_bed
+      requires_files :tumor_bam, :normal_bam, :reference_interval_bed
       dumps_files :tumor_cov, :normal_cov
 
       def run
-        coverage_bed config.normal_bam, config.interval_bed, config.normal_cov or error_exit "Computing normal coverage failed."
-        coverage_bed config.tumor_bam, config.interval_bed, config.tumor_cov or error_exit "Computing tumor coverage failed."
+        coverage_bed config.normal_bam, config.reference_interval_bed, config.normal_cov or error_exit "Computing normal coverage failed."
+        coverage_bed config.tumor_bam, config.reference_interval_bed, config.tumor_cov or error_exit "Computing tumor coverage failed."
+      end
+    end
+
+    class CorrectGc
+      include Pipeline::Task
+      requires_files :tumor_cov, :normal_cov
+      dumps_files :tumor_cov_gc, :normal_cov_gc
+
+      def run
+        r_script :segment, :doGcCorrect, config.normal_cov, config.normal_cov_gc, config.reference_gc or error_exit "GC correction failed for normal!"
+        r_script :segment, :doGcCorrect, config.tumor_cov, config.tumor_cov_gc, config.reference_gc or error_exit "GC correction failed for tumor!"
       end
     end
 
     class ComputeRatio
       include Pipeline::Task
-      requires_files :normal_cov, :tumor_cov
+      requires_files :normal_cov_gc, :tumor_cov_gc
       outs_files :tumor_exon_cnr
 
       def run
         header = [ :chr, :start, :stop, :count ]
-        normal_cov = HashTable.new(config.normal_cov, :header => header)
-        tumor_cov = HashTable.new(config.tumor_cov, :header => header)
-        tumor_logr = HashTable.new(config.tumor_cov, :header => header)
+        normal_cov = HashTable.new(config.normal_cov_gc, :header => header)
+        tumor_cov = HashTable.new(config.tumor_cov_gc, :header => header)
+        tumor_logr = HashTable.new(config.tumor_cov_gc, :header => header)
 
         n_tot = normal_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
         t_tot = tumor_cov.inject(0) { |m,l| m += l[:count].to_i + 10 }.to_f
@@ -97,15 +109,6 @@ module Genome
         r_script :segment, :doSegPscbs, config.tumor_ratio, config.tumor_baf, config.normal_baf, config.tumor_cnr_rdata_pscbs or error_exit "CBS segmentation failed"
        end
     end
-    class ComputePurityPloidy
-      include Pipeline::Task
-      requires_file :tumor_cnr_seg, :all_muts_maf
-      outs_file :absolute_rdata
-
-      def run
-        r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
-      end
-    end
   end
 
   class Absolute 
@@ -131,11 +134,11 @@ module Genome
     class CreateReviewObject
       include Pipeline::Task
 
-      requires_files :absolute_rdatas
+      requires_files :tumor_samples__absolute_rdatas
       dumps_file :review_table
 
       def run
-        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.absolute_rdatas
+        r_script :absolute, :createReview, config.cohort_name, config.absolute_review_dir, *config.tumor_samples__absolute_rdatas
       end
     end
     class ExtractReviewResults

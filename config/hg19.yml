@@ -32,3 +32,5 @@
 
 :hg19_rrna_intervals: /taylorlab/resources/human/hg19/intervals/rrna/Homo_sapiens_assembly19.rRNA,1-25,BST20120223.interval_list
 :agilent_intervals: /taylorlab/resources/human/hg19/intervals/agilent/029720_D_BED_20101013_agilent_50mb_exon_hg19.interval_list
+:hg19_interval_bed: /taylorlab/resources/human/hg19/intervals/whole_genome/hg19.50kb.bed
+:hg19_gc: /taylorlab/resources/human/hg19/misc/hg19.50kb.gc.txt
