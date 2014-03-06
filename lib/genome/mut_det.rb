@@ -561,8 +561,8 @@ module Genome
       outs_files :tumor_maf, :germline_maf, :all_muts_maf
 
       def write_mafs
-        @somatic_maf.sort_by! {|l| -l.tumor_var_freq }
-        @germline_maf.sort_by! {|l| -l.tumor_var_freq }
+        @somatic_maf.sort_by! {|l| -l.tumor_var_freq.to_f }
+        @germline_maf.sort_by! {|l| -l.tumor_var_freq.to_f }
         @somatic_maf.write config.tumor_maf
         @germline_maf.write config.germline_maf
         @all_muts_maf.write config.all_muts_maf
