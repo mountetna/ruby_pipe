@@ -13,7 +13,7 @@ module Rna
 
       def run
         combined = {}
-        config.replicates.each do |rep|
+        config.samples__replicatess.each do |rep|
           genes = HashTable.new config.gene_tracking(rep)
           genes.each do |l|
             combined[l[:gene_id]] ||= {}
@@ -21,9 +21,9 @@ module Rna
           end
         end
         File.open config.fpkm_table, "w" do |f|
-          f.puts "gene_id\t#{config.replicates.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          f.puts "gene_id\t#{config.samples__replicatess.map{|r| config.sample_replicate_name(r) }.join("\t")}"
           combined.each do |gid,g|
-            f.puts "#{gid}\t#{config.replicates.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+            f.puts "#{gid}\t#{config.samples__replicatess.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
           end
         end
       end
@@ -36,7 +36,7 @@ module Rna
 
       def run
         combined = {}
-        config.replicates.each do |rep|
+        config.samples__replicatess.each do |rep|
           genes = HashTable.new config.transcripts_cov(rep), :header => [ :gene_id, :coverage ]
           skip = [ "no_feature", "ambiguous", "too_low_aQual", "not_aligned", "alignment_not_unique" ]
           genes.each do |l|
@@ -46,9 +46,9 @@ module Rna
           end
         end
         File.open config.coverage_table, "w" do |f|
-          f.puts "gene_id\t#{config.replicates.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          f.puts "gene_id\t#{config.samples__replicatess.map{|r| config.sample_replicate_name(r) }.join("\t")}"
           combined.each do |gid,g|
-            f.puts "#{gid}\t#{config.replicates.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+            f.puts "#{gid}\t#{config.samples__replicatess.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
           end
         end
       end
@@ -60,12 +60,12 @@ module Rna
 
     class MakeTpmTable
       include Pipeline::Task
-      requires_files :rsem_genes_resultses
+      requires_files :samples__replicates__rsem_genes_resultss
       outs_file :tpm_table
 
       def run
         combined = {}
-        config.replicates.each do |rep|
+        config.samples__replicatess.each do |rep|
           genes = HashTable.new config.rsem_genes_results(rep)
           genes.each do |l|
             combined[l[:gene_id]] ||= {}
@@ -73,9 +73,9 @@ module Rna
           end
         end
         File.open config.tpm_table, "w" do |f|
-          f.puts "gene_id\t#{config.replicates.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          f.puts "gene_id\t#{config.samples__replicatess.map{|r| config.sample_replicate_name(r) }.join("\t")}"
           combined.each do |gid,g|
-            f.puts "#{gid}\t#{config.replicates.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+            f.puts "#{gid}\t#{config.samples__replicatess.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
           end
         end
       end
@@ -83,12 +83,12 @@ module Rna
 
     class MakeCoverageTable
       include Pipeline::Task
-      requires_files :rsem_genes_resultses
+      requires_files :samples__replicates__rsem_genes_resultss
       outs_file :coverage_table
 
       def run
         combined = {}
-        config.replicates.each do |rep|
+        config.samples__replicatess.each do |rep|
           genes = HashTable.new config.rsem_genes_results(rep)
           genes.each do |l|
             combined[l.gene_id] ||= {}
@@ -96,9 +96,9 @@ module Rna
           end
         end
         File.open config.coverage_table, "w" do |f|
-          f.puts "gene_id\t#{config.replicates.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          f.puts "gene_id\t#{config.samples__replicatess.map{|r| config.sample_replicate_name(r) }.join("\t")}"
           combined.each do |gid,g|
-            f.puts "#{gid}\t#{config.replicates.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+            f.puts "#{gid}\t#{config.samples__replicatess.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
           end
         end
       end
