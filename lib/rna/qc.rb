@@ -3,7 +3,7 @@ module Rna
   class Qc
     include Pipeline::Step
     runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class CalcFlags
       include Pipeline::Task

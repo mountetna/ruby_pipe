@@ -4,7 +4,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :run_tophat, :merge_reads, :sort_seq, :relabel_bam
     resources :threads => 12
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class RunTophat
       include Pipeline::Task

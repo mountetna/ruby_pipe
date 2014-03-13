@@ -6,7 +6,7 @@ module Rna
     runs_tasks :create_input_fastq, :chimera_scan
     audit_report :sample_replicate_name
     resources :threads => 12
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class CreateInputFastq
       include Pipeline::Task

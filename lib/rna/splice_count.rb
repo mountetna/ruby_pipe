@@ -6,7 +6,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :create_read_cigar, :count_exon_splices
     audit_report :sample_replicate_name
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class CreateReadCigar
       include Pipeline::Task

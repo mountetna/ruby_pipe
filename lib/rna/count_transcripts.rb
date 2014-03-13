@@ -8,7 +8,7 @@ module Rna
     has_tasks :cufflink, :cufflink_denovo, :format_transcript, :sort_sam, :count_coverage
     audit_report :sample_replicate_name
     resources :threads => 12
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class Cufflink
       include Pipeline::Task
@@ -69,7 +69,7 @@ module Rna
     runs_tasks :rsem_count
     audit_report :sample_replicate_name
     resources :threads => 12
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class RsemCount
       include Pipeline::Task
@@ -94,7 +94,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :rsem_prep_header, :rsem_patch, :rsem_move
     audit_report :sample_replicate_name
-    runs_on :replicates
+    runs_on :samples, :replicates
 
     class RsemPrepHeader
       include Pipeline::Task
