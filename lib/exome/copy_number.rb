@@ -30,7 +30,7 @@ module Exome
 
   class SampleCoverage
     include Pipeline::Step
-    runs_tasks :compute_coverage
+    runs_tasks :compute_coverage, :correct_gc
     runs_on :samples
     audit_report :sample_name
 
@@ -41,6 +41,16 @@ module Exome
 
       def run
         coverage_bed config.sample_bam, config.interval_bed, config.sample_cov or error_exit "Computing coverage failed."
+      end
+    end
+    
+    class CorrectGc
+      include Pipeline::Task
+      requires_files :sample_cov
+      dumps_files :sample_cov_gc
+
+      def run
+        r_script :segment, :doGcCorrect, config.sample_cov, config.sample_cov_gc, config.reference_gc or error_exit "GC correction failed for tumor!"
       end
     end
   end
@@ -105,7 +115,7 @@ module Exome
 
       def run
         # just pass these arguments to the R script
-        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name or error_exit "CBS segmentation failed"
+        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name, config.segment_smoothing or error_exit "CBS segmentation failed"
       end
     end
   end
@@ -149,7 +159,7 @@ module Exome
 
       def run
         # just pass these arguments to the R script
-        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name or error_exit "CBS segmentation failed"
+        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name, config.segment_smoothing or error_exit "CBS segmentation failed"
       end
     end
 

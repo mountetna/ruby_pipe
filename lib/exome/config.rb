@@ -248,6 +248,8 @@ module Exome
     # Hybrid qc
     def_var :qc_bam do tumor_bam end
 
+    def_var :segment_smoothing do 1.5 end
+
     #mut_filter
     def_var :pindel_vcfs do sample.chroms.map{|c| pindel_vcf c } end
     def_var :mutect_snvses do sample.chroms.map{|c| mutect_snvs c } end
