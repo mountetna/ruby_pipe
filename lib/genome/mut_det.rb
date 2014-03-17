@@ -250,6 +250,20 @@ module Genome
         (?<fields> [\d\.\/-]+){0}
         \A\g<field_name>(\[\g<params>\])?:?\g<fields>?\Z
       }x
+      FIELD_KEYS = {
+         :N_OBS_COUNTS => [ :alt, :other, :total],
+         :N_AV_MM => [:alt,:ref],
+         :N_AV_MAPQ => [:alt,:ref],
+         :N_NQS_MM_RATE => [:alt,:ref],
+         :N_NQS_AV_QUAL => [:alt,:ref],
+         :N_STRAND_COUNTS => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+         :T_OBS_COUNTS => [:alt,:other,:total],
+         :T_AV_MM => [:alt,:ref],
+         :T_AV_MAPQ => [:alt,:ref],
+         :T_NQS_MM_RATE => [:alt,:ref],
+         :T_NQS_AV_QUAL => [:alt,:ref],
+         :T_STRAND_COUNTS => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+      }
       def initialize file
         @muts = Hash[File.foreach(file).map do |l|
            mut = SomaticIndelOut::Indel.new l.chomp.split(/\t/)
@@ -271,10 +285,14 @@ module Genome
         def read_fields arr
           arr.each do |blob|
             r = blob.match(FIELDS)
+            name = r[:field_name].downcase.to_sym
             @mut[ r[:field_name].downcase.to_sym ] = case
-            when r[:fields] && r[:params]
-              Hash[r[:params].split(%r!/!).zip(r[:fields].split(%r!/!))]
-            when r[:fields] && !r[:params]
+            when r[:fields] && (FIELD_KEYS[name] || r[:params])
+              Hash[
+                (FIELD_KEYS[name] || r[:params].split(%r!/!)).zip(
+                  r[:fields].split(%r!/!)
+                )]
+            when r[:fields] && !FIELD_KEYS[name] && !r[:params]
               r[:fields]
             else
               true
@@ -291,20 +309,20 @@ module Genome
         end
         
         def normal_depth
-          @normal_depth ||= n_obs_counts["T"].to_i
+          @normal_depth ||= n_obs_counts[:total].to_i
         end
         def normal_alt_count
-          @normal_alt ||= n_obs_counts["C"].to_i
+          @normal_alt ||= n_obs_counts[:alt].to_i
         end
         def normal_allelic_depth
           [ normal_depth - normal_alt_count, normal_alt_count ].join ","
         end
 
         def tumor_depth
-          @tumor_depth ||= t_obs_counts["T"].to_i
+          @tumor_depth ||= t_obs_counts[:total].to_i
         end
         def tumor_alt_count
-          @tumor_alt ||= t_obs_counts["C"].to_i
+          @tumor_alt ||= t_obs_counts[:alt].to_i
         end
         def tumor_allelic_depth
           [ tumor_depth - tumor_alt_count, tumor_alt_count ].join ","
@@ -329,13 +347,30 @@ module Genome
       def run
         verbose = SomaticIndelOut.new config.somaticindel_verbose
         unpatched = VCF.read config.somaticindel_unpatched_vcf
+        unpatched.preamble_lines.push "##FORMAT=<ID=MM,Number=2,Type=Integer,Description=\"Average number of mismatches across consensus indel and reference-allele supporting reads\">\n"
+        unpatched.preamble_lines.push "##FORMAT=<ID=MQ,Number=2,Type=Integer,Description=\"Average mapping qualitites of consensus indel and reference-allele supporting reads\">\n"
+        unpatched.preamble_lines.push "##FORMAT=<ID=MR,Number=2,Type=Integer,Description=\"Mismatch rate in small 5bp windows around the indel\">\n"
+        unpatched.preamble_lines.push "##FORMAT=<ID=AQ,Number=2,Type=Integer,Description=\"Average base quality computed across all bases in 5bp windows around the indel\">\n"
+        unpatched.preamble_lines.push "##FORMAT=<ID=SC,Number=2,Type=Integer,Description=\"Counts of consensus-supporting forward, reverse, reference forward and reverse supporting reads\">\n"
         unpatched.each do |l|
           mut = verbose[ [ l.chrom, l.start.to_i, l.stop.to_i ] ]
           next if !mut
+          l.format.push :MM, :MQ, :MR, :AQ, :SC
           l.genotype(config.normal_name).info[:DP] = mut.normal_depth
           l.genotype(config.normal_name).info[:AD] = mut.normal_allelic_depth
+          l.genotype(config.normal_name).info[:MM] = mut.n_av_mm.join(",")
+          l.genotype(config.normal_name).info[:MQ] = mut.n_av_mapq.join(",")
+          l.genotype(config.normal_name).info[:MR] = mut.n_nqs_mm_rate.join(",")
+          l.genotype(config.normal_name).info[:AQ] = mut.n_nqs_av_qual.join(",")
+          l.genotype(config.normal_name).info[:SC] = mut.n_strand_counts.join(",")
+
           l.genotype(config.sample_name).info[:DP] = mut.tumor_depth
           l.genotype(config.sample_name).info[:AD] = mut.tumor_allelic_depth
+          l.genotype(config.sample_name).info[:MM] = mut.t_av_mm.join(",")
+          l.genotype(config.sample_name).info[:MQ] = mut.t_av_mapq.join(",")
+          l.genotype(config.sample_name).info[:MR] = mut.t_nqs_mm_rate.join(",")
+          l.genotype(config.sample_name).info[:AQ] = mut.t_nqs_av_qual.join(",")
+          l.genotype(config.sample_name).info[:SC] = mut.t_strand_counts.join(",")
         end
         unpatched.write config.somaticindel_vcf
       end
