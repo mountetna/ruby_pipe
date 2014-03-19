@@ -347,30 +347,14 @@ module Genome
       def run
         verbose = SomaticIndelOut.new config.somaticindel_verbose
         unpatched = VCF.read config.somaticindel_unpatched_vcf
-        unpatched.preamble_lines.push "##FORMAT=<ID=MM,Number=2,Type=Integer,Description=\"Average number of mismatches across consensus indel and reference-allele supporting reads\">\n"
-        unpatched.preamble_lines.push "##FORMAT=<ID=MQ,Number=2,Type=Integer,Description=\"Average mapping qualitites of consensus indel and reference-allele supporting reads\">\n"
-        unpatched.preamble_lines.push "##FORMAT=<ID=MR,Number=2,Type=Integer,Description=\"Mismatch rate in small 5bp windows around the indel\">\n"
-        unpatched.preamble_lines.push "##FORMAT=<ID=AQ,Number=2,Type=Integer,Description=\"Average base quality computed across all bases in 5bp windows around the indel\">\n"
-        unpatched.preamble_lines.push "##FORMAT=<ID=SC,Number=2,Type=Integer,Description=\"Counts of consensus-supporting forward, reverse, reference forward and reverse supporting reads\">\n"
         unpatched.each do |l|
           mut = verbose[ [ l.chrom, l.start.to_i, l.stop.to_i ] ]
           next if !mut
-          l.format.push :MM, :MQ, :MR, :AQ, :SC
           l.genotype(config.normal_name).info[:DP] = mut.normal_depth
           l.genotype(config.normal_name).info[:AD] = mut.normal_allelic_depth
-          l.genotype(config.normal_name).info[:MM] = mut.n_av_mm.join(",")
-          l.genotype(config.normal_name).info[:MQ] = mut.n_av_mapq.join(",")
-          l.genotype(config.normal_name).info[:MR] = mut.n_nqs_mm_rate.join(",")
-          l.genotype(config.normal_name).info[:AQ] = mut.n_nqs_av_qual.join(",")
-          l.genotype(config.normal_name).info[:SC] = mut.n_strand_counts.join(",")
 
           l.genotype(config.sample_name).info[:DP] = mut.tumor_depth
           l.genotype(config.sample_name).info[:AD] = mut.tumor_allelic_depth
-          l.genotype(config.sample_name).info[:MM] = mut.t_av_mm.join(",")
-          l.genotype(config.sample_name).info[:MQ] = mut.t_av_mapq.join(",")
-          l.genotype(config.sample_name).info[:MR] = mut.t_nqs_mm_rate.join(",")
-          l.genotype(config.sample_name).info[:AQ] = mut.t_nqs_av_qual.join(",")
-          l.genotype(config.sample_name).info[:SC] = mut.t_strand_counts.join(",")
         end
         unpatched.write config.somaticindel_vcf
       end
