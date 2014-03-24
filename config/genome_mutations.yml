@@ -25,9 +25,13 @@
   :tumor:
     :min_alt_count: 4
     :min_depth: 14
+    :max_alt_mismatch_rate: 0.2
+    :max_alt_mismatch_count: 3
+    :min_alt_base_quality: 10
+    :min_alt_map_quality: 20
     :max_alt_length: 50
     :max_ref_length: 50
-    :min_alt_freq: 0.1
+    :min_alt_freq: 0.05
 :mutect:
   :germline:
     :has_dbsnp_site: COSMIC

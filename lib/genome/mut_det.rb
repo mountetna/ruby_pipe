@@ -251,18 +251,18 @@ module Genome
         \A\g<field_name>(\[\g<params>\])?:?\g<fields>?\Z
       }x
       FIELD_KEYS = {
-         :N_OBS_COUNTS => [ :alt, :other, :total],
-         :N_AV_MM => [:alt,:ref],
-         :N_AV_MAPQ => [:alt,:ref],
-         :N_NQS_MM_RATE => [:alt,:ref],
-         :N_NQS_AV_QUAL => [:alt,:ref],
-         :N_STRAND_COUNTS => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
-         :T_OBS_COUNTS => [:alt,:other,:total],
-         :T_AV_MM => [:alt,:ref],
-         :T_AV_MAPQ => [:alt,:ref],
-         :T_NQS_MM_RATE => [:alt,:ref],
-         :T_NQS_AV_QUAL => [:alt,:ref],
-         :T_STRAND_COUNTS => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+         :n_obs_counts => [ :alt, :any, :total],
+         :n_av_mm => [:alt,:ref],
+         :n_av_mapq => [:alt,:ref],
+         :n_nqs_mm_rate => [:alt,:ref],
+         :n_nqs_av_qual => [:alt,:ref],
+         :n_strand_counts => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+         :t_obs_counts => [:alt,:any,:total],
+         :t_av_mm => [:alt,:ref],
+         :t_av_mapq => [:alt,:ref],
+         :t_nqs_mm_rate => [:alt,:ref],
+         :t_nqs_av_qual => [:alt,:ref],
+         :t_strand_counts => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
       }
       def initialize file
         @muts = Hash[File.foreach(file).map do |l|
@@ -314,18 +314,24 @@ module Genome
         def normal_alt_count
           @normal_alt ||= n_obs_counts[:alt].to_i
         end
+        def normal_nonref_count
+          @normal_nonref_count ||= n_obs_counts[:any].to_i
+        end
         def normal_allelic_depth
-          [ normal_depth - normal_alt_count, normal_alt_count ].join ","
+          [ normal_depth - normal_nonref_count, normal_alt_count ].join ","
         end
 
         def tumor_depth
           @tumor_depth ||= t_obs_counts[:total].to_i
         end
         def tumor_alt_count
-          @tumor_alt ||= t_obs_counts[:alt].to_i
+          @tumor_alt_count ||= t_obs_counts[:alt].to_i
+        end
+        def tumor_nonref_count
+          @tumor_nonref_count ||= t_obs_counts[:any].to_i
         end
         def tumor_allelic_depth
-          [ tumor_depth - tumor_alt_count, tumor_alt_count ].join ","
+          [ tumor_depth - tumor_nonref_count, tumor_alt_count ].join ","
         end
       end
 
