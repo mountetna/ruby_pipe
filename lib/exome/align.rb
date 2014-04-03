@@ -63,8 +63,8 @@ module Exome
 
   class Align 
     include Pipeline::Step
-    runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :mark_duplicates, :enforce_label
-    has_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :align_mem, :verify_mate, :mark_duplicates, :enforce_label
+    runs_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :verify_mate, :enforce_label
+    has_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :align_mem, :verify_mate, :enforce_label
     runs_on :samples, :chunks
     resources :threads => 12
 
@@ -140,27 +140,15 @@ module Exome
       end
     end
 
-    class MarkDuplicates
-      include Pipeline::Task
-      requires_file :mated_bam
-      outs_file :dedup_bam, :duplication_metrics
-
-      def run
-	log_info "Mark duplicates"
-	picard :mark_duplicates, :INPUT => config.mated_bam,
-          :OUTPUT => config.dedup_bam, :METRICS_FILE => config.duplication_metrics, 
-          :REMOVE_DUPLICATES => :false or error_exit "Mark duplicates failed"
-      end
-    end
 
     class EnforceLabel 
       include Pipeline::Task
-      requires_file :dedup_bam
+      requires_file :mated_bam
       outs_file :aligned_bam
 
       def run
         log_info "Enforce read group assignments"
-        picard :add_or_replace_read_groups, :INPUT => config.dedup_bam,
+        picard :add_or_replace_read_groups, :INPUT => config.mated_bam,
                 :OUTPUT => config.aligned_bam,
                 :SORT_ORDER => :coordinate,
                 :CREATE_INDEX => :true,

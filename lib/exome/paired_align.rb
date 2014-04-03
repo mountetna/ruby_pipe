@@ -1,7 +1,7 @@
 require 'pipeline'
 require 'exome/prep'
 require 'exome/align'
-require 'exome/merge'
+require 'exome/dedup'
 require 'exome/recal'
 require 'exome/hybrid_qc'
 require 'exome/mut_det'
@@ -15,7 +15,7 @@ module Exome
     include Pipeline::Script
     runs_steps :prep, 
       :fast_qc,
-      :dump_fastqs, :combine_fastqs, :align, :merge,
+      :dump_fastqs, :combine_fastqs, :align, :dedup,
       :lane_recal, :table_recal,
       :patient_realign, 
       :make_samples,
@@ -38,11 +38,11 @@ module Exome
       :dump_fastqs => true,
       :combine_fastqs => true,
       :align => true,
-      :merge => true
+      :dedup => true
     }
 
     def_module :align_bwa_mem, {
-      :align => [ :make_fastq_chunk, :align_mem, :verify_mate, :mark_duplicates, :enforce_label ]
+      :align => [ :make_fastq_chunk, :align_mem, :verify_mate, :enforce_label ]
     }
 
     def_module :recal_by_lane, {

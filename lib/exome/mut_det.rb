@@ -27,6 +27,7 @@ module Exome
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
           :intervals => config.chrom.chrom_name,
+          :no_normal_filter => true,
           :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
 
         # kludge to make sure mutect completes before ensuring this step
@@ -130,8 +131,7 @@ module Exome
     class FilterMuts
       include Pipeline::Task
       requires_files :pindel_vcfs, :mutect_snvses, :tumor_cnr_seg
-      outs_file :tumor_maf, :germline_maf
-      dumps_file :all_muts_maf
+      outs_file :tumor_maf, :germline_maf, :all_muts_maf
 
       def run
         somatic_maf = Maf.new

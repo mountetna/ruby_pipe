@@ -250,6 +250,20 @@ module Genome
         (?<fields> [\d\.\/-]+){0}
         \A\g<field_name>(\[\g<params>\])?:?\g<fields>?\Z
       }x
+      FIELD_KEYS = {
+         :n_obs_counts => [ :alt, :any, :total],
+         :n_av_mm => [:alt,:ref],
+         :n_av_mapq => [:alt,:ref],
+         :n_nqs_mm_rate => [:alt,:ref],
+         :n_nqs_av_qual => [:alt,:ref],
+         :n_strand_counts => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+         :t_obs_counts => [:alt,:any,:total],
+         :t_av_mm => [:alt,:ref],
+         :t_av_mapq => [:alt,:ref],
+         :t_nqs_mm_rate => [:alt,:ref],
+         :t_nqs_av_qual => [:alt,:ref],
+         :t_strand_counts => [:alt_forward,:alt_reverse,:ref_forward,:ref_reverse],
+      }
       def initialize file
         @muts = Hash[File.foreach(file).map do |l|
            mut = SomaticIndelOut::Indel.new l.chomp.split(/\t/)
@@ -271,10 +285,14 @@ module Genome
         def read_fields arr
           arr.each do |blob|
             r = blob.match(FIELDS)
+            name = r[:field_name].downcase.to_sym
             @mut[ r[:field_name].downcase.to_sym ] = case
-            when r[:fields] && r[:params]
-              Hash[r[:params].split(%r!/!).zip(r[:fields].split(%r!/!))]
-            when r[:fields] && !r[:params]
+            when r[:fields] && (FIELD_KEYS[name] || r[:params])
+              Hash[
+                (FIELD_KEYS[name] || r[:params].split(%r!/!)).zip(
+                  r[:fields].split(%r!/!)
+                )]
+            when r[:fields] && !FIELD_KEYS[name] && !r[:params]
               r[:fields]
             else
               true
@@ -291,23 +309,29 @@ module Genome
         end
         
         def normal_depth
-          @normal_depth ||= n_obs_counts["T"].to_i
+          @normal_depth ||= n_obs_counts[:total].to_i
         end
         def normal_alt_count
-          @normal_alt ||= n_obs_counts["C"].to_i
+          @normal_alt ||= n_obs_counts[:alt].to_i
+        end
+        def normal_nonref_count
+          @normal_nonref_count ||= n_obs_counts[:any].to_i
         end
         def normal_allelic_depth
-          [ normal_depth - normal_alt_count, normal_alt_count ].join ","
+          [ normal_depth - normal_nonref_count, normal_alt_count ].join ","
         end
 
         def tumor_depth
-          @tumor_depth ||= t_obs_counts["T"].to_i
+          @tumor_depth ||= t_obs_counts[:total].to_i
         end
         def tumor_alt_count
-          @tumor_alt ||= t_obs_counts["C"].to_i
+          @tumor_alt_count ||= t_obs_counts[:alt].to_i
+        end
+        def tumor_nonref_count
+          @tumor_nonref_count ||= t_obs_counts[:any].to_i
         end
         def tumor_allelic_depth
-          [ tumor_depth - tumor_alt_count, tumor_alt_count ].join ","
+          [ tumor_depth - tumor_nonref_count, tumor_alt_count ].join ","
         end
       end
 
@@ -334,6 +358,7 @@ module Genome
           next if !mut
           l.genotype(config.normal_name).info[:DP] = mut.normal_depth
           l.genotype(config.normal_name).info[:AD] = mut.normal_allelic_depth
+
           l.genotype(config.sample_name).info[:DP] = mut.tumor_depth
           l.genotype(config.sample_name).info[:AD] = mut.tumor_allelic_depth
         end
