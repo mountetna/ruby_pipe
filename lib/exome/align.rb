@@ -140,7 +140,6 @@ module Exome
       end
     end
 
-
     class EnforceLabel 
       include Pipeline::Task
       requires_file :mated_bam
