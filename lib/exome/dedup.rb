@@ -2,7 +2,7 @@
 module Exome
   class Dedup
     include Pipeline::Step
-    runs_tasks :merge_sam_files
+    runs_tasks :mark_duplicates
     runs_on :samples
     resources :threads => 12
 
