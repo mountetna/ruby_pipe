@@ -47,7 +47,6 @@ module Exome
     class QualityFilter
       include Pipeline::Task
       requires_files :ug_annotated_vcf
-      # requires_files :snp_annotated_vcf
       dumps_file :ug_filtered_vcf
 
       def run
