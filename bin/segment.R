@@ -14,8 +14,8 @@ suppressMessages(library(DNAcopy))
 suppressMessages(library(PSCBS))
 source(paste(lib_dir,"bin", "chrom.R",sep="/"))
 # okay, using this, first generate the CBS segmentation. Return the segmentation object.
-segCBS=function(cna) {
-	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=5))
+segCBS=function(cna,undosd) {
+	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=undosd))
 }
 
 segPSCBS=function(tumor_logr,tumor_baf,normal_baf) {
@@ -72,14 +72,14 @@ save_seg_obj = function(cbs_seg,seg_file) {
 }
 
 # generate a CBS segmentation from a logr file and save it
-doSegCbs=function(logr_file, rdata_file, seg_file, sample_name) {
+doSegCbs=function(logr_file, rdata_file, seg_file, sample_name, sdundo=1.5) {
 	print.noquote("Segmenting...")
 
 	# load coverage data (made using coverageBed from the BAMs)
 	tumor_logr = load_logr_file(logr_file)
 	# generate 
 	print.noquote("Creating CNA...")
-	cbs_seg=sort_cbs_seg(segCBS( smoothCNA(tumor_logr, sample_name) ))
+	cbs_seg=sort_cbs_seg(segCBS( smoothCNA(tumor_logr, sample_name), as.numeric(sdundo) ))
 
 	# recenter the chromosome segments by estimating the mode
 	cbs_seg=recenter_cbs_seg(cbs_seg)
@@ -218,6 +218,7 @@ gc_correct=function(coverage,span=0.75,degree=2) {
 doGcCorrect=function(cov_file, corr_file, gc_file) {
 	cov = read.table(cov_file,header=F,sep="\t")
 	colnames(cov) = c("contig","start","end","reads")
+
 	gc = read.table(gc_file,header=T,sep="\t")
 	cov = add_gc(cov, gc)
 	cov = gc_correct(cov)
