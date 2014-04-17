@@ -27,7 +27,7 @@ module Exome
 	log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
           :intervals => config.chrom.chrom_name,
-          :no_normal_filter => true,
+          :no_normal_filter => config.disable_mutect_normal_filter,
           :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
 
         # kludge to make sure mutect completes before ensuring this step

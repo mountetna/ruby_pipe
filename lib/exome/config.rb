@@ -216,6 +216,7 @@ module Exome
 
     def_var :lane_name do |l| (l||job_item).property :lane_name end
     def_var :chunk_size do 4_000_000 end
+    def_var :disable_mutect_normal_filter do nil end
     job_items :chrom, :lane, :patient, :chunk, :fastq
 
     def_var :reads1_fastqs do |s| (s || sample).inputs.map{|input| input_fastq1(input) || reads1_fastq(input) } end
