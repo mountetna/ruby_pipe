@@ -184,6 +184,7 @@ module Exome
           v = VCF.read config.pindel_vcf(chrom), config.mutations_config
           v.each do |l|
             next if l.skip_genotype?([:pindel, :normal] => config.normal_name) || l.skip_genotype?([:pindel, :tumor] => config.sample_name)
+            next if l.alt.include?("N") || l.ref.include?("N")
             next if l.skip_oncotator?
             log_info "Annotating #{l.chrom}:#{l.pos}-#{l.end_pos}"
             seg = segs.find{|seg| seg[:Chromosome] == l.chrom && seg[:Start].to_i < l.pos.to_i && seg[:End].to_i > l.pos.to_i}
