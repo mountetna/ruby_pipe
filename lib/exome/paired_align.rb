@@ -117,7 +117,7 @@ module Exome
       :mut_filter => [ :filter_muts_somatic_indel ]
     }
 
-    def_module :somaticindel_mutation_detection, {
+    def_module :find_mutations_somatic_indel_detector, {
       :mut_det_somaticindel => true,
       :combine_muts => true
     }
