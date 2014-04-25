@@ -12,17 +12,18 @@ module Exome
       outs_files :ug_raw_vcf
 
       def run
-	log_info "Running Unified Genotyper"
-	gatk :unified_genotyper,
-		:genotype_likelihoods_model => :BOTH, 
-                :genotyping_mode => :DISCOVERY,
-		:input_file => config.patient_sample_bams,
-		:dbsnp => config.reference_snp_vcf,
-		:intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
-		:standard_min_confidence_threshold_for_calling => 30.0,
-		:standard_min_confidence_threshold_for_emitting => 10.0,
-		:min_base_quality_score => 20, :output_mode => :EMIT_VARIANTS_ONLY,
-		:out => config.ug_raw_vcf or error_exit "Unified Genotyper SNP calling failed"
+  log_info "Running Unified Genotyper"
+  gatk :unified_genotyper,
+    :genotype_likelihoods_model => :BOTH,
+    :genotyping_mode => :DISCOVERY,
+    :input_file => config.patient_sample_bams,
+    :dbsnp => config.reference_snp_vcf,
+    :intervals => config.interval_list, :baq => :CALCULATE_AS_NECESSARY,
+    :standard_min_confidence_threshold_for_calling => 30.0,
+    :standard_min_confidence_threshold_for_emitting => 10.0,
+    :min_base_quality_score => 20, :output_mode => :EMIT_VARIANTS_ONLY,
+    :min_indel_count_for_genotyping => 1, :min_indel_fraction_per_sample => 0.01,
+    :out => config.ug_raw_vcf or error_exit "Unified Genotyper SNP calling failed"
 
       end
     end
