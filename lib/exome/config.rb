@@ -65,6 +65,7 @@ module Exome
           "@sample_name.normal.baf" => :normal_baf,
 
           "@sample_name.cov" => :sample_cov,
+          "@sample_name.cov_gc" => :sample_cov_gc,
           "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
