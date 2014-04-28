@@ -33,16 +33,16 @@ module Exome
       dumps_file :ug_annotated_vcf
 
       def run
-	log_info "Annotating Unified Genotyper SNPs"
-	gatk :variant_annotator,
-		:input_file => config.patient_sample_bams,
+  log_info "Annotating Unified Genotyper SNPs"
+  gatk :variant_annotator,
+    :input_file => config.patient_sample_bams,
                 :num_threads => 1,
-		:dbsnp => config.reference_snp_vcf,
-		:intervals => config.ug_raw_vcf,
-		:variant => config.ug_raw_vcf,
-		:baq =>  :CALCULATE_AS_NECESSARY,
-		:annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, :ReadPosRankSumTest, :Coverage ],
-		:out => config.ug_annotated_vcf or error_exit "Unified Genotyper SNP annotation failed"
+    :dbsnp => config.reference_snp_vcf,
+    :intervals => config.ug_raw_vcf,
+    :variant => config.ug_raw_vcf,
+    :baq =>  :CALCULATE_AS_NECESSARY,
+    :annotation => [ :QualByDepth, :RMSMappingQuality, :MappingQualityZero, :LowMQ, :MappingQualityRankSumTest, :FisherStrand, :HaplotypeScore, :ReadPosRankSumTest, :Coverage ],
+    :out => config.ug_annotated_vcf or error_exit "Unified Genotyper SNP annotation failed"
       end
     end
     class QualityFilter
@@ -51,14 +51,14 @@ module Exome
       dumps_file :ug_filtered_vcf
 
       def run
-	log_info "Filtering Unified Genotyper SNPs"
-	gatk :variant_filtration,
-		:variant => config.ug_annotated_vcf,
+  log_info "Filtering Unified Genotyper SNPs"
+  gatk :variant_filtration,
+    :variant => config.ug_annotated_vcf,
                 :num_threads => 1,
-		:baq => :CALCULATE_AS_NECESSARY,
-		:filterExpression => [ '"QD < 2.0"', '"MQ < 40.0"', '"FS > 60.0"', '"HaplotypeScore > 13.0"', '"MQRankSum < -12.5"', '"ReadPosRankSum < -8.0"' ],
-		:filterName => [ :QDFilter, :MQFilter, :FSFilter, :HaplotypeScoreFilter, :MQRankSumFilter, :ReadPosFilter ],
-		:out => config.ug_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
+    :baq => :CALCULATE_AS_NECESSARY,
+    :filterExpression => [ '"QD < 2.0"', '"MQ < 40.0"', '"FS > 60.0"', '"HaplotypeScore > 13.0"', '"MQRankSum < -12.5"', '"ReadPosRankSum < -8.0"' ],
+    :filterName => [ :QDFilter, :MQFilter, :FSFilter, :HaplotypeScoreFilter, :MQRankSumFilter, :ReadPosFilter ],
+    :out => config.ug_filtered_vcf or error_exit "Unified Genotyper SNP filtration failed"
 
       end
     end
