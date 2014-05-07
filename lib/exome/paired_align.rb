@@ -22,7 +22,7 @@ module Exome
       :hybrid_qc, :hybrid_qc_summary, 
       :sample_coverage, :prep_normal, :compute_normals, :copy_number, 
       :run_ascat,
-      :mut_det, :mut_filter,
+      :mut_det, :mut_filter, :combine_muts,
       :univ_geno_call, :univ_geno_annotate,
       :run_absolute, :review_absolute
 
@@ -110,6 +110,16 @@ module Exome
     def_module :find_germline_muts, {
       :univ_geno_call => true,
       :univ_geno_annotate => true
+    }
+
+    def_module :mut_det_somaticindel, {
+      :mut_det => [ :mutect, :somatic_indel_detector, :patch_somatic_indel_vcf ],
+      :mut_filter => [ :filter_muts_somatic_indel ]
+    }
+
+    def_module :find_mutations_somatic_indel_detector, {
+      :mut_det_somaticindel => true,
+      :combine_muts => true
     }
 
     def_module :mut_filter_annovar, {
