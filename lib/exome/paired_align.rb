@@ -135,10 +135,14 @@ module Exome
       include Pipeline::Usage
 
       def input(args)
-        sample = get_sample args.first
+        sample = get_sample args.shift
         sample[:inputs] = []
-        getlines "your fastq files" do |l|
-          sample[:inputs] += l.strip.split
+        unless args.empty?
+          sample[:inputs] += %x{ ls #{args.first} }.strip.split
+        else
+          getlines "your fastq files" do |l|
+            sample[:inputs] += l.strip.split
+          end
         end
         sample[:inputs] = pair_fastqs sample[:inputs]
       end
