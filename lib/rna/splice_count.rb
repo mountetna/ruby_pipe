@@ -16,8 +16,8 @@ module Rna
       def run
         splice = GTF.new config.splice_gtf
         # get the max and min intervals
-        min = splice.map{|s| s.start.to_i}.min
-        max = splice.map{|s| s.stop.to_i}.max
+        min = splice.map(&:start).min
+        max = splice.map(&:stop).max
         chr = splice.first.seqname
 
         run_cmd "samtools view -q 20 #{config.replicate_bam} #{chr}:#{min}-#{max} > #{config.splice_sam}" or error_exit "Could not get reads for the gene interval"
