@@ -20,11 +20,13 @@ module Rna
 
     def_var :replicate_bams do |s| (s||sample).replicates.map{ |r| replicate_bam r} end
     def_var :replicate_bam do |r| input_bam(r) || output_bam(r) end
-    def_var :replicates do |s| (s||sample).replicates end
+
+    def_var :replicate_name do |r| (r || job_item).property :replicate_name end
+    def_var :replicates do samples.collect(&:replicates).flatten end
 
     def_var :diff_exps do samples.collect(&:diff_exp).compact.flatten end
 
-    def_var :sample_replicate_name do |r| "#{r.property :sample_name}.#{r.property :replicate_name}" end
+    def_var :sample_replicate_name do |r| "#{(r || job_item).property :sample_name}.#{(r || job_item).property :replicate_name}" end
 
     dir_tree({
       ":scratch_dir" => {
