@@ -20,6 +20,20 @@
     :max_q0_ratio: 1
     #:whitelisted: whitelist.gtf
   #:include_dbsnp_site: [ COSMIC, NOVEL ]
+:somaticindel:
+  :normal:
+    :max_alt_count: 0
+    :min_depth: 8
+  :tumor:
+    :min_alt_count: 4
+    :min_depth: 14
+    :max_alt_mismatch_rate: 0.2
+    :max_alt_mismatch_count: 3
+    :min_alt_base_quality: 10
+    :min_alt_map_quality: 20
+    :max_alt_length: 50
+    :max_ref_length: 50
+    :min_alt_freq: 0.05
 :oncotator:
   :exclude_txp_variant_classification: [ Silent, IGR, Intron, UTR, Flank, RNA ]
   :has_txp_gene: true
