@@ -1,4 +1,4 @@
-#!/opt/R/R-latest/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 args = commandArgs(TRUE)
 lib_dir = args[1]

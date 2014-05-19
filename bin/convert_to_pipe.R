@@ -1,4 +1,4 @@
-#! /usr/bin/env Rscript
+#!/usr/bin/env Rscript
 sample=matrix(numeric(0), 0,0) 
 args=commandArgs(trailingOnly = TRUE)
 for(i in 2:length(args)) {

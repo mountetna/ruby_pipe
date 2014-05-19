@@ -1,4 +1,4 @@
-#!/opt/R/R-latest/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 source("/home/changmt/seqCBS/CAST_lib.R")
 source("/home/changmt/seqCBS/sdundo.R")
 sname="SeqCBS"

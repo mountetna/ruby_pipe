@@ -1,4 +1,4 @@
-#!/opt/R/R-latest/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 make_pval_plots = function(df_loc, sample_name, high_output_loc, low_output_loc){
     a = read.table(df_loc, sep='\t', header = T)

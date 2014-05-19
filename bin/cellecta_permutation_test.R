@@ -1,4 +1,4 @@
-#!/opt/R/R-latest/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 # Find second highest log fold change for each gene
 

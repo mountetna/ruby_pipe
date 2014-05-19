@@ -1,4 +1,4 @@
-#!/opt/R/R-latest/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 read.tsv = function(loc){
   return(read.table(loc, header = T, sep='\t', stringsAsFactors = F))

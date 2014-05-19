@@ -1,4 +1,4 @@
-#!/opt/local/bin/Rscript --no-save
+#!/usr/bin/env Rscript
 
 chr_str = function(v) {
 	v = as.character(v)
