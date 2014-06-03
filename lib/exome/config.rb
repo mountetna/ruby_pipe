@@ -78,7 +78,8 @@ module Exome
           "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
-            "@sample_name.ABSOLUTE.RData" => :absolute_rdata
+            "@sample_name.ABSOLUTE.RData" => :absolute_rdata,
+            "@sample_name.ABSOLUTE_plot.pdf" => :absolute_pdf
           }
         },
         ":normal_name" => {
@@ -158,13 +159,22 @@ module Exome
           "@sample_name.univ_geno_muts.vcf" => :ug_muts,
         },
         "@cohort_name" => {
-          "@cohort_name.ABSOLUTE.table.txt" => :absolute_calls
+          "@cohort_name.ABSOLUTE.table.txt" => :absolute_calls,
+          "@cohort_name.seg" => :combined_seg,
+          "@cohort_name.somatic.maf" => :combined_somatic_maf,
+          "@cohort_name.absolute.pdf" => :combined_absolute_pdf,
+          "@cohort_name.main_log" => :main_log_copy,
+          "@cohort_name.qc_summary" => :qc_summary_copy
         },
         ":normal_name" => {
           ":normal_name.exon_cnr" => :normal_exon_cnr
         }
       }
     })
+
+    def_var :tumor_somatic_mafs do tumor_samples.map{|s| tumor_maf(s) } end
+    def_var :tumor_cnr_segs do tumor_samples.map{|s| tumor_cnr_seg(s) } end
+    def_var :tumor_absolute_pdfs do tumor_samples.map{|s| absolute_pdf(s) } end
 
     def make_chunks s
       if File.exists? chunk_info(s)
@@ -199,7 +209,7 @@ module Exome
         end
         s.extend_with :chroms => chromosomes
         s.extend_with :chunks => make_chunks(s)
-        s.add_member :lane_name, "lane#{s.lane || 0}"
+        s.add_member :lane_name, "lane0" if !s.lane_name
         s.add_member :patient_name, "patient#{s.patient || 0}"
       end
       @config.extend_with :lanes => make_lanes

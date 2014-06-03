@@ -10,6 +10,7 @@ require 'exome/univ_geno'
 require 'exome/config'
 require 'exome/copy_number'
 require 'exome/fastqc'
+require 'exome/summarize'
 
 module Exome
   class PairedAlign 
@@ -25,7 +26,8 @@ module Exome
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
       :univ_geno_call, :univ_geno_annotate,
-      :run_absolute, :review_absolute
+      :run_absolute, :review_absolute,
+      :summarize
 
     def_module :prep_pipe, {
       :prep => true
@@ -134,7 +136,8 @@ module Exome
       :calculate_qc => true,
       :compute_copy_number => true,
       :find_mutations => true,
-      :absolute_purity => true
+      :absolute_purity => true,
+      :summarize => true
     }
 
     def exclude_task? task
