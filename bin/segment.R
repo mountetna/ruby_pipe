@@ -56,6 +56,9 @@ sort_cbs_seg = function(cbs_seg) {
 	library(gtools)
 	cbs_seg$data = cbs_seg$data[ mixedorder(cbs_seg$data$chrom), ]
 	cbs_seg$output = cbs_seg$output[ mixedorder(cbs_seg$output$chrom), ]
+
+	cbs_seg$output = cbs_seg$output[ !is.na(cbs_seg$output$seg.mean), ]
+
 	return(cbs_seg)
 }
 
