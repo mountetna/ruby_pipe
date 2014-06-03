@@ -47,11 +47,10 @@ module Pipeline
     def_var :pipe do @script.class.name.sub(/::.*/,"").snake_case.to_sym end
     def_var :script do @script.class.name.snake_case.to_sym end
     def_var :pipe_script do "#{pipe}_#{script}" end
-    def_var :step_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{step}.#{job_index}.log" end
-    def_var :main_log do "#{log_dir}/#{pipe}.#{cohort_name}.#{script}.log" end
+
+
     def_var :logging_level do :WARN end
 
-    def_var :error_pid do "#{cohort_scratch}/error.pid" end
     def_var :error_file do "ERROR.#{cohort_name}" end
     def_var :verbose? do verbose == "yes" || verbose == "true" end
     def_var :config_dir do "#{lib_dir}/config" end
@@ -75,12 +74,17 @@ module Pipeline
     def_var :reference_gc do send "#{genome}_gc".to_sym end
 
     dir_tree({
+      ":log_dir" => {
+        ":pipe.:cohort_name.:step.:job_index.log" => :step_log,
+        ":pipe.:cohort_name.:script.log" => :main_log
+      },
       ":scratch_dir" => {
         "@sample_name" => {
           "." => :sample_scratch
         },
         "@cohort_name" => {
-          "." => :cohort_scratch
+          "." => :cohort_scratch,
+          "error.pid" => :error_pid
         }
       },
       ":metrics_dir" => {
@@ -92,10 +96,10 @@ module Pipeline
 
     empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config, :walltime, :job_array
 
-    def job_index
+    def job_index sample=nil
       @opts[:job_number] ? @opts[:job_number] - 1 : 0 
     end
-    def job_item 
+    def job_item sample=nil
       @opts[:job_array] ? @opts[:job_array][job_index] : @config
     end
     def trials
