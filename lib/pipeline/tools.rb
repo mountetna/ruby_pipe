@@ -19,7 +19,7 @@ module Pipeline
     end
 
     def r_script script, *args
-      run_cmd "#{config.lib_dir}/bin/#{script}.R #{config.lib_dir} #{args.join(" ")}"
+      run_cmd "Rscript #{config.lib_dir}/bin/#{script}.R #{config.lib_dir} #{args.join(" ")}"
     end
 
     def py_script script, opts
@@ -103,6 +103,10 @@ module Pipeline
       # get the depth at a particular site
       depth = `samtools mpileup -r #{chr}:#{pos}-#{pos2 || pos} #{bam} 2>/dev/null | awk '{print $4}'`
       return depth.to_i
+    end
+
+    def merge_pdfs pdfs, output_pdf
+      %x{ gs -o #{output_pdf} -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress #{pdfs.join(" ")} }
     end
 
     def create_interval_bed
