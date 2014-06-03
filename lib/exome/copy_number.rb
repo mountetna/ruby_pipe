@@ -30,7 +30,7 @@ module Exome
 
   class SampleCoverage
     include Pipeline::Step
-    runs_tasks :compute_coverage, :correct_gc
+    runs_tasks :compute_coverage # :correct_gc
     runs_on :samples
     audit_report :sample_name
 
