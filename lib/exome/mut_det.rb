@@ -261,8 +261,7 @@ module Exome
 
   class MutFilter
     include Pipeline::Step
-    runs_tasks :filter_muts_somatic_indel
-    # runs_tasks :filter_muts_pindel
+    runs_tasks :filter_muts_pindel
     has_tasks :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_somatic_indel
     runs_on :tumor_samples, :chroms
 
