@@ -168,7 +168,7 @@ module Pipeline
     end
 
     def exec
-      log_info "Starting #{step_name} trial #{config.job_index}".magenta.bold
+      log_info "Starting #{step_name} trial #{config.job_index} on host #{config.hostname}".magenta.bold
       tasks.each do |t|
         task = create_task t
 
