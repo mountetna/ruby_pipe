@@ -151,7 +151,7 @@ module Exome
                 :OUTPUT => config.aligned_bam,
                 :SORT_ORDER => :coordinate,
                 :CREATE_INDEX => :true,
-                  :RGID => config.sample_name, :RGLB => config.sample_name,
+                  :RGID => config.sample_name, :RGLB => config.genome,
                   :RGPL => config.platform, :RGPU => config.platform_unit, :RGSM => config.sample_name,
                   :VALIDATION_STRINGENCY => "LENIENT" or error_exit "Relabel failed"
       end
