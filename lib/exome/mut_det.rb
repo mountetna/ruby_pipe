@@ -264,6 +264,7 @@ module Exome
     runs_tasks :filter_muts_pindel
     has_tasks :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_somatic_indel
     runs_on :tumor_samples, :chroms
+    resources :internet => 1
 
     class FilterMuts
       include Pipeline::Task
@@ -282,9 +283,7 @@ module Exome
 
       def mut_to_maf mut
         seg = @segs.find do |seg|
-          seg[:Chromosome] == mut.short_chrom &&
-            seg[:Start].to_i < mut.start.to_i &&
-            seg[:End].to_i > mut.stop.to_i
+          seg.Chromosome.sub(/^chr/,'') == mut.short_chrom && seg.Start < mut.start.to_i && seg.End > mut.stop.to_i
         end
         {
           :hugo_symbol => mut.onco.txp_gene,
@@ -307,7 +306,7 @@ module Exome
           :transcript_change => mut.onco.txp_transcript_change,
           :polyphen2_class => mut.onco.pph2_class,
           :cosmic_mutations => mut.onco.Cosmic_overlapping_mutations,
-          :segment_logr => seg ? seg[:Segment_Mean].to_f.round(5) : nil
+          :segment_logr => seg ? seg.Segment_Mean.round(5) : nil
         }
       end
 
@@ -388,7 +387,7 @@ module Exome
       def run
         create_mafs
 
-        @segs = HashTable.new config.tumor_cnr_seg
+        @segs = HashTable.new config.tumor_cnr_seg, :header => { :ID => :str, :Chromosome => :str, :Start => :int, :End => :int, :Num_Probes => :int, :Segment_Mean => :float }
 
         load_mutect_snvs config.chrom
         load_indel_snvs config.chrom
