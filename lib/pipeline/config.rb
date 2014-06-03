@@ -236,6 +236,10 @@ module Pipeline
       Dir.chdir(work_dir) if work_dir
     end
 
+    def hostname
+      @hostname ||= %x{ hostname }
+    end
+
     def load_config
       @config=Pipeline::SampleObject.new YAML.load_file(config_file), self
     end
