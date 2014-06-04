@@ -94,7 +94,7 @@ module Pipeline
 
     def_var :modules do [ :default ] end
 
-    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config, :walltime, :job_array
+    empty_var :work_dir, :verbose, :job_number, :keep_temp_files, :single_step, :filter_config, :walltime, :job_array, :queue
 
     def job_index sample=nil
       @opts[:job_number] ? @opts[:job_number] - 1 : 0 
@@ -116,9 +116,12 @@ module Pipeline
       end
     end
 
-
     def cohort
       return @config
+    end
+
+    def step_queue
+      queue ? queue[step] : nil
     end
 
     job_items :sample, :replicate
@@ -147,7 +150,7 @@ module Pipeline
       # read chromosomes from the fasta dict
       @chroms ||= File.foreach(reference_dict).map do |s|
         s.match(/@SQ.*SN:(\w+)\s/) do |m| 
-          next if m[1] == "chrM"
+          next if m[1] !~ /^chr[0-9]+$/
           { :chrom_name => m[1] }
         end
       end.compact
@@ -164,11 +167,11 @@ module Pipeline
       load_opts
       load_procs
       load_env_vars
-      load_tools_config
 
       set_dir
 
       load_config
+      load_tools_config
       load_genome_config
 
       init_hook
@@ -195,11 +198,15 @@ module Pipeline
       # if these exist, put them in @opts
       Hash[
         :PBS_O_WORKDIR => :work_dir,
+        :SGE_O_WORKDIR => :work_dir,
         :ACTION => :action,
         :STEP => [ :step, :to_sym ],
         :LIB_DIR => :lib_dir,
+
         :MOAB_JOBARRAYINDEX => [:job_number, :to_i],
         :PBS_ARRAYID => [:job_number, :to_i],
+        :SGE_TASK_ID => [:job_number, :to_i],
+
         :MOAB_JOBARRAYRANGE => [:array_range, :to_i ],
         :SINGLE_STEP => :single_step,
         :SCHEDULER => :scheduler,
@@ -208,7 +215,7 @@ module Pipeline
         if o.is_a? Array
           conv = o.last; o = o.first
         end
-        next if !ENV[ev.to_s] || @opts[o]
+        next if !ENV[ev.to_s] || ENV[ev.to_s] == "undefined" || @opts[o]
         if conv
           @opts[o] = ENV[ev.to_s].send conv
         else

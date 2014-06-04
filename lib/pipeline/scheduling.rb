@@ -1,3 +1,4 @@
+require 'open3'
 module Pipeline
   module Script
     def scheduler_type
@@ -6,6 +7,8 @@ module Pipeline
         :moab_scheduler
       when !`pgrep maui`.empty?
         :maui_scheduler
+      when `qstat -help` =~ /^SGE/
+        :sge_scheduler
       end
     end
   end
@@ -108,6 +111,55 @@ module Pipeline
       end
     end
 
+    class GridScheduler
+      def run_job vars, opts
+        fields = {
+          :N => opts[:name],
+          :t => opts[:trials] ? "1-#{opts[:trials]}" : nil,
+          :hold_jid => opts[:wait],
+          :j => "y",
+          :pe => opts[:threads] ? "alloc #{opts[:threads]}" : nil,
+          :o => "log/uncaught_errors.log",
+          :q => opts[:queue],
+          :v => vars.map{|v,n| n ? "#{v}=#{n}" : nil }.compact.join(",")
+        }
+        fields.delete_if { |k,v| v.nil? }
+
+        res = []
+        res.push "internet=1" if opts[:internet]
+
+        yield res, fields
+      end
+    end
+
+    class SgeScheduler < GridScheduler
+      def run vars, opts
+        run_job vars,opts do |res,fields|
+          fields[:o] = "/dev/null"
+          ruby = %x{ readlink -f $(which ruby) }.chomp
+          cmd = "/common/sge/bin/lx24-amd64/qsub -terse #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/wrapper.sh #{vars[:LIB_DIR]}/step_pipe.rb"
+
+          job = nil
+          Open3.popen3(cmd) do |sin,sout,serr,wait_thr|
+            job = sout.read.sub(/\..*/,'')
+          end
+          job.strip
+        end
+      end
+
+      def cancel_id ids
+        system "qdel #{ids.join(" ")}"
+      end
+
+      def cancel(conf, allow_completion=nil)
+        q = Nokogiri::XML(`qstat -f -x`)
+        schedule_id = q.xpath("//Job[contains(Variable_List,'CONFIG=#{conf}') and contains(Variable_List,'ACTION=schedule')]/Job_Id").map(&:text)
+        exec_id = q.xpath("//Job[contains(Variable_List,'CONFIG=#{conf}') and contains(Variable_List,'ACTION=exec')]/Job_Id").map(&:text)
+
+        cancel_id (allow_completion ? schedule_id : schedule_id + exec_id)
+      end
+    end
+
     def scheduler
       @scheduler ||= Pipeline::Scheduling.const_get(config.scheduler.to_s.camel_case).new
     end
@@ -132,6 +184,7 @@ module Pipeline
 
       opts = { 
         :name => "#{config.pipe}.#{action == :schedule ? :schedule : config.step}",
+        :queue => config.step_queue
       }.merge(opts || {})
 
       scheduler.run(vars, opts)
