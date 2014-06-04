@@ -115,13 +115,9 @@ module Exome
       :univ_geno_annotate => true
     }
 
-    def_module :mut_det_somaticindel, {
-      :mut_det => [ :mutect, :somatic_indel_detector, :patch_somatic_indel_vcf ],
-      :mut_filter => [ :filter_muts_somatic_indel ]
-    }
-
     def_module :find_mutations_somatic_indel_detector, {
-      :mut_det_somaticindel => true,
+      :mut_det => [ :mutect, :somatic_indel_detector, :patch_somatic_indel_vcf ],
+      :mut_filter => [ :filter_muts_somatic_indel ],
       :combine_muts => true
     }
 
