@@ -73,9 +73,9 @@ module Rna
           end
         end
         File.open config.tpm_table, "w" do |f|
-          f.puts "gene_id\t#{config.samples__replicatess.map{|r| config.sample_replicate_name(r) }.join("\t")}"
+          f.puts "gene_id\t#{config.samples.map{|s| s.replicates.map{|r| config.sample_replicate_name(r) } }.join("\t")}"
           combined.each do |gid,g|
-            f.puts "#{gid}\t#{config.samples__replicatess.map{|r| g[config.sample_replicate_name(r)] }.join("\t")}"
+            f.puts "#{gid}\t#{config.samples.map{|s| s.replicates.map{|r| g[config.sample_replicate_name(r)] } }.join("\t")}"
           end
         end
       end
