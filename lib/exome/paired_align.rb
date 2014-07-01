@@ -95,7 +95,8 @@ module Exome
 
     def_module :find_mutations, {
       :mut_det => true,
-      :mut_filter => true
+      :mut_filter => true,
+      :combine_muts => true
     }
 
     def_module :find_mutations_indelocator, {
@@ -131,7 +132,7 @@ module Exome
       :create_bams => true,
       :calculate_qc => true,
       :compute_copy_number => true,
-      :find_mutations => true,
+      :find_mutations_somatic_indel_detector => true,
       :absolute_purity => true,
       :summarize => true
     }
