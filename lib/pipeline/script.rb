@@ -5,6 +5,7 @@ module Pipeline
     include Pipeline::Logger
     include Pipeline::Usage
     include Pipeline::Scheduling
+    include Pipeline::Modules
 
     module ClassMethods 
       attr_reader :steps, :available_modules
