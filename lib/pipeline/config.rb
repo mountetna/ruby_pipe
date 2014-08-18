@@ -150,7 +150,7 @@ module Pipeline
       # read chromosomes from the fasta dict
       @chroms ||= File.foreach(reference_dict).map do |s|
         s.match(/@SQ.*SN:(\w+)\s/) do |m| 
-          next if m[1] !~ /^chr[0-9]+$/
+          next if m[1] !~ /^chr([0-9]+|[XY])$/
           { :chrom_name => m[1] }
         end
       end.compact
