@@ -66,7 +66,7 @@ module Exome
       dumps_file :pindel_vcf
 
       def run
-        unpatched = VCF.read config.pindel_unpatched_vcf
+        unpatched = VCF.new config.pindel_unpatched_vcf
         unpatched.preamble_lines.find{|i| i=~ /ID=AD/}.replace "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n"
         unpatched.preamble_lines.push "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth (only filtered reads used for calling)\">\n"
         unpatched.each do |l|
@@ -77,26 +77,26 @@ module Exome
           end
           l.format.push :DP 
           # get the actual depth for this locus
-          normal_depth = count_depth config.normal_bam, l.mutation[:chrom], l.mutation[:pos]
-          tumor_depth = count_depth config.tumor_bam, l.mutation[:chrom], l.mutation[:pos]
+          normal_depth = count_depth config.normal_bam, l.seqname, l.pos
+          tumor_depth = count_depth config.tumor_bam, l.seqname, l.pos
 
-          support = l.genotype(config.normal_name).info[:AD].to_i
+          support = l.genotype(config.normal_name).ad.to_i
           if support > normal_depth
             log_error "Mpileup depth is less than pindel supporting read count!"
-            log_error "#{support} #{normal_depth} #{l.chrom}:#{l.pos}"
+            log_error "#{support} #{normal_depth} #{l.seqname}:#{l.pos}"
             normal_depth = support
           end
-          l.genotype(config.normal_name).info[:DP] = normal_depth
-          l.genotype(config.normal_name).info[:AD] = "#{normal_depth - support},#{support}"
+          l.genotype(config.normal_name).dp = normal_depth
+          l.genotype(config.normal_name).ad = "#{normal_depth - support},#{support}"
 
-          support = l.genotype(config.sample_name).info[:AD].to_i
+          support = l.genotype(config.sample_name).ad.to_i
           if support > tumor_depth
             log_error "Mpileup depth is less than pindel supporting read count!"
-            log_error "#{support} #{tumor_depth} #{l.chrom}:#{l.pos}"
+            log_error "#{support} #{tumor_depth} #{l.seqname}:#{l.pos}"
             tumor_depth = support
           end
-          l.genotype(config.sample_name).info[:DP] = tumor_depth
-          l.genotype(config.sample_name).info[:AD] = "#{tumor_depth - support},#{support}"
+          l.genotype(config.sample_name).dp = tumor_depth
+          l.genotype(config.sample_name).ad = "#{tumor_depth - support},#{support}"
         end
         unpatched.write config.pindel_vcf
       end
@@ -234,15 +234,15 @@ module Exome
 
       def run
         verbose = SomaticIndelOut.new config.somaticindel_verbose
-        unpatched = VCF.read config.somaticindel_unpatched_vcf
+        unpatched = VCF.new config.somaticindel_unpatched_vcf
         unpatched.each do |l|
-          mut = verbose[ [ l.chrom, l.start.to_i, l.stop.to_i ] ]
+          mut = verbose[ [ l.seqname, l.start, l.stop ] ]
           next if !mut
-          l.genotype(config.normal_name).info[:DP] = mut.normal_depth
-          l.genotype(config.normal_name).info[:AD] = mut.normal_allelic_depth
+          l.genotype(config.normal_name).dp = mut.normal_depth
+          l.genotype(config.normal_name).ad = mut.normal_allelic_depth
 
-          l.genotype(config.sample_name).info[:DP] = mut.tumor_depth
-          l.genotype(config.sample_name).info[:AD] = mut.tumor_allelic_depth
+          l.genotype(config.sample_name).dp = mut.tumor_depth
+          l.genotype(config.sample_name).ad = mut.tumor_allelic_depth
         end
         unpatched.write config.somaticindel_vcf
       end
@@ -283,29 +283,45 @@ module Exome
 
       def mut_to_maf mut
         seg = @segs.find do |seg|
-          seg.Chromosome.sub(/^chr/,'') == mut.short_chrom && seg.Start < mut.start.to_i && seg.End > mut.stop.to_i
+          seg.Chromosome.sub(/^chr/,'') == mut.short_chrom && seg.Start < mut.start && seg.End > mut.stop
         end
         {
-          :hugo_symbol => mut.onco.txp_gene,
+
+          :hugo_symbol => mut.mut.onco.txp_gene,
+          :entrez_gene_id => "",
+          :ncbi_build => 37,
           :chromosome => mut.short_chrom,
           :start_position => mut.start,
           :end_position => mut.stop,
-          :reference_allele => mut.ref_allele,
-          :tumor_seq_allele1 => mut.alt_allele,
+          :reference_allele => mut.mut.ref,
+          :tumor_seq_allele1 => mut.mut.alt,
+          :tumor_seq_allele2 => nil,
+          :tumor_validation_allele1 => nil,
+          :tumor_validation_allele2 => nil,
+          :match_norm_seq_allele1 => nil,
+          :match_norm_seq_allele2 => nil,
+          :match_norm_validation_allele1 => nil,
+          :match_norm_validation_allele2 => nil,
+          :verification_status => nil,
+          :validation_status => nil,
+          :mutation_status => nil,
+          :sequencing_phase => nil,
+          :sequence_source => nil,
+          :validation_method => nil,
+          :score => nil,
           :center => "taylorlab.ucsf.edu",
-          :ncbi_build => 37,
           :strand => "+",
-          :variant_classification => mut.onco.txp_variant_classification,
-          :variant_type => mut.onco.variant_type,
-          :dbsnp_rs => (mut.onco.is_snp ? mut.onco.dbSNP_RS : nil),
-          :dbsnp_val_status => mut.onco.dbSNP_Val_Status,
+          :variant_classification => mut.mut.onco.txp_variant_classification,
+          :variant_type => mut.mut.onco.variant_type,
+          :dbsnp_rs => (mut.mut.onco.is_snp ? mut.mut.onco.dbSNP_RS : nil),
+          :dbsnp_val_status => mut.mut.onco.dbSNP_Val_Status,
           :tumor_sample_barcode => config.sample_name,
           :matched_norm_sample_barcode => config.normal_name,
           :bam_file => config.sample_bam,
-          :protein_change => mut.onco.txp_protein_change,
-          :transcript_change => mut.onco.txp_transcript_change,
-          :polyphen2_class => mut.onco.pph2_class,
-          :cosmic_mutations => mut.onco.Cosmic_overlapping_mutations,
+          :protein_change => mut.mut.onco.txp_protein_change,
+          :transcript_change => mut.mut.onco.txp_transcript_change,
+          :polyphen2_class => mut.mut.onco.pph2_class,
+          :cosmic_mutations => mut.mut.onco.Cosmic_overlapping_mutations,
           :segment_logr => seg ? seg.Segment_Mean.round(5) : nil
         }
       end
@@ -339,10 +355,10 @@ module Exome
         @germline_maf = Maf.new
         @all_muts_maf = Maf.new
 
-        @somatic_maf.headers.concat EXTRA_HEADERS
-        @germline_maf.headers.concat EXTRA_HEADERS
-        @all_muts_maf.headers.concat ABSOLUTE_HEADERS
-        @all_muts_maf.headers.map! do |l|
+        @somatic_maf.header.concat EXTRA_HEADERS
+        @germline_maf.header.concat EXTRA_HEADERS
+        @all_muts_maf.header.concat ABSOLUTE_HEADERS
+        @all_muts_maf.header.map! do |l|
           l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l
         end
       end
@@ -356,28 +372,28 @@ module Exome
       end
 
       def load_mutect_snvs chrom
-        MuTect.read(config.mutect_snvs(chrom), config.mutations_config).each do |l|
+        MuTect.new(config.mutect_snvs(chrom), mutation_config: config.mutations_config).each do |l|
           next unless l.keep_somatic? || l.keep_germline?
           log_info "Annotating #{l.contig}:#{l.position}"
           mut = mutect_to_maf l
           unless l.skip_oncotator?
-            @somatic_maf.add_line(mut) if l.keep_somatic?
-            @germline_maf.add_line(mut) if l.keep_germline? && l.onco.Cosmic_overlapping_mutations
+            @somatic_maf << mut if l.keep_somatic?
+            @germline_maf << mut if l.keep_germline? && l.mut.onco.Cosmic_overlapping_mutations
           end
-          @all_muts_maf.add_line mut if l.keep_somatic?
+          @all_muts_maf << mut if l.keep_somatic?
         end
       end
 
       def load_indel_snvs chrom
-        VCF.read(indel_vcf(chrom), config.mutations_config).each do |l|
+        VCF.new(indel_vcf(chrom), mutation_config: config.mutations_config).each do |l|
           begin
-            log_info "Checking #{l.chrom}:#{l.pos}-#{l.end_pos}"
+            log_info "Checking #{l.range}"
             next if l.alt.include?("N") || l.ref.include?("N")
             next if l.skip_genotype?([indel_caller, :normal] => config.normal_name) || l.skip_genotype?([indel_caller, :tumor] => config.sample_name)
             next if l.skip_oncotator?
-            log_info "Annotating #{l.chrom}:#{l.pos}-#{l.end_pos}"
+            log_info "Annotating #{l.range}"
             mut = indel_vcf_to_maf l
-            @somatic_maf.add_line mut
+            @somatic_maf << mut
           rescue ArgumentError => e
             log_info e.message
           end
@@ -422,7 +438,7 @@ module Exome
       def run
         mutect = nil
         config.chroms__mutect_snvs.each do |mf|
-          m = MuTect.read mf
+          m = MuTect.new mf
           if mutect
             mutect.lines.concat m.lines
           else
@@ -432,7 +448,7 @@ module Exome
         mutect.write config.mutect_all_snvs if mutect
         vcf = nil
         config.chroms__pindel_vcfs.each do |vf|
-          v = VCF.read vf
+          v = VCF.new vf
           v.lines.select! do |l|
             (l.ref.size == 1 || l.alt.size == 1) && l.alt !~ /[^ATGC]/  && l.ref !~ /[^ATGC]/
           end
@@ -482,17 +498,17 @@ module Exome
         @all_muts_maf = Maf.new
 
         config.sample.chroms.each do |chrom|
-          m = Maf.read config.tumor_chrom_maf(chrom)
-          @somatic_maf.headers = m.headers
-          @somatic_maf.lines.concat m.lines
+          m = Maf.new config.tumor_chrom_maf(chrom)
+          @somatic_maf.header = m.header
+          @somatic_maf.concat m
 
-          m = Maf.read config.germline_chrom_maf(chrom)
-          @germline_maf.headers = m.headers
-          @germline_maf.lines.concat m.lines
+          m = Maf.new config.germline_chrom_maf(chrom)
+          @germline_maf.header = m.header
+          @germline_maf.concat m
 
-          m = Maf.read config.all_muts_chrom_maf(chrom)
-          @all_muts_maf.headers = m.headers
-          @all_muts_maf.lines.concat m.lines
+          m = Maf.new config.all_muts_chrom_maf(chrom)
+          @all_muts_maf.header = m.header
+          @all_muts_maf.concat m
         end
         write_mafs
       end

@@ -185,11 +185,11 @@ module Exome
           next if !v.genotype(config.sample.sample_id).callable?
           next if v.filter != "PASS"
           next if v.id[0..1] != "rs"
-          tb.add_line :chromosome => v.chrom, :position => v.pos,
+          tb.add_line :chromosome => v.seqname, :position => v.pos,
             :BAF => v.genotype(config.sample.sample_id).alt_freq,
             :Alt_count => v.genotype(config.sample.sample_id).alt_count,
             :Tot_count => v.genotype(config.sample.sample_id).depth
-          nb.add_line :chromosome => v.chrom, :position => v.pos,
+          nb.add_line :chromosome => v.seqname, :position => v.pos,
             :BAF => v.genotype(config.normal.sample_id).alt_freq,
             :Alt_count => v.genotype(config.normal.sample_id).alt_count,
             :Tot_count => v.genotype(config.normal.sample_id).depth
