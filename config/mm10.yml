@@ -3,3 +3,13 @@
 :mm10_date: dec_2011
 :mm10_snp_vcf: /taylorlab/resources/mouse/mm10/snps/snps.vcf
 :mm10_indel_vcf: /taylorlab/resources/mouse/mm10/snps/snps.vcf
+
+:mm10_reference_gtf: /taylorlab/resources/mouse/mm10/ensembl/Mus_musculus.GRCm38.76.long_chrom.gtf
+:mm10_unified_gtf: /taylorlab/resources/mouse/mm10/ensembl/Mus_musculus.GRCm38.76.long_chrom.unified_model.gtf
+:mm10_null_gtf: /taylorlab/resources/mouse/mm10/ensembl/Mus_musculus.GRCm38.76.long_chrom.null_model.gtf
+:mm10_refflat: /taylorlab/resources/mouse/mm10/ensembl/mm10.ensembl_76.refFlat.txt
+:bwa_idx: /taylorlab/resources/mouse/mm10/bwa_index/mm10.fa
+:bowtie2_idx: /taylorlab/resources/mouse/mm10/bowtie2_index/mm10
+:transcriptome_idx: /taylorlab/resources/mouse/mm10/tophat2_index/Mus_musculus.GRCm38.76.long_chrom
+
+:mm10_rrna_intervals: /taylorlab/resources/mouse/mm10/intervals/mm10.rRNA.interval_list

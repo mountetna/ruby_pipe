@@ -12,7 +12,7 @@ module Ribo
 
       def run
         log_info "Sorting sequence dictionary"
-        picard :reorder_sam, :I => config.tophat_bam, :O => config.tophat_sort_bam, :REFERENCE => config.hg19_fa or error_exit "Could not reorder bam."
+        picard :reorder_sam, :I => config.tophat_bam, :O => config.tophat_sort_bam, :REFERENCE => config.reference_fa or error_exit "Could not reorder bam."
       end
     end
 

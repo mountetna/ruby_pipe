@@ -23,8 +23,12 @@ module Ribo
 
       def run
 	log_info "Calculate rnaseq metrics"
-        picard :collect_rna_seq_metrics, :ASSUME_SORTED => :true, :REF_FLAT => config.hg19_refflat, :RIBOSOMAL_INTERVALS => config.hg19_rrna_intervals, :STRAND_SPECIFICITY => :NONE,
-          :CHART_OUTPUT => config.qc_pdf, :INPUT => config.sample_bam, :OUTPUT => config.qc_rnaseq or error_exit "RNAseq metrics failed"
+        picard :collect_rna_seq_metrics, :ASSUME_SORTED => :true, 
+          :REF_FLAT => config.reference_refflat, 
+          :RIBOSOMAL_INTERVALS => config.reference_rrna_intervals, 
+          :STRAND_SPECIFICITY => :NONE,
+          :CHART_OUTPUT => config.qc_pdf,
+          :INPUT => config.sample_bam, :OUTPUT => config.qc_rnaseq or error_exit "RNAseq metrics failed"
       end
     end
 

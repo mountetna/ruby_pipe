@@ -57,5 +57,6 @@ module Ribo
     def_var :input_fastq do job_item.input_fastq end
 
     #coverage
+    def_var :model_type do :unified_model end
   end
 end
