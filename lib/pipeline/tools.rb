@@ -96,7 +96,7 @@ module Pipeline
     end
 
     def coverage_bed(bam,intervals,outfile,quality=20)
-      run_cmd "samtools view -u -q #{quality} #{bam} | coverageBed -abam stdin -b #{intervals} -counts > #{outfile}"
+      run_cmd "samtools view -u -q #{quality} -F 0x400 #{bam} | coverageBed -abam stdin -b #{intervals} -counts > #{outfile}"
     end
 
     def count_depth bam, chr, pos, pos2=nil

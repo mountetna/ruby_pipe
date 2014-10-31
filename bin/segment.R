@@ -1,19 +1,21 @@
 #!/usr/bin/env Rscript
 
-args = commandArgs(TRUE)
-lib_dir = args[1]
-cmd = args[2]
+if (!interactive()) {
+	args = commandArgs(TRUE)
+	lib_dir = args[1]
+	cmd = args[2]
 
-if (length(args) < 1) {
-  print("Usage:")
-  print("  segment.R <lib_dir> doSegCbs <logr_file> <rdata_file> <seg_file> <sample_name>")
-  quit()
+	if (length(args) < 1) {
+	  print("Usage:")
+	  print("  segment.R <lib_dir> doSegCbs <logr_file> <rdata_file> <seg_file> <sample_name>")
+	  quit()
+	}
 }
 
 suppressMessages(library(DNAcopy))
 suppressMessages(library(PSCBS))
 source(paste(lib_dir,"bin", "chrom.R",sep="/"))
-# okay, using this, first generate the CBS segmentation. Return the segmentation object.
+
 segCBS=function(cna,undosd) {
 	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=undosd))
 }
@@ -228,4 +230,6 @@ doGcCorrect=function(cov_file, corr_file, gc_file) {
 	write.table(cov, corr_file, quote=F, sep="\t",col.names = FALSE, row.names = FALSE)
 }
 
-do.call(cmd,as.list(args[-1:-2]))
+if (!interactive()) {
+	do.call(cmd,as.list(args[-1:-2]))
+}
