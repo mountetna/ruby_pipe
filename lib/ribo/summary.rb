@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 
-require 'flagstat'
+require 'germ/flagstat'
 require 'hash_table'
 require 'gtf'
 
 module Ribo
   class Summary
     include Pipeline::Step
-    runs_tasks :summarize_qc, :summarize_normal_cov, :summarize_null_cov
+    runs_tasks :summarize_normal_cov, :summarize_null_cov, :summarize_qc
 
     class SummarizeQc
       include Pipeline::Task
@@ -54,7 +54,7 @@ module Ribo
       
       def run
         summary = {}
-        gtf = GTF.new config.hg19_unified_gtf, :idx => [ :gene_id ]
+        gtf = GTF.new config.reference_unified_gtf, :idx => [ :gene_id ]
         config.samples.each do |s|
           # read in each file name and build up a hash of interesting information
           cov = HashTable.new config.normal_cov(s), :header => [ :gid, :count ]
