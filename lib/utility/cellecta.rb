@@ -70,8 +70,8 @@ class CellectaModule < HashTable
     File.open(file,"w") do |f|
       f.puts "gene\tbarcode_id\tcount"
       f.puts "unknown\t?\t#{@unknown}"
-      hugo_symbol.each do |gene,barcodes|
-        barcodes.each do |bc|
+      idx_keys(:hugo_symbol).each do |gene|
+        idx(:hugo_symbol,gene).each do |bc|
           f.puts "#{gene}\t#{bc.barcodeID}\t#{bc.count}"
         end
       end
@@ -185,7 +185,7 @@ module Utility
             name = config.sample_replicate_name(rep).to_sym
             counts_file = HashTable.new config.barcode_count(rep)
             counts_file.each do |bc|
-              line = combined.barcode_id[bc.barcode_id]
+              line = combined.idx(:barcode_id,bc.barcode_id)
               if line
                 line.first[ name ] = bc.count if bc.count
               else
