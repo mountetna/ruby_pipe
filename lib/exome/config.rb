@@ -78,8 +78,8 @@ module Exome
           "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
-            "@sample_name.ABSOLUTE.RData" => :absolute_rdata,
-            "@sample_name.ABSOLUTE_plot.pdf" => :absolute_pdf
+            "@sample_name.ABSOLUTE.RData" => :absolute_scratch_rdata,
+            "@sample_name.ABSOLUTE_plot.pdf" => :absolute_scratch_pdf
           }
         },
         ":normal_name" => {
@@ -155,6 +155,8 @@ module Exome
           "@sample_name.ascat.txt" => :tumor_ascat_txt,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
           "@sample_name.absolute.seg" => :tumor_absolute_seg,
+          "@sample_name.ABSOLUTE.RData" => :absolute_rdata,
+          "@sample_name.ABSOLUTE.plot.pdf" => :absolute_pdf,
           "@sample_name.mutations" => :tumor_mutations,
           "@sample_name.univ_geno_muts.vcf" => :ug_muts,
         },

@@ -218,10 +218,13 @@ module Exome
     class AbsolutePurityPloidy
       include Pipeline::Task
       requires_file :sample_exon_cnr, :all_muts_maf
-      outs_file :absolute_rdata
+      outs_file :absolute_rdata, :absolute_pdf
 
       def run
         r_script :absolute, :callSample, config.sample_name, config.tumor_cnr_seg, config.all_muts_maf, config.absolute_scratch or error_exit "Absolute failed"
+
+        FileUtils.cp config.absolute_scratch_pdf, config.absolute_pdf if File.exists? config.absolute_scratch_pdf
+        FileUtils.cp config.absolute_scratch_rdata, config.absolute_rdata if File.exists? config.absolute_scratch_rdata
       end
     end
   end
