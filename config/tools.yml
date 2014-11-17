@@ -1,8 +1,5 @@
 :java: /opt/java/jdk1.7.0_latest/bin/java
 :java6: /opt/java/jdk1.6.0_latest/bin/java
-
-:tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir ]
-
 :bedtools_dir: /taylorlab/lib/bedtools/bedtools-latest/bin
 :blat_dir: /taylorlab/lib/blat/blat-latest/bin
 :blat_node: n0
@@ -31,3 +28,5 @@
 :strelka_dir: /taylorlab/lib/strelka/strelka-latest
 :tophat_dir: /taylorlab/lib/tophat/tophat-latest
 :vcftools_dir: /taylorlab/lib/vcftools/vcftools-latest
+:ghostscript_dir: /taylorlab/lib/ghostscript/ghostscript-latest
+:tools_path: [ fastx_dir, tophat_dir, samtools_dir, bowtie_dir, bowtie2_dir, cufflinks_dir, ghostscript_dir ]

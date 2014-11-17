@@ -106,7 +106,11 @@ module Pipeline
     end
 
     def merge_pdfs pdfs, output_pdf
-      %x{ gs -o #{output_pdf} -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress #{pdfs.join(" ")} }
+      gs "-o #{output_pdf} -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress #{pdfs.join(" ")}"
+    end
+
+    def gs cmd
+      run_cmd "#{config.ghostscript_dir}/bin/gs #{cmd}"
     end
 
     def create_interval_bed
