@@ -17,30 +17,29 @@ module Exome
       outs_files :combined_somatic_maf
 
       def run
-        @somatic_maf = Maf.new
+        @somatic_maf = nil
 
         config.tumor_samples.each do |sample|
-          m = Maf.read config.tumor_maf(sample)
-          @somatic_maf.headers = m.headers
-          @somatic_maf.lines.concat m.lines
+          m = Maf.new config.tumor_maf(sample)
+          @somatic_maf = m.wrap [] unless @somatic_maf
+          @somatic_maf.concat m
         end
         @somatic_maf.write config.combined_somatic_maf
       end
     end
+
     class ConcatSegs
       include Pipeline::Task
       requires_files :tumor_cnr_segs
       outs_files :combined_seg
 
       def run
-        @seg = HashTable.new nil
+        @seg = nil
 
         config.tumor_samples.each do |sample|
           sseg = HashTable.new config.tumor_cnr_seg(sample)
-          @seg.header = sseg.header
-          sseg.each do |line|
-            @seg.add_line line
-          end
+          @seg = sseg.wrap [] unless @seg
+          @seg.concat sseg
         end
         @seg.write config.combined_seg
       end
