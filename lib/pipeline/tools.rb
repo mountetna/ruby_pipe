@@ -78,13 +78,8 @@ module Pipeline
     end
 
     def fastx_clipper(params)
-      params = { :min_length => 24, 
-        :quals => (config.qual_type == "solexa" ? "-Q33" : nil) }.merge(params)
-      if params[:in] =~ /.gz$/
-        run_cmd "zcat #{params[:in]} | #{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -o #{params[:out]}"
-      else
-        run_cmd "#{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -i #{params[:in]} -o #{params[:out]}"
-      end
+      params = { :min_length => 24, :quals => (config.qual_type == "solexa" ? "-Q33" : nil) }.merge(params)
+      run_cmd "zcat #{params[:in].join(" ")} | #{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -o #{params[:out]}"
     end
 
     def htseq_count(params)

@@ -7,13 +7,13 @@ module Ribo
 
     class ClipFastq
       include Pipeline::Task
-      requires_file :input_fastq
+      requires_file :inputs
       dumps_file :clipped_fastq
 
       def run
         log_info "Clipping adapter from fastq"
         fastx_clipper :adapter => config.adapter,  :out => config.clipped_fastq,
-          :in => config.input_fastq or error_exit "fastx_clipper failed"
+          :in => config.inputs or error_exit "fastx_clipper failed"
       end
     end
 

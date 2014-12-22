@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'germ/flagstat'
+require 'flagstat'
 require 'hash_table'
 require 'gtf'
 
