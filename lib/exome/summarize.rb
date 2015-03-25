@@ -37,7 +37,8 @@ module Exome
         @seg = nil
 
         config.tumor_samples.each do |sample|
-          sseg = HashTable.new config.tumor_cnr_seg(sample)
+          sseg = HashTable.new
+          sseg.parse config.tumor_cnr_seg(sample)
           @seg = sseg.wrap [] unless @seg
           @seg.concat sseg
         end

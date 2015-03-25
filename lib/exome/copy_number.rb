@@ -4,29 +4,6 @@ require 'fileutils'
 require 'vcf'
 
 module Exome
-  class CoverageTable < HashTable
-    header_on
-    class Coverage < HashLine
-      def p_count
-        count.to_f + 10
-      end
-      def low_count?
-        count.to_f < 10
-      end
-    end
-    line_class :coverage
-
-
-    def total
-      @total ||= inject(0) do |sum,line|
-        sum += line.p_count
-      end.to_f
-    end
-
-    def initialize file
-      super file, :header => [ :chr, :start, :stop, :strand, :name, :count ]
-    end
-  end
 
   class SampleCoverage
     include Pipeline::Step
@@ -55,69 +32,60 @@ module Exome
     end
   end
 
-  class PrepNormal
-    include Pipeline::Step
-    runs_task :compute_total_coverage
-    
-    class ComputeTotalCoverage
-      include Pipeline::Task
-      requires_files :normal_sample_covs
-      dumps_file :total_normal_cov
-
-      def run
-        total_cov = CoverageTable.new config.normal_sample_covs.first
-        normal_covs = config.normal_sample_covs.map{|f| CoverageTable.new f }
-        total_cov.each_with_index do |line,i|
-          line[:count] = normal_covs.inject(0) do |sum,nc| 
-            sum += nc[i].count.to_f
-          end
-        end
-        total_cov.print config.total_normal_cov
-      end
-    end
+  class CoverageTable < HashTable
+    print_columns
+    columns :seqname, :start, :stop, :strand, :name, :count
+    types start: :int, stop: :int, count: :int
   end
 
-  class ComputeNormals
-    include Pipeline::Step
-    runs_task :compute_normal_logr, :copy_seg
-    runs_on :normal_samples
+  class CopyRatioTable < HashTable
+    print_columns
+    columns :chrom, :start, :stop, :strand, :name, :normal_count, :tumor_count, :logr
 
-    class ComputeNormalLogr
-      include Pipeline::Task
-      requires_file :sample_cov, :total_normal_cov
-      outs_files :sample_exon_cnr
+    class CopyRatio < HashTable::Row
+      def logr
+         Math.log(pseudo(tumor_count)/pseudo(normal_count) / (@table.tumor_reads/@table.normal_reads),2).round(4)
+      end
 
-      def run
-        total_cov = CoverageTable.new config.total_normal_cov
-        normal_logr = CoverageTable.new config.sample_cov
-        normal_total = normal_logr.total
+      def enough_reads?
+        normal_count > 10
+      end
 
-        normal_logr.each_with_index do |line,i|
-          line[:total_count] = total_cov[i].count
-          line[:normal_count] = line.count
-          if line.low_count?
-            line[:logr] = "NA"
-          else
-            line[:logr] = Math.log(line.p_count/total_cov[i].p_count/(normal_total/total_cov.total),2).round(4)
-          end
-        end
-        normal_logr.header[ normal_logr.header.index(:count) ] = [ :normal_count, :total_count, :logr ]
-        normal_logr.header.flatten!
-
-        normal_logr.print config.sample_exon_cnr
+      def pseudo(count)
+        count.to_f + 10
       end
     end
 
-    class CopySeg
-      include Pipeline::Task
-      requires_file :sample_exon_cnr
-      outs_file :tumor_cnr_rdata, :tumor_cnr_seg
-
-      def run
-        # just pass these arguments to the R script
-        r_script :segment, :doSegCbs, config.sample_exon_cnr, config.tumor_cnr_rdata, config.tumor_cnr_seg, config.sample_name, config.segment_smoothing or error_exit "CBS segmentation failed"
+    def initialize normal_cov, sample_cov
+      super []
+      sample_cov.lazy.zip(normal_cov) do |scov,ncov|
+        self << {
+          chrom: ncov.seqname,
+          start: ncov.start,
+          stop: ncov.stop,
+          strand: ncov.strand,
+          name: ncov.name,
+          normal_count: ncov.count,
+          tumor_count: scov.count
+        }
       end
     end
+
+    def tumor_reads
+      @tumor_reads ||= total_reads :tumor_count
+    end
+
+    def normal_reads
+      @normal_reads ||= total_reads :normal_count
+    end
+
+    def total_reads type
+      inject(0) do |sum,line|
+        sum += line.pseudo(line.send(type)) if line.enough_reads?
+        sum
+      end
+    end
+
   end
 
   class CopyNumber
@@ -132,23 +100,15 @@ module Exome
       outs_files :sample_exon_cnr
 
       def run
-        normal_cov = CoverageTable.new config.normal_cov
-        tumor_logr = CoverageTable.new config.sample_cov
-        total = tumor_logr.total
+        normal_cov = CoverageTable.new
+        normal_cov.parse config.normal_cov
+        sample_cov = CoverageTable.new
+        sample_cov.parse config.sample_cov
+        tumor_logr = CopyRatioTable.new normal_cov, sample_cov
 
-        tumor_logr.each_with_index do |line,i|
-          line[:normal_count] = normal_cov[i].count
-          line[:tumor_count] = line.count
-          if line.low_count? || normal_cov[i].low_count?
-            line[:logr] = "NA"
-          else
-            line[:logr] = Math.log(line.p_count/normal_cov[i].p_count/(total/normal_cov.total),2).round(4)
-          end
+        tumor_logr.print config.sample_exon_cnr do |l|
+          l.enough_reads? ? l : nil
         end
-        tumor_logr.header[ tumor_logr.header.index(:count) ] = [ :tumor_count, :normal_count, :logr ]
-        tumor_logr.header.flatten!
-
-        tumor_logr.print config.sample_exon_cnr
       end
     end
 
@@ -178,8 +138,8 @@ module Exome
 
       def run
         vcf = VCF.read config.ug_snps_vcf
-        tb = HashTable.new nil, :header => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
-        nb = HashTable.new nil, :header => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
+        tb = HashTable.new :columns => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
+        nb = HashTable.new :columns => [ :chromosome, :position, :BAF, :Alt_count, :Tot_count ]
         vcf.each do |v|
           next if !v.genotype(config.normal.sample_id).heterozygous?
           next if !v.genotype(config.sample.sample_id).callable?
