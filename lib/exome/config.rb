@@ -43,6 +43,8 @@ module Exome
           "raw_sample.bai" => :raw_sample_bai,
 
           "@chrom_name.snvs.raw.mutect.txt" => :mutect_snvs,
+          "@chrom_name.snvs.raw.mutect.vcf" => :mutect_vcf,
+          "@chrom_name.snvs.annotated.mutect.vcf" => :mutect_annotated_vcf,
           "@chrom_name.snvs.raw.mutect.tmp.txt" => :mutect_snvs_tmp,
           "@sample_name.snvs.raw.mutect.txt" => :mutect_all_snvs,
           "@chrom_name.snvs.coverage.mutect.wig" => :mutect_coverage,
@@ -62,6 +64,7 @@ module Exome
           "@chrom_name.somaticindel.unpatched.vcf" => :somaticindel_unpatched_vcf,
           "@chrom_name.somaticindel.verbose.txt" => :somaticindel_verbose,
           "@chrom_name.somaticindel.indels.raw.vcf" => :somaticindel_vcf,
+          "@chrom_name.somaticindel.indels.annotated.vcf" => :somaticindel_annotated_vcf,
 
           "@chrom_name.somatic.maf" => :tumor_chrom_maf,
           "@chrom_name.germline.maf" => :germline_chrom_maf,

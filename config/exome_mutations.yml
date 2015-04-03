@@ -11,6 +11,7 @@
 :mutect:
   :germline:
     :has_dbsnp_site: COSMIC
+    :has_judgement: REJECT
     :has_covered: COVERED
     :min_n_var_freq: 0.1
     :min_t_var_freq: 0.1
@@ -34,6 +35,10 @@
     :max_alt_length: 50
     :max_ref_length: 50
     :min_alt_freq: 0.05
+:snpeff:
+  :exclude_annotation:  [ intergenic_region, downstream_gene_variant, non_coding_exon_variant, upstream_gene_variant, intron_variant, TF_binding_site_variant, 3_prime_UTR_variant, intragenic_variant, 5_prime_UTR_variant ]
+  :has_gene_id: true
+  #:is_snp: false
 :oncotator:
   :exclude_txp_variant_classification: [ IGR, Intron, UTR, Flank, RNA ]
   :has_txp_gene: true

@@ -23,6 +23,8 @@
 :indelocator_jar: IndelGenotyper.jar
 :picard_dir: /taylorlab/lib/picard/picard-latest
 :pindel_dir: /taylorlab/lib/pindel/pindel-latest
+:snpeff_dir: /taylorlab/lib/snpeff/snpeff-latest
+:snpeff_jar: snpEff.jar
 :rsem_dir: /taylorlab/lib/rsem/rsem-latest
 :samtools_dir: /taylorlab/lib/samtools/samtools-latest
 :strelka_dir: /taylorlab/lib/strelka/strelka-latest

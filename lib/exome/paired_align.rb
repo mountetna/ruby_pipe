@@ -12,6 +12,7 @@ require 'exome/config'
 require 'exome/copy_number'
 require 'exome/fastqc'
 require 'exome/summarize'
+require 'exome/snpeff'
 
 module Exome
   class PairedAlign 
@@ -119,7 +120,7 @@ module Exome
 
     def_module :find_mutations_somatic_indel_detector, {
       :mut_det => [ :mutect, :somatic_indel_detector, :patch_somatic_indel_vcf ],
-      :mut_filter => [ :filter_muts_somatic_indel ],
+      :mut_filter => [ :mutect_to_vcf, :snp_eff_annotate_mutect_vcf, :snp_eff_annotate_somatic_indel, :filter_muts_somatic_indel ],
       :combine_muts => true
     }
 

@@ -4,36 +4,93 @@ require 'fileutils'
 require 'mutect'
 require 'vcf'
 require 'maf'
+require 'seg'
+require 'filter'
+
+class TumorMaf < Maf
+  EXTRA_HEADERS = [ :t_ref_count, :t_alt_count, :t_var_freq,
+    :n_ref_count, :n_alt_count,
+    :protein_change, :transcript_change,
+    :segment_logr
+  ]
+  columns *(Maf.default_opts[:required] + EXTRA_HEADERS)
+end
+
+class AbsoluteMaf < Maf
+  ABSOLUTE_HEADERS = [
+    :t_ref_count, :t_alt_count, :t_var_freq,
+    :n_ref_count, :n_alt_count, :protein_change,
+    :transcript_change, :segment_logr
+  ]
+  columns *(Maf.default_opts[:required] + ABSOLUTE_HEADERS)
+  display_names :start_position => :Start_position, :end_position => :End_position
+end
 
 module Exome
   class MutFilter
     include Pipeline::Step
     runs_tasks :filter_muts_pindel
-    has_tasks :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_somatic_indel
+    has_tasks :mutect_to_vcf, :snp_eff_annotate_mutect_vcf, :snp_eff_annotate_somatic_indel,
+      :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_somatic_indel
+
     runs_on :tumor_samples, :chroms
     resources :internet => 1
 
     class FilterMuts
       include Pipeline::Task
 
-      EXTRA_HEADERS = [
-        :tumor_ref_count, :tumor_alt_count, :tumor_var_freq,
-        :normal_ref_count, :normal_alt_count,
-        :protein_change, :transcript_change,
-        :polyphen2_class, :cosmic_mutations, :segment_logr
-      ]
-      ABSOLUTE_HEADERS = [
-        :t_ref_count, :t_alt_count, :tumor_var_freq,
-        :normal_ref_count, :normal_alt_count, :protein_change,
-        :transcript_change, :polyphen2_class, :cosmic_mutations, :segment_logr
-      ]
+      def vcf_to_maf mut
+        seg = @segs.find do |seg|
+          seg.overlaps? mut
+        end
+        {
+          :hugo_symbol => mut.best_effect.gene_name,
+          :entrez_gene_id => mut.best_effect.gene_id,
+          :ncbi_build => 37,
+          :chromosome => mut.chrom,
+          :start_position => mut.start,
+          :end_position => mut.stop,
+          :reference_allele => mut.ref,
+          :tumor_seq_allele1 => mut.alt,
+          :tumor_seq_allele2 => nil,
+          :tumor_validation_allele1 => nil,
+          :tumor_validation_allele2 => nil,
+          :match_norm_seq_allele1 => nil,
+          :match_norm_seq_allele2 => nil,
+          :match_norm_validation_allele1 => nil,
+          :match_norm_validation_allele2 => nil,
+          :verification_status => nil,
+          :validation_status => nil,
+          :mutation_status => nil,
+          :sequencing_phase => nil,
+          :sequence_source => nil,
+          :validation_method => nil,
+          :score => nil,
+          :center => "cbc.ucsf.edu",
+          :strand => "+",
+          :variant_classification => mut.best_effect.annotation,
+          :variant_type => nil,
+          :dbsnp_rs => mut.id,
+          :dbsnp_val_status => nil,
+          :tumor_sample_barcode => config.sample_name,
+          :matched_norm_sample_barcode => config.normal_name,
+          :bam_file => config.sample_bam,
+          :protein_change => mut.best_effect.hgvs_p,
+          :transcript_change => mut.best_effect.hgvs_c,
+          :t_ref_count => mut.t_ref_count,
+          :t_alt_count => mut.t_alt_count,
+          :t_var_freq => mut.t_var_freq,
+          :n_ref_count => mut.n_ref_count,
+          :n_alt_count => mut.n_alt_count,
+          :segment_logr => seg ? seg.seg_mean.round(5) : nil
+        }
+      end
 
       def mut_to_maf mut
         seg = @segs.find do |seg|
           seg.Chromosome.sub(/^chr/,'') == mut.short_chrom && seg.Start < mut.start && seg.End > mut.stop
         end
         {
-
           :hugo_symbol => mut.mut.onco.txp_gene,
           :entrez_gene_id => "",
           :ncbi_build => 37,
@@ -98,36 +155,45 @@ module Exome
       end
 
       def create_mafs
-        @somatic_maf = Maf.new
-        @germline_maf = Maf.new
-        @all_muts_maf = Maf.new
-
-        @somatic_maf.header.concat EXTRA_HEADERS
-        @germline_maf.header.concat EXTRA_HEADERS
-        @all_muts_maf.header.concat ABSOLUTE_HEADERS
-        @all_muts_maf.header.map! do |l|
-          l.to_s =~ /_Position/ ? l.to_s.sub(/_Position/,"_position").to_sym : l
-        end
+        @somatic_maf = TumorMaf.new
+        @germline_maf = TumorMaf.new
+        @all_muts_maf = AbsoluteMaf.new
       end
 
       def write_mafs
-        @somatic_maf.sort_by! {|l| -l.tumor_var_freq }
-        @germline_maf.sort_by! {|l| -l.tumor_var_freq }
+        @somatic_maf.sort_by! {|l| -l.t_var_freq }
+        @germline_maf.sort_by! {|l| -l.t_var_freq }
         @somatic_maf.write config.tumor_chrom_maf
         @germline_maf.write config.germline_chrom_maf
         @all_muts_maf.write config.all_muts_chrom_maf
       end
 
-      def load_mutect_snvs chrom
-        MuTect.new(config.mutect_snvs(chrom), mutation_config: config.mutations_config).each do |l|
-          next unless l.keep_somatic? || l.keep_germline?
-          log_info "Annotating #{l.contig}:#{l.position}"
-          mut = mutect_to_maf l
-          unless l.skip_oncotator?
-            @somatic_maf << mut if l.keep_somatic?
-            @germline_maf << mut if l.keep_germline? && l.mut.onco.Cosmic_overlapping_mutations
+      def load_mutect_vcf chrom
+        m = MutectSnpeffVCF.new normal_name: config.normal_name.to_sym, tumor_name: config.sample_name.to_sym
+        mutation_filters = YAML.load(File.read(config.mutations_config))
+        somatic_filter = Filter.new(mutation_filters[ :mutect ][ :somatic ])
+        germline_filter = Filter.new(mutation_filters[ :mutect ][ :germline ])
+        snpeff_filter = Filter.new(mutation_filters[ :snpeff ])
+
+        m.parse(config.mutect_annotated_vcf(chrom))
+        m.each do |l|
+          is_somatic = somatic_filter.passes?(l)
+          #is_germline = germline_filter.passes?(l)
+          next unless is_somatic# || is_germline
+          # after this is any covered mutation - we want to remember all of these somewhere
+          
+          mut = vcf_to_maf(l)
+
+          if snpeff_filter.passes?(l.best_effect)
+            # it has an interesting annotation
+            if is_somatic
+              @somatic_maf << mut
+            #else
+              #@germline_maf << mut
+            end
           end
-          @all_muts_maf << mut if l.keep_somatic?
+          # put all somatic mutations in this MAF for ABSOLUTE to use
+          @all_muts_maf << mut if is_somatic
         end
       end
 
@@ -150,10 +216,11 @@ module Exome
       def run
         create_mafs
 
-        @segs = HashTable.new config.tumor_cnr_seg, :header => { :ID => :str, :Chromosome => :str, :Start => :int, :End => :int, :Num_Probes => :int, :Segment_Mean => :float }
+        @segs = Seg.new
+        @segs.parse config.tumor_cnr_seg
 
-        load_mutect_snvs config.chrom
-        load_indel_snvs config.chrom
+        load_mutect_vcf config.chrom
+        #load_indel_vcf config.chrom
 
         write_mafs
       end
@@ -168,9 +235,64 @@ module Exome
       def indel_vcf chrom; config.pindel_vcf chrom; end
     end
 
+    class MutectToVcf
+      include Pipeline::Task
+
+      # get this guy in VCF format so you can annotate it
+      requires_file :mutect_snvs
+      dumps_file :mutect_vcf
+
+      def mutect_to_vcf snv_file, vcf_file
+        mt = MuTect.new
+        mt.parse snv_file
+        v = VCF.new
+        normal = config.normal_name.to_sym
+        tumor = config.sample_name.to_sym
+        v.add_columns :format, normal, tumor
+        v.samples.concat [ normal, tumor ]
+        mt.each do |m|
+          v << {
+                 :chrom => m.contig, :pos => m.position, :ref => m.ref_allele,
+                 :info => "JM=#{m.judgement};CV=#{m.covered};MQ0=#{m.map_q0_reads}",
+                 :alt => m.alt_allele, :qual => ".", :filter => ".", :id => ".",
+                 :format => [ "AD", "DP" ],
+                 normal => [ m.n_ref_count + m.n_alt_count, [ m.n_ref_count, m.n_alt_count ].join(",") ],
+                 tumor => [ m.t_ref_count + m.t_alt_count, [ m.t_ref_count, m.t_alt_count ].join(",") ]
+               }
+        end
+        v.write vcf_file
+      end
+
+      def run
+        mutect_to_vcf config.mutect_snvs, config.mutect_vcf
+      end
+    end
+
+    class SnpEffAnnotateMutectVcf
+      include Pipeline::Task
+
+      requires_file :mutect_vcf
+      dumps_file :mutect_annotated_vcf
+
+      def run
+        snpeff config.mutect_vcf, config.mutect_annotated_vcf
+      end
+    end
+
+    class SnpEffAnnotateSomaticIndel
+      include Pipeline::Task
+
+      requires_file :somaticindel_vcf
+      dumps_file :somaticindel_annotated_vcf
+
+      def run
+        snpeff config.somaticindel_vcf, config.somaticindel_annotated_vcf
+      end
+    end
+
     class FilterMutsSomaticIndel < FilterMuts
       class_init
-      requires_files :somaticindel_vcf, :mutect_snvs, :tumor_cnr_seg
+      requires_files :somaticindel_annotated_vcf, :mutect_annotated_vcf, :tumor_cnr_seg
       dumps_file :tumor_chrom_maf, :germline_chrom_maf, :all_muts_chrom_maf
 
       def indel_caller; :somaticindel; end
@@ -232,29 +354,26 @@ module Exome
       outs_files :tumor_maf, :germline_maf, :all_muts_maf
 
       def write_mafs
-        @somatic_maf.sort_by! {|l| -l.tumor_var_freq.to_f }
-        @germline_maf.sort_by! {|l| -l.tumor_var_freq.to_f }
+        @somatic_maf.sort_by! {|l| -l.t_var_freq.to_f }
+        @germline_maf.sort_by! {|l| -l.t_var_freq.to_f }
         @somatic_maf.write config.tumor_maf
         @germline_maf.write config.germline_maf
         @all_muts_maf.write config.all_muts_maf
       end
 
       def run
-        @somatic_maf = Maf.new
-        @germline_maf = Maf.new
-        @all_muts_maf = Maf.new
+        @somatic_maf = TumorMaf.new
+        @germline_maf = TumorMaf.new
+        @all_muts_maf = AbsoluteMaf.new
 
         config.sample.chroms.each do |chrom|
-          m = Maf.new config.tumor_chrom_maf(chrom)
-          @somatic_maf.header = m.header
+          m = TumorMaf.new.parse config.tumor_chrom_maf(chrom)
           @somatic_maf.concat m
 
-          m = Maf.new config.germline_chrom_maf(chrom)
-          @germline_maf.header = m.header
+          m = TumorMaf.new.parse config.germline_chrom_maf(chrom)
           @germline_maf.concat m
 
-          m = Maf.new config.all_muts_chrom_maf(chrom)
-          @all_muts_maf.header = m.header
+          m = AbsoluteMaf.new.parse config.all_muts_chrom_maf(chrom)
           @all_muts_maf.concat m
         end
         write_mafs

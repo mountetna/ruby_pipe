@@ -74,6 +74,17 @@ module Pipeline
         filter_config ="#{config.config_dir}/#{config.genome}_mutationConfig.cfg"
         run_cmd "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
       end
+
+      def snpeff infile, outfile
+        args = [
+          "eff",
+          "-canon",
+          "-noLog",
+          "-t",
+          "-v GRCh37.75",
+          infile ].join(" ")
+        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.snpeff_dir}/#{config.snpeff_jar}", :args => args, :out => outfile
+      end
     end
     module Mutations
       include Pipeline::Tools::IndelDetection
