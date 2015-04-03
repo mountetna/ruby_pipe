@@ -3,17 +3,17 @@ require 'hash_table'
 require 'fastq'
 
 class CellectaModule < HashTable
-  class CellectaBarcode < HashLine
+  class CellectaBarcode < HashTable::Row
     attr_reader :count
     def add_read
       @count ||= 0
       @count += 1
     end
   end
-  line_class CellectaBarcode
+  index :hugo_symbol
 
-  def initialize f
-    super f, :idx => [ :hugo_symbol ]
+  def initialize opts = {}
+    super opts
     @unknown = 0
   end
 
@@ -154,7 +154,7 @@ module Utility
 
 
       def run
-        mod = CellectaModule.new config.cellecta_module
+        mod = CellectaModule.new.parse(config.cellecta_module)
 
         config.inputs.each do |gz|
           mod.parse_barcodes gz
