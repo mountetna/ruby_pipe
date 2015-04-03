@@ -40,8 +40,7 @@ module Pipeline
     end
 
     def print_timer_metrics f
-      o = HashTable.new nil
-      o.header = @all_tasks.first.keys
+      o = HashTable.new columns: @all_tasks.first.keys
       @all_tasks.each do |t|
         o.add_line t
       end
