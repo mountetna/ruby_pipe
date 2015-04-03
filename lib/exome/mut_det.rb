@@ -27,6 +27,8 @@ module Exome
       def run
 	      log_info "Running muTect for tumor #{config.sample_name}, normal #{config.normal_name}"
         mutect "input_file:normal" => config.normal_bam, "input_file:tumor" => config.tumor_bam,
+          :normal_sample_name => config.normal_name,
+          :tumor_sample_name => config.sample_name,
           :intervals => config.chrom.chrom_name,
           :no_normal_filter => config.disable_mutect_normal_filter,
           :out => config.mutect_snvs_tmp, :coverage_file => config.mutect_coverage or error_exit "muTect failed"
@@ -105,7 +107,8 @@ module Exome
     class SomaticIndelDetector
       include Pipeline::Task
       requires_files :normal_bam, :tumor_bam
-      outs_files :somaticindel_unpatched_vcf, :somaticindel_verbose
+      outs_file :somaticindel_unpatched_vcf
+      outs_file :somaticindel_verbose => :exists
 
       def run
         somatic_indel_detector :"input_file:normal" => config.normal_bam,
@@ -229,20 +232,22 @@ module Exome
 
     class PatchSomaticIndelVcf
       include Pipeline::Task
-      requires_file :somaticindel_unpatched_vcf, :somaticindel_verbose
+      requires_file :somaticindel_unpatched_vcf
+      requires_file :somaticindel_verbose => :exists
       dumps_file :somaticindel_vcf
 
       def run
         verbose = SomaticIndelOut.new config.somaticindel_verbose
-        unpatched = VCF.new config.somaticindel_unpatched_vcf
+        unpatched = VCF.new
+        unpatched.parse config.somaticindel_unpatched_vcf
         unpatched.each do |l|
           mut = verbose[ [ l.seqname, l.start, l.stop ] ]
           next if !mut
-          l.genotype(config.normal_name).dp = mut.normal_depth
-          l.genotype(config.normal_name).ad = mut.normal_allelic_depth
+          l.genotype(config.normal_name.to_sym).dp = mut.normal_depth
+          l.genotype(config.normal_name.to_sym).ad = mut.normal_allelic_depth
 
-          l.genotype(config.sample_name).dp = mut.tumor_depth
-          l.genotype(config.sample_name).ad = mut.tumor_allelic_depth
+          l.genotype(config.sample_name.to_sym).dp = mut.tumor_depth
+          l.genotype(config.sample_name.to_sym).ad = mut.tumor_allelic_depth
         end
         unpatched.write config.somaticindel_vcf
       end
