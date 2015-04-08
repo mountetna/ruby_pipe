@@ -17,8 +17,15 @@ module Pipeline
         samtools "view -bS", infile, outfile
       end
 
+      def sam_merge(outfile, *infiles)
+        samtools "merge #{outfile} #{infiles.join(" ")}"
+      end
+
       def sam_sample_name(bam)
-        IO.popen("#{config.samtools_dir}/samtools view -H #{bam}").readlines.map{ |l| l.match(/^@RG.*SM:(.*?)\s/) { |m| m[1] } }.compact.first
+        IO.popen("#{config.samtools_dir}/samtools view -H #{bam}").readlines.map do |l| 
+          m = l.match(/^@RG.*SM:(?<sample_name>.*?)\s/)
+          m ? m[:sample_name] : nil
+        end.compact.first
       end
 
       def sam_flags(infile,outfile)
