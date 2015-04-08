@@ -70,9 +70,9 @@ class CellectaModule < HashTable
     File.open(file,"w") do |f|
       f.puts "gene\tbarcode_id\tcount"
       f.puts "unknown\t?\t#{@unknown}"
-      idx_keys(:hugo_symbol).each do |gene|
-        idx(:hugo_symbol,gene).each do |bc|
-          f.puts "#{gene}\t#{bc.barcodeID}\t#{bc.count}"
+      index[:hugo_symbol].entries.each do |gene|
+        index[:hugo_symbol][gene].each do |bc|
+          f.puts "#{gene}\t#{bc.barcodeid}\t#{bc.count}"
         end
       end
     end
@@ -179,14 +179,14 @@ module Utility
             config.sample_replicate_name(r).to_sym
           end
         end.flatten
-        combined = HashTable.new nil, :header => [ :gene, :barcode_id, names ].flatten, :idx => :barcode_id
+        combined = HashTable.new :columns => [ :gene, :barcode_id, names ].flatten, :index => :barcode_id
         config.samples.each do |s|
           s.replicates.each do |rep|
             name = config.sample_replicate_name(rep).to_sym
-            counts_file = HashTable.new config.barcode_count(rep)
+            counts_file = HashTable.new.parse config.barcode_count(rep)
             counts_file.each do |bc|
-              line = combined.idx(:barcode_id,bc.barcode_id)
-              if line
+              line = combined.index[:barcode_id][bc.barcode_id]
+              if line.count > 0
                 line.first[ name ] = bc.count if bc.count
               else
                 new_bc = { :barcode_id => bc.barcode_id, :gene => bc.gene }
