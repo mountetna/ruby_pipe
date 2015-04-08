@@ -86,74 +86,6 @@ module Exome
         }
       end
 
-      def mut_to_maf mut
-        seg = @segs.find do |seg|
-          seg.Chromosome.sub(/^chr/,'') == mut.short_chrom && seg.Start < mut.start && seg.End > mut.stop
-        end
-        {
-          :hugo_symbol => mut.mut.onco.txp_gene,
-          :entrez_gene_id => "",
-          :ncbi_build => 37,
-          :chromosome => mut.short_chrom,
-          :start_position => mut.start,
-          :end_position => mut.stop,
-          :reference_allele => mut.mut.ref,
-          :tumor_seq_allele1 => mut.mut.alt,
-          :tumor_seq_allele2 => nil,
-          :tumor_validation_allele1 => nil,
-          :tumor_validation_allele2 => nil,
-          :match_norm_seq_allele1 => nil,
-          :match_norm_seq_allele2 => nil,
-          :match_norm_validation_allele1 => nil,
-          :match_norm_validation_allele2 => nil,
-          :verification_status => nil,
-          :validation_status => nil,
-          :mutation_status => nil,
-          :sequencing_phase => nil,
-          :sequence_source => nil,
-          :validation_method => nil,
-          :score => nil,
-          :center => "taylorlab.ucsf.edu",
-          :strand => "+",
-          :variant_classification => mut.mut.onco.txp_variant_classification,
-          :variant_type => mut.mut.onco.variant_type,
-          :dbsnp_rs => (mut.mut.onco.is_snp ? mut.mut.onco.dbSNP_RS : nil),
-          :dbsnp_val_status => mut.mut.onco.dbSNP_Val_Status,
-          :tumor_sample_barcode => config.sample_name,
-          :matched_norm_sample_barcode => config.normal_name,
-          :bam_file => config.sample_bam,
-          :protein_change => mut.mut.onco.txp_protein_change,
-          :transcript_change => mut.mut.onco.txp_transcript_change,
-          :polyphen2_class => mut.mut.onco.pph2_class,
-          :cosmic_mutations => mut.mut.onco.Cosmic_overlapping_mutations,
-          :segment_logr => seg ? seg.Segment_Mean.round(5) : nil
-        }
-      end
-
-      def mutect_to_maf mut
-        mut_to_maf(mut).merge({
-          :tumor_ref_count => mut.t_ref_count,
-          :tumor_alt_count => mut.t_alt_count,
-          :t_ref_count => mut.t_ref_count,
-          :t_alt_count => mut.t_alt_count,
-          :tumor_var_freq => mut.t_var_freq,
-          :normal_ref_count => mut.n_ref_count,
-          :normal_alt_count => mut.n_alt_count,
-        })
-      end
-
-      def indel_vcf_to_maf mut
-        mut_to_maf(mut).merge({
-          :tumor_ref_count => mut.genotype(config.sample_name).ref_count,
-          :tumor_alt_count => mut.genotype(config.sample_name).alt_count,
-          :t_ref_count => mut.genotype(config.sample_name).ref_count,
-          :t_alt_count => mut.genotype(config.sample_name).alt_count,
-          :tumor_var_freq => mut.genotype(config.sample_name).alt_freq,
-          :normal_ref_count => mut.genotype(config.normal_name).ref_count,
-          :normal_alt_count => mut.genotype(config.normal_name).alt_count,
-        })
-      end
-
       def create_mafs
         @somatic_maf = TumorMaf.new
         @germline_maf = TumorMaf.new
@@ -170,46 +102,48 @@ module Exome
 
       def load_mutect_vcf chrom
         m = MutectSnpeffVCF.new normal_name: config.normal_name.to_sym, tumor_name: config.sample_name.to_sym
-        mutation_filters = YAML.load(File.read(config.mutations_config))
-        somatic_filter = Filter.new(mutation_filters[ :mutect ][ :somatic ])
-        germline_filter = Filter.new(mutation_filters[ :mutect ][ :germline ])
-        snpeff_filter = Filter.new(mutation_filters[ :snpeff ])
+        somatic_filter = Filter.new(@filters[ :mutect ][ :somatic ])
+        germline_filter = Filter.new(@filters[ :mutect ][ :germline ])
+        snpeff_filter = Filter.new(@filters[ :snpeff ])
 
         m.parse(config.mutect_annotated_vcf(chrom))
         m.each do |l|
           is_somatic = somatic_filter.passes?(l)
           #is_germline = germline_filter.passes?(l)
           next unless is_somatic# || is_germline
+
           # after this is any covered mutation - we want to remember all of these somewhere
-          
           mut = vcf_to_maf(l)
 
           if snpeff_filter.passes?(l.best_effect)
-            # it has an interesting annotation
             if is_somatic
               @somatic_maf << mut
             #else
               #@germline_maf << mut
             end
           end
-          # put all somatic mutations in this MAF for ABSOLUTE to use
           @all_muts_maf << mut if is_somatic
         end
       end
 
-      def load_indel_snvs chrom
-        VCF.new(indel_vcf(chrom), mutation_config: config.mutations_config).each do |l|
-          begin
-            log_info "Checking #{l.range}"
-            next if l.alt.include?("N") || l.ref.include?("N")
-            next if l.skip_genotype?([indel_caller, :normal] => config.normal_name) || l.skip_genotype?([indel_caller, :tumor] => config.sample_name)
-            next if l.skip_oncotator?
-            log_info "Annotating #{l.range}"
-            mut = indel_vcf_to_maf l
-            @somatic_maf << mut
-          rescue ArgumentError => e
-            log_info e.message
+      def load_indel_vcf chrom
+        indels = SomaticIndelSnpeffVCF.new.parse indel_vcf(chrom)
+        indel_normal_filter = Filter.new(@filters[ indel_caller ][:normal])
+        indel_tumor_filter = Filter.new(@filters[ indel_caller ][:tumor])
+        snpeff_filter = Filter.new(@filters[ :snpeff ])
+        normal = config.normal_name.to_sym
+        tumor = config.sample_name.to_sym
+
+        indels.each do |l|
+          next if l.alt.include?("N") || l.ref.include?("N")
+          next unless indel_normal_filter.passes?(l.genotype(normal)) && indel_tumor_filter.passes?(l.genotype(tumor))
+          if !l.best_effect
+            log_info "No best effect for #{l.range}, effects #{l.effects.count}"
+            next
           end
+          next unless snpeff_filter.passes?(l.best_effect)
+          mut = vcf_to_maf l
+          @somatic_maf << mut
         end
       end
 
@@ -219,8 +153,9 @@ module Exome
         @segs = Seg.new
         @segs.parse config.tumor_cnr_seg
 
+        @filters = YAML.load(File.read(config.mutations_config))
         load_mutect_vcf config.chrom
-        #load_indel_vcf config.chrom
+        load_indel_vcf config.chrom
 
         write_mafs
       end
@@ -255,7 +190,7 @@ module Exome
                  :chrom => m.contig, :pos => m.position, :ref => m.ref_allele,
                  :info => "JM=#{m.judgement};CV=#{m.covered};MQ0=#{m.map_q0_reads}",
                  :alt => m.alt_allele, :qual => ".", :filter => ".", :id => ".",
-                 :format => [ "AD", "DP" ],
+                 :format => [ "DP", "AD" ],
                  normal => [ m.n_ref_count + m.n_alt_count, [ m.n_ref_count, m.n_alt_count ].join(",") ],
                  tumor => [ m.t_ref_count + m.t_alt_count, [ m.t_ref_count, m.t_alt_count ].join(",") ]
                }

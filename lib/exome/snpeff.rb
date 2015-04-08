@@ -18,19 +18,19 @@ class SnpeffVCF < VCF
     end
 
     def t_alt_count
-      @t_alt_count ||= genotype(@table.tumor_name).dp.split(/,/).map(&:to_i)[1]
+      @t_alt_count ||= genotype(@table.tumor_name).ad.split(/,/).map(&:to_i)[1]
     end
 
     def t_ref_count
-      @t_ref_count ||= genotype(@table.tumor_name).dp.split(/,/).map(&:to_i)[0]
+      @t_ref_count ||= genotype(@table.tumor_name).ad.split(/,/).map(&:to_i)[0]
     end
 
     def n_alt_count
-      @n_alt_count ||= genotype(@table.normal_name).dp.split(/,/).map(&:to_i)[1]
+      @n_alt_count ||= genotype(@table.normal_name).ad.split(/,/).map(&:to_i)[1]
     end
 
     def n_ref_count
-      @n_ref_count ||= genotype(@table.normal_name).dp.split(/,/).map(&:to_i)[0]
+      @n_ref_count ||= genotype(@table.normal_name).ad.split(/,/).map(&:to_i)[0]
     end
 
     def t_var_freq
@@ -163,10 +163,38 @@ class MutectSnpeffVCF < SnpeffVCF
 
     def total_alt_depth
       @genotypes.values.inject(0) do |sum,gt|
-        sum += gt.dp.split(/,/).last.to_i
+        sum += gt.ad.split(/,/).last.to_i
         sum
       end
     end
   end
 end
 
+class SomaticIndelSnpeffVCF < SnpeffVCF
+  class Line < SnpeffVCF::Line
+    def alt_count
+      @alt_count ||= ad.split(/,/).map(&:to_i)[1]
+    end
+    def ref_count
+      @ref_count ||= ad.split(/,/).map(&:to_i)[0]
+    end
+    def depth
+      @depth ||= dp.to_i
+    end
+    def alt_mismatch_rate
+      nqsmm.to_f
+    end
+    def alt_mismatch_count
+      mm.to_i
+    end
+    def alt_base_quality; respond_to?(:nqsbq) ? nqsbq.split(/,/)[0].to_f : nil; end
+    def alt_map_quality; respond_to?(:mqs) ? mqs.split(/,/)[0].to_f : nil; end
+    def alt_freq; alt_count / depth.to_f; end
+    def ref_freq; ref_count / depth.to_f; end
+    def alt_base_quality; respond_to?(:nqsbq) ? nqsbq.split(/,/)[0].to_f : nil; end
+    def alt_map_quality; respond_to?(:mqs) ? mqs.split(/,/)[0].to_f : nil; end
+    def alt_mismatch_rate; respond_to?(:nqsmm) ? nqsmm.split(/,/)[0].to_f : nil; end
+    def alt_mismatch_count; respond_to?(:mm) ? mm.split(/,/)[0].to_f : nil; end
+    def quality; gq.to_i; end
+  end
+end
