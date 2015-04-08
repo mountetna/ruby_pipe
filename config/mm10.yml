@@ -13,3 +13,5 @@
 :transcriptome_idx: /taylorlab/resources/mouse/mm10/tophat2_index/Mus_musculus.GRCm38.76.long_chrom
 
 :mm10_rrna_intervals: /taylorlab/resources/mouse/mm10/intervals/mm10.rRNA.interval_list
+
+:mm10_rsem: /taylorlab/resources/human/hg19/rsem/gencode/rsem_gencode.v18_hg19

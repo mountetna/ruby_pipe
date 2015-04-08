@@ -1,8 +1,8 @@
 module Ribo
-  class Coverage
+  class Babel
     include Pipeline::Step
-    runs_tasks :normal_coverage, :null_coverage
-    runs_on :fractions
+    runs_tasks :run_babel
+    runs_on :babel_tests
 
     class NormalCoverage
       include Pipeline::Task

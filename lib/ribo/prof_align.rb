@@ -7,17 +7,27 @@ require 'ribo/combine'
 require 'ribo/coverage'
 require 'ribo/qc'
 require 'ribo/summary'
+require 'ribo/align_rsem'
 
 module Ribo
   class ProfAlign 
     include Pipeline::Script
-    runs_steps :align, :tophat, :combine, :coverage, :qc, :summary
+    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine_rsem, :combine, :coverage, :qc, :summary
     def_module :default, :align => true,
       :tophat => true,
       :combine => true,
       :coverage => true,
       :qc => true,
       :summary => true
+
+    def_module :rsem, :align => [ :clip_fastq ],
+      :rsem_align => true,
+      :bwa_align => true,
+      :combine_rsem => true,
+      :coverage => true,
+      :qc => true,
+      :summary => true,
+      :babel => true
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator
