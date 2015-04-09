@@ -13,6 +13,7 @@ require 'exome/copy_number'
 require 'exome/fastqc'
 require 'exome/summarize'
 require 'exome/snpeff'
+require 'exome/somaticindel'
 
 module Exome
   class PairedAlign 
