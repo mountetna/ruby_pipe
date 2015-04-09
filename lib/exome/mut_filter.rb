@@ -69,7 +69,7 @@ module Exome
           :center => "cbc.ucsf.edu",
           :strand => "+",
           :variant_classification => mut.best_effect.annotation,
-          :variant_type => nil,
+          :variant_type => mut.variant_type,
           :dbsnp_rs => mut.id,
           :dbsnp_val_status => nil,
           :tumor_sample_barcode => config.sample_name,
@@ -127,20 +127,17 @@ module Exome
       end
 
       def load_indel_vcf chrom
-        indels = SomaticIndelSnpeffVCF.new.parse indel_vcf(chrom)
+        normal = config.normal_name.to_sym
+        tumor = config.sample_name.to_sym
+        indels = SomaticIndelSnpeffVCF.new normal_name: normal, tumor_name: tumor
         indel_normal_filter = Filter.new(@filters[ indel_caller ][:normal])
         indel_tumor_filter = Filter.new(@filters[ indel_caller ][:tumor])
         snpeff_filter = Filter.new(@filters[ :snpeff ])
-        normal = config.normal_name.to_sym
-        tumor = config.sample_name.to_sym
+        indels.parse indel_vcf(chrom)
 
         indels.each do |l|
           next if l.alt.include?("N") || l.ref.include?("N")
           next unless indel_normal_filter.passes?(l.genotype(normal)) && indel_tumor_filter.passes?(l.genotype(tumor))
-          if !l.best_effect
-            log_info "No best effect for #{l.range}, effects #{l.effects.count}"
-            next
-          end
           next unless snpeff_filter.passes?(l.best_effect)
           mut = vcf_to_maf l
           @somatic_maf << mut
@@ -231,7 +228,7 @@ module Exome
       dumps_file :tumor_chrom_maf, :germline_chrom_maf, :all_muts_chrom_maf
 
       def indel_caller; :somaticindel; end
-      def indel_vcf chrom; config.somaticindel_vcf chrom; end
+      def indel_vcf chrom; config.somaticindel_annotated_vcf chrom; end
     end
 
     class ConcatChroms

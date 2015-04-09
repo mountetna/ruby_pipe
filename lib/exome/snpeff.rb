@@ -171,7 +171,7 @@ class MutectSnpeffVCF < SnpeffVCF
 end
 
 class SomaticIndelSnpeffVCF < SnpeffVCF
-  class Line < SnpeffVCF::Line
+  class Genotype < VCF::Genotype
     def alt_count
       @alt_count ||= ad.split(/,/).map(&:to_i)[1]
     end
