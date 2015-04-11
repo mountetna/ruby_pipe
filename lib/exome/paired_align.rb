@@ -15,6 +15,7 @@ require 'exome/fastqc'
 require 'exome/summarize'
 require 'exome/snpeff'
 require 'exome/somaticindel'
+require 'exome/mut_spectrum'
 
 module Exome
   class PairedAlign 
@@ -30,6 +31,7 @@ module Exome
       :cnvkit_coverage, :cnvkit_make_reference, :cnvkit_fix,
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
+      :mut_spectrum,
       :univ_geno_call, :univ_geno_annotate,
       :run_absolute, :review_absolute,
       :summarize
@@ -133,6 +135,10 @@ module Exome
 
     def_module :mut_filter_annovar, {
       :mut_filter => [ :concat_chroms, :filter_muts_annovar ]
+    }
+
+    def_module :mutation_spectrum, {
+      :mut_spectrum => true
     }
 
     def_module :default, {

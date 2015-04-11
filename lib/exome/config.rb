@@ -70,6 +70,7 @@ module Exome
           "@chrom_name.germline.maf" => :germline_chrom_maf,
           "@chrom_name.all_muts.maf" => :all_muts_chrom_maf,
 
+          "@sample_name.context.maf" => :tumor_context_maf,
 
           "@sample_name.ug.SNPs.vcf" => :ug_snps_vcf,
 
