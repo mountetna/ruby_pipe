@@ -18,7 +18,7 @@ module Pipeline
       end
 
       def sam_merge(outfile, *infiles)
-        samtools "merge #{outfile} #{infiles.join(" ")}"
+        samtools :merge, "#{outfile} #{infiles.join(" ")}"
       end
 
       def sam_sample_name(bam)

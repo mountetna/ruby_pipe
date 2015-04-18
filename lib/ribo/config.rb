@@ -21,6 +21,7 @@ module Ribo
           "@fraction_name.combined.header" => :combined_header,
           "@fraction_name.tophat.header" => :tophat_header,
           "@fraction_name.genome.header" => :genome_header,
+          "@fraction_name.tophat.header" => :tophat_header,
           "@fraction_name.tophat" => {
             "." => :tophat_scratch,
             "accepted_hits.bam" => :accepted_bam,
@@ -39,6 +40,11 @@ module Ribo
             "@fraction_name.genome.bam" => :rsem_genome_bam
           },
           "@fraction_name.rsem_aligned.bam" => :rsem_aligned_bam,
+          "@fraction_name.rsem_aligned.sam" => :rsem_aligned_sam,
+          "@fraction_name.rsem_fixed_aligned.bam" => :rsem_fixed_aligned_bam,
+          "@fraction_name.rsem.header.sam" => :rsem_header,
+          "@fraction_name.rsem.sorted.header.sam" => :sorted_rsem_header,
+          "@fraction_name.bwa.header.sam" => :bwa_header,
           "@fraction_name.tophat_edit.bam" => :tophat_edit_bam,
           "@fraction_name.tophat_sort.bam" => :tophat_sort_bam,
           "@fraction_name.coverage.sam" => :coverage_sam
@@ -48,18 +54,19 @@ module Ribo
         "@sample_name" => {
           "@fraction_name.normal.cov" => :normal_cov,
           "@fraction_name.null.cov" => :null_cov,
-          "@fraction_name.bam" => :output_bam
+          "@fraction_name.bam" => :output_bam,
+          "@fraction_name.bam.bai" => :output_bai
         },
         "@cohort_name.normal_cov" => :normal_summary,
         "@cohort_name.null_cov" => :null_summary,
       },
       ":metrics_dir" => {
         "@sample_name" => {
-          "@sample_name.flagstat" => :qc_flag,
-          "@sample_name.rnaseq_metrics" => :qc_rnaseq,
-          "@sample_name.rnaseq_pdf" => :qc_pdf,
-          "@sample_name.splice_counts" => :qc_splice_counts,
-          "@sample_name.alignment_metrics" => :qc_align_metrics,
+          "@fraction_name.flagstat" => :qc_flag,
+          "@fraction_name.rnaseq_metrics" => :qc_rnaseq,
+          "@fraction_name.rnaseq_pdf" => :qc_pdf,
+          "@fraction_name.splice_counts" => :qc_splice_counts,
+          "@fraction_name.alignment_metrics" => :qc_align_metrics,
         },
         "@cohort_name.qc_summary" => :qc_summary
       }

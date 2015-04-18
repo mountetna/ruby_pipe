@@ -103,9 +103,9 @@ module Rna
 
       def run
         samtools "view -H", config.rsem_scratch_genome_sorted_bam, config.rsem_scratch_genome_header or error_exit "Could not dump header"
-        s = Sam.read config.rsem_scratch_genome_header
-        r = s.header.records.find{|r| r.type == :HD}
-        r.tags["SO"] = :coordinate
+        s = Sam.new.parse_sam read config.rsem_scratch_genome_header
+        r = s.header.headers.first
+        r.tags[:SO] = :coordinate
         s.print config.rsem_scratch_genome_header
       end
     end

@@ -3,7 +3,7 @@ module Ribo
   class Qc
     include Pipeline::Step
     runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics, :collect_splice_counts
-    runs_on :samples
+    runs_on :fractions
 
     class CalcFlags
       include Pipeline::Task

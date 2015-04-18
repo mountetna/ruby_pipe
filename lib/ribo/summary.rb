@@ -15,19 +15,20 @@ module Ribo
       
       def run
         qc = {}
-        config.samples.each do |s|
+        config.fractions.each do |f|
           # read in each file name and build up a hash of interesting information
           sample_qc = {}
-          flags = Flagstat.new config.qc_flag(s)
+          flags = Flagstat.new config.qc_flag(f)
           flags.each do |flag,value|
             sample_qc[flag] = value.first
           end
 
-          sample_qc[:splice_counts] = File.read(config.qc_splice_counts s).to_i
+          sample_qc[:splice_counts] = File.read(config.qc_splice_counts f).to_i
           qc[s.sample_name] = sample_qc
 
-          align = HashTable.new config.qc_align_metrics(s), :comment => /^(#|$)/, :downcase => true
-          align.header.each do |flag|
+          align = HashTable.new comment: /^(#|$)/
+          align.parse config.qc_align_metrics(f)
+          align.columns.each do |flag|
             sample_qc[flag] = align.first[flag]
           end
           
