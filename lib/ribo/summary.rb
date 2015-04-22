@@ -7,7 +7,7 @@ require 'gtf'
 module Ribo
   class Summary
     include Pipeline::Step
-    runs_tasks :summarize_normal_cov, :summarize_null_cov, :summarize_qc
+    runs_tasks :summarize_normal_cov, :summarize_qc
 
     class SummarizeQc
       include Pipeline::Task
@@ -32,8 +32,9 @@ module Ribo
             sample_qc[flag] = align.first[flag]
           end
           
-          rnaseq = HashTable.new config.qc_rnaseq(s), :comment => /^(#|$)/, :downcase => true
-          rnaseq.header.each do |flag|
+          rnaseq = HashTable.new comment: /^(#|$)/, downcase: true
+          rnaseq.parse config.qc_rnaseq(s)
+          rnaseq.columns.each do |flag|
             sample_qc[flag] = rnaseq.first[flag]
           end
         end
@@ -52,50 +53,35 @@ module Ribo
     class SummarizeNormalCov
       include Pipeline::Task
       outs_file :normal_summary
+
+      class CoverageTable <  HashTable
+        columns :gid, :count
+        parse_mode :noheader
+      end
       
       def run
-        summary = {}
-        gtf = GTF.new config.reference_unified_gtf, :idx => [ :gene_id ]
-        config.samples.each do |s|
+        gtf = GTF.new index: [ :gene_id ]
+        gtf.parse config.reference_unified_gtf
+        summary = HashTable.new columns: [ :gene_id, :symbol, :size, config.fractions.map{|f|f.fraction_name.to_sym} ].flatten, index: [ :gene_id ]
+        config.fractions.each do |s|
           # read in each file name and build up a hash of interesting information
-          cov = HashTable.new config.normal_cov(s), :header => [ :gid, :count ]
-          cov.each do |g|
-            summary[g.gid] ||= {}
-            summary[g.gid][s.sample_name] = g.count
+          cov = CoverageTable.new.parse config.normal_cov(s)
+          cov.each do |gene|
+            if summary.index[:gene_id][gene.gid].count == 0
+              summary << { 
+                gene_id: gene.gid, 
+                symbol: gtf.index[:gene_id][gene.gid].map(&:gene_name).first,
+                size: gtf.index[:gene_id][gene.gid].inject(0) {|sum,f| sum += f.size },
+                s.fraction_name.to_sym => gene.count
+              }
+            else
+              entry = summary.index[:gene_id][gene.gid].first
+              entry.update s.fraction_name.to_sym => gene.count
+            end
           end
         end
-        File.open(config.normal_summary,"w") do |f|
-          f.puts [ :gene_id, :symbol, :size, config.samples.map(&:sample_name) ].flatten.join("\t")
-          summary.each do |gid,samples|
-            next if gid !~ /ENS/
-            symbol = gtf.idx(:gene_id,gid).first.gene_name
-            gene_size = gtf.idx(:gene_id,gid).inject(0) {|sum,f| sum += f.size }
-            f.puts [ gid, symbol, gene_size, config.samples.map{|s| samples[s.sample_name]} ].flatten.join("\t")
-          end
-        end
-      end
-    end
-    class SummarizeNullCov
-      include Pipeline::Task
-      outs_file :null_summary
 
-      def run
-        summary = {}
-        config.samples.each do |s|
-          # read in each file name and build up a hash of interesting information
-          cov = HashTable.new config.null_cov(s), :header => [ :chr, :type, :feature, :start, :stop, :score, :strand, :frame, :att, :count ]
-          cov.each do |g|
-            key = [ g.chr, g.start, g.stop ]
-            summary[key] ||= {}
-            summary[key][s.sample_name] = g.count
-          end
-        end
-        File.open(config.null_summary,"w") do |f|
-          f.puts [ :gene_id, :symbol, :size, config.samples.map(&:sample_name) ].flatten.join("\t")
-          summary.each do |key,samples|
-            f.puts [ "#{key[0]}:#{key[1]}-#{key[2]}", :random, key[2].to_i-key[1].to_i, config.samples.map{|s| samples[s.sample_name]} ].flatten.join("\t")
-          end
-        end
+        summary.print config.normal_summary
       end
     end
   end

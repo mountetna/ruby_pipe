@@ -8,11 +8,12 @@ require 'ribo/coverage'
 require 'ribo/qc'
 require 'ribo/summary'
 require 'ribo/align_rsem'
+require 'ribo/babel'
 
 module Ribo
   class ProfAlign 
     include Pipeline::Script
-    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine_rsem, :combine, :coverage, :qc, :summary
+    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine_rsem, :combine, :coverage, :qc, :summary, :babel
     def_module :default, :align => true,
       :tophat => true,
       :combine => true,

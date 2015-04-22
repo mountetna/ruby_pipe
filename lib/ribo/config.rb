@@ -57,6 +57,12 @@ module Ribo
           "@fraction_name.bam" => :output_bam,
           "@fraction_name.bam.bai" => :output_bai
         },
+        "babel" => {
+          "@babel_name" => :babel_output,
+          "@babel_name.within.babel" => :within_babel,
+          "@babel_name.combined.babel" => :combined_babel,
+          "@babel_name.between.babel" => :between_babel
+        },
         "@cohort_name.normal_cov" => :normal_summary,
         "@cohort_name.null_cov" => :null_summary,
       },
@@ -72,10 +78,16 @@ module Ribo
       }
     })
 
+    job_items :babel
+
     def_var :fractions do ( samples.map(&:rna) + samples.map(&:rp) ).compact end
 
     # align
     def_var :input_fastq do job_item.input_fastq end
+
+    def_var :babel_num_reps do 10000 end
+    def_var :babel_min_rna do 10 end
+    def_var :babel_min_rpkm do 0.2 end
 
     #coverage
     def_var :model_type do :unified_model end
