@@ -29,7 +29,7 @@ run_babel = function(coverage,groups,min_rna,num_reps) {
 
 	names = c(
 		sample_names(groups,"rna"),
-		sample_names(groups,"rp"),
+		sample_names(groups,"rp")
 	)
 
 	babel.input = coverage[ , names ]
