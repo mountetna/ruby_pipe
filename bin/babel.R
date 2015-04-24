@@ -52,7 +52,7 @@ run_babel = function(coverage,groups,min_rna,num_reps) {
 	for (x in names(babel.output$between)) {
 		babel.output$between[[x]]$Gene = rownames(coverage)
 	}
-	for (x in babel.output$combined) {
+	for (x in names(babel.output$combined)) {
 		babel.output$combined[[x]]$Gene = rownames(coverage)
 	}
 
