@@ -25,7 +25,7 @@ module Exome
       :patient_realign, 
       :make_samples,
       :hybrid_qc, :hybrid_qc_summary, 
-      :sample_coverage, :prep_normal, :compute_normals, :copy_number, 
+      :sample_coverage, :compute_normals, :copy_number, 
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
       :univ_geno_call, :univ_geno_annotate,
@@ -78,7 +78,6 @@ module Exome
     }
 
     def_module :ascat_purity, {
-      :prep_normal => true,
       :sample_coverage => true,
       :compute_normals => true,
       :copy_number => true,
