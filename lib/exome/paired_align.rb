@@ -25,7 +25,7 @@ module Exome
       :patient_realign, 
       :make_samples,
       :hybrid_qc, :hybrid_qc_summary, 
-      :sample_coverage, :compute_normals, :copy_number, 
+      :sample_coverage, :copy_number, 
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
       :univ_geno_call, :univ_geno_annotate,
