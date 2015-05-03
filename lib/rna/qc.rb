@@ -1,4 +1,5 @@
-#!/usr/bin/env ruby
+require 'picard_metrics'
+
 module Rna
   class Qc
     include Pipeline::Step
@@ -36,6 +37,33 @@ module Rna
       def run
         log_info "Calculating alignment metrics"
         picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics or error_exit "Alignment metrics failed"
+      end
+    end
+  end
+  class QcSummary
+    include Pipeline::Step
+    runs_on :cohort
+    runs_tasks :summarize_qc
+
+    class SummarizeQc
+      include Pipeline::Task
+      requires_files :samples__replicates__qc_rnaseqs
+      outs_file :qc_summary
+
+      def run
+        table = nil
+        config.samples.each do |sample|
+          sample.replicates.each do |rep|
+            mets = PicardMetrics.new
+            mets.parse config.qc_rnaseq(rep)
+
+            if !table
+              table = HashTable.new columns: [:replicate] + mets.sections[:rna_seq_metrics].metrics.keys
+            end
+            table << mets.sections[:rna_seq_metrics].metrics.merge( replicate: config.sample_replicate_name(rep) )
+          end
+        end
+        table.print config.qc_summary
       end
     end
   end

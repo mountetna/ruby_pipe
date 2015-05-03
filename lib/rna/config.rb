@@ -88,7 +88,8 @@ module Rna
           "@sample_name.@replicate_name.rnaseq_metrics" => :qc_rnaseq,
           "@sample_name.@replicate_name.rnaseq.pdf" => :qc_pdf,
           "@sample_name.@replicate_name.alignment_metrics" => :qc_align_metrics
-        }
+        },
+        "@cohort_name.qc_summary" => :qc_summary
       },
       ":output_dir" => {
         "@sample_name" => {

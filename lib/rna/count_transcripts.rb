@@ -67,6 +67,7 @@ module Rna
   class RsemCount
     include Pipeline::Step
     runs_tasks :rsem_count
+    has_tasks :rsem_single_count
     audit_report :sample_replicate_name
     resources :threads => 12
     runs_on :samples, :replicates
@@ -77,64 +78,52 @@ module Rna
       outs_file :rsem_scratch_genes_results, :rsem_scratch_isoforms_results, :rsem_scratch_genome_unsorted_bam
       
       def run
-        rsem :calculate_expression, :paired_end => true,
-            :temporary_folder => File.realdirpath(config.rsem_tmp_dir),
-            :num_threads => config.threads,
-            :output_genome_bam => true,
-            :args => {
-              :fq1s => rsem_format(*config.input_fastq1s),
-              :fq2s => rsem_format(*config.input_fastq2s),
-              :reference => rsem_format(config.reference_rsem),
-              :sample_name => config.sample_replicate_name
-            }, :output => config.rsem_scratch_dir or error_exit "Could not run RSEM"
+        args = {
+          fq1s: rsem_format(*config.input_fastq1s),
+          fq2s: rsem_format(*config.input_fastq2s),
+          reference: rsem_format(config.reference_rsem),
+          sample_name: config.sample_replicate_name
+        }
+        rsem :calculate_expression, 
+            paired_end: true,
+            temporary_folder: File.realdirpath(config.rsem_tmp_dir),
+            num_threads: config.threads,
+            output_genome_bam: true,
+            args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
+      end
+    end
+    class RsemSingleCount
+      include Pipeline::Task
+      requires_file :input_fastq1s
+      outs_file :rsem_scratch_genes_results, :rsem_scratch_isoforms_results, :rsem_scratch_genome_unsorted_bam
+      
+      def run
+        args = {
+          fq1s: rsem_format(*config.input_fastq1s),
+          reference: rsem_format(config.reference_rsem),
+          sample_name: config.sample_replicate_name
+        }
+        rsem :calculate_expression, 
+            temporary_folder: File.realdirpath(config.rsem_tmp_dir),
+            num_threads: config.threads,
+            output_genome_bam: true,
+            args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
       end
     end
   end
   class RsemFormat
     include Pipeline::Step
-    runs_tasks :rsem_prep_header, :rsem_patch, :rsem_move
+    runs_tasks :rsem_move
     audit_report :sample_replicate_name
     runs_on :samples, :replicates
 
-    class RsemPrepHeader
-      include Pipeline::Task
-      requires_file :rsem_scratch_genome_sorted_bam
-      dumps_file :rsem_scratch_genome_header
-
-      def run
-        samtools "view -H", config.rsem_scratch_genome_sorted_bam, config.rsem_scratch_genome_header or error_exit "Could not dump header"
-        s = Sam.new.parse_sam read config.rsem_scratch_genome_header
-        r = s.header.headers.first
-        r.tags[:SO] = :coordinate
-        s.print config.rsem_scratch_genome_header
-      end
-    end
-    class RsemOutputPatch
-      include Pipeline::Task
-      requires_file :output_unpatched_bam, :output_header
-      outs_file :output_bam
-
-      def run
-        samtools "reheader #{config.output_header}", config.output_unpatched_bam, config.output_bam or error_exit "Could not replace header"
-        sam_index config.output_bam or error_exit "Could not index sam file"
-      end
-    end
-    class RsemPatch
-      include Pipeline::Task
-      requires_file :rsem_scratch_genome_sorted_bam, :rsem_scratch_genome_header
-      outs_file :rsem_scratch_genome_patched_bam
-
-      def run
-        samtools "reheader #{config.rsem_scratch_genome_header}", config.rsem_scratch_genome_sorted_bam, config.rsem_scratch_genome_patched_bam or error_exit "Could not replace header"
-      end
-    end
     class RsemMove
       include Pipeline::Task
-      requires_file :rsem_scratch_genome_patched_bam, :rsem_scratch_isoforms_results
+      requires_file :rsem_scratch_genome_sorted_bam, :rsem_scratch_isoforms_results, :rsem_scratch_genes_results, :rsem_scratch_genome_bai
       outs_file :output_bam, :output_bai, :rsem_genes_results, :rsem_isoforms_results
 
       def run
-        FileUtils.mv config.rsem_scratch_genome_patched_bam, config.output_bam or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.output_bam or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_genome_bai, config.output_bai or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"

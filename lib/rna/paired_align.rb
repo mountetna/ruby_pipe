@@ -1,4 +1,3 @@
-# This script takes a bunch of samples (with replicates) and aligns them with tophat, then runs cufflinks on each of the samples, then runs cuffdiff to compare the samples to the parental
 require 'pipeline'
 require 'rna/univ_geno'
 require 'rna/tophat_align'
@@ -16,14 +15,18 @@ require 'rna/config'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :rsem_count, :rsem_format, :tophat_align, :qc, :cufflinks_count, :cuff_diff_exp, :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
+    runs_steps :rsem_count, :rsem_single_count, :rsem_format, :tophat_align, :qc, :qc_summary, :cufflinks_count, :cuff_diff_exp, :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp, :splice_count, :detect_fusions #, :univ_geno, :filter_muts
 
     def_module :rsem,
       :rsem_count => true,
       :rsem_format => true,
       :qc => true,
+      :qc_summary => true,
       :assemble_rsem_transcripts => true,
       :deseq_diff_exp => true
+
+    def_module :rsem_single_end,
+      rsem_count: [ :rsem_single_count ]
 
     def_module :count_splice, :splice_count => true
 
