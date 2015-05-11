@@ -9,6 +9,7 @@
 :mm10_null_gtf: /cbc/resources/mouse/mm10/ensembl/Mus_musculus.GRCm38.76.long_chrom.null_model.gtf
 :mm10_refflat: /cbc/resources/mouse/mm10/ensembl/mm10.ensembl_76.refFlat.txt
 :bwa_idx: /cbc/resources/mouse/mm10/bwa_index/mm10.fa
+:ribo_bwa_idx: /cbc/resources/mouse/mm10/bwa_index/mm10.rrna
 :bowtie2_idx: /cbc/resources/mouse/mm10/bowtie2_index/mm10
 :transcriptome_idx: /cbc/resources/mouse/mm10/tophat2_index/Mus_musculus.GRCm38.76.long_chrom
 

@@ -2,6 +2,7 @@ module Ribo
   class Align
     include Pipeline::Step
     runs_tasks :clip_fastq, :align_single, :map_reads, :enforce_label
+    has_tasks :soak_ribo, :cull_non_ribo, :make_nonribo_fastq
     runs_on :fractions
     resources :threads => 6
 
@@ -14,6 +15,43 @@ module Ribo
         log_info "Clipping adapter from fastq"
         fastx_clipper :adapter => config.adapter,  :out => config.clipped_fastq,
           :in => config.inputs or error_exit "fastx_clipper failed"
+      end
+    end
+
+    class SoakRibo
+      include Pipeline::Task
+      requires_files :clipped_fastq
+      dumps_file :ribo_sam
+
+      def run
+        log_info "Pairing aligned reads"
+        bwa_mem :fq1 =>  config.clipped_fastq, :index => config.ribo_bwa_idx, :out => config.ribo_sam or error_exit "BWA mem failed"
+      end
+    end
+
+    class CullNonRibo
+      include Pipeline::Task
+      requires_file :ribo_sam
+      outs_file :non_ribo_sam
+
+      def run
+        log_info "Culling unaligned reads"
+        picard :view_sam,
+          :I => config.ribo_sam,
+          :ALIGNMENT_STATUS => :Unaligned,
+          :out => config.non_ribo_sam or error_exit "picard view_sam failed"
+      end
+    end
+    
+    class MakeNonriboFastq
+      include Pipeline::Task
+      requires_file :non_ribo_sam
+      dumps_file :non_ribo_fastq
+
+      def run
+        picard :sam_to_fastq,
+          :I => config.non_ribo_sam,
+          :FASTQ => config.non_ribo_fastq or error_exit "picard sam_to_fastq failed"
       end
     end
 

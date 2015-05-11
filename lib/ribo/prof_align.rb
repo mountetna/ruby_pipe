@@ -21,7 +21,7 @@ module Ribo
       :qc => true,
       :summary => true
 
-    def_module :rsem, :align => [ :clip_fastq ],
+    def_module :rsem, :align => [ :clip_fastq, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq ],
       :rsem_align => true,
       :bwa_align => true,
       :combine_rsem => true,

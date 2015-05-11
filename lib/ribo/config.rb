@@ -11,6 +11,9 @@ module Ribo
       ":scratch_dir" => {
         "@sample_name" => {
           "@fraction_name.clipped.fq" => :clipped_fastq,
+          "@fraction_name.ribo.sam" => :ribo_sam,
+          "@fraction_name.non_ribo.sam" => :non_ribo_sam,
+          "@fraction_name.non_ribo.fq" => :non_ribo_fastq,
           "@fraction_name.read.sai" => :read_sai,
           "@fraction_name.mapped.sam" => :mapped_sam,
           "@fraction_name.genome.bam" => :genome_bam,

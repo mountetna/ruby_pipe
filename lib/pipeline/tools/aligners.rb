@@ -15,8 +15,8 @@ module Pipeline
       end
 
       def bwa_mem(params)
-        params = { :threads => config.threads }.merge(params)
-        bwa "mem -t #{params[:threads]} -M #{config.bwa_idx} #{params[:fq1]} #{params[:fq2]}", params[:out]
+        params = { :threads => config.threads, :index => config.bwa_idx }.merge(params)
+        bwa "mem -t #{params[:threads]} -M #{params[:index]} #{params[:fq1]} #{params[:fq2]}", params[:out]
       end
 
       def bwa_single(params)
