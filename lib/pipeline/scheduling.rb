@@ -16,7 +16,7 @@ module Pipeline
     class TorqueScheduler
       def run_job vars, opts
         opts = {
-          :nodes => "1",
+          :nodes => "n17",
           :threads => "1",
           :memory => "1gb"
         }.merge(opts)

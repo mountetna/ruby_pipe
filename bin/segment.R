@@ -10,11 +10,11 @@ if (!interactive()) {
 	  print("  segment.R <lib_dir> doSegCbs <logr_file> <rdata_file> <seg_file> <sample_name>")
 	  quit()
 	}
+	source(paste(lib_dir,"bin", "chrom.R",sep="/"))
 }
 
 suppressMessages(library(DNAcopy))
 suppressMessages(library(PSCBS))
-source(paste(lib_dir,"bin", "chrom.R",sep="/"))
 
 segCBS=function(cna,undosd) {
 	return(segment(cna,verbose=2,alpha=0.05,nperm=10000,undo.splits='sdundo',undo.SD=undosd))
@@ -43,13 +43,16 @@ segPSCBS=function(tumor_logr,tumor_baf,normal_baf) {
 
 load_logr_file = function(logr_file) {
 	tumor_logr=read.table(logr_file,header=T,as.is=T,sep="\t")
-	tumor_logr = tumor_logr[tumor_logr$chr != "chrY",]
+	tumor_logr = tumor_logr[tumor_logr$chrom != "chrY",]
+	# rename log2 to logr
+	colnames(tumor_logr)[colnames(tumor_logr) == "log2"] = "logr"
+	colnames(tumor_logr)[colnames(tumor_logr) == "end"] = "stop"
 	return(tumor_logr)
 }
 
 smoothCNA=function(tumor_logr, sample_name) {
 	return(smooth.CNA(
-		CNA(tumor_logr$logr, tumor_logr$chr, as.integer((tumor_logr$start+tumor_logr$stop)/2), "logratio", sample_name)
+		CNA(tumor_logr$logr, tumor_logr$chrom, as.integer((tumor_logr$start+tumor_logr$stop)/2), "logratio", sample_name)
 	))
 }
 

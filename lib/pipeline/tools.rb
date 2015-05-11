@@ -8,6 +8,24 @@ module Pipeline
     include Pipeline::Tools::Aligners
     include Pipeline::Tools::Mutations
     include Pipeline::Tools::Bam
+
+    def cnvkit_fix opts
+      args = "#{opts[:target]} #{opts[:background]} #{opts[:reference]} -o #{opts[:output]}"
+      cnvkit :fix, args
+    end
+    def cnvkit_reference opts
+      args = format_opts fasta: config.reference_fa, output: opts[:output]
+      args += " #{opts[:inputs].join(" ")}"
+      cnvkit :reference, args
+    end
+    def cnvkit_coverage opts
+      args = "#{opts[:input]} #{opts[:target]} -o #{opts[:output]}"
+      cnvkit :coverage, args
+    end
+    def cnvkit command, args
+      run_cmd "cnvkit.py #{command} #{args}"
+    end
+
     def run_cmd cmd
       log_command cmd
       system "/bin/bash", "-c", cmd

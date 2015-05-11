@@ -10,6 +10,7 @@ require 'exome/mut_filter'
 require 'exome/univ_geno'
 require 'exome/config'
 require 'exome/copy_number'
+require 'exome/purity'
 require 'exome/fastqc'
 require 'exome/summarize'
 require 'exome/snpeff'
@@ -26,6 +27,7 @@ module Exome
       :make_samples,
       :hybrid_qc, :hybrid_qc_summary, 
       :sample_coverage, :compute_normals, :copy_number, 
+      :cnvkit_coverage, :cnvkit_make_reference, :cnvkit_fix,
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
       :univ_geno_call, :univ_geno_annotate,
@@ -93,6 +95,12 @@ module Exome
       :prep => true,
       :sample_coverage => true,
       :copy_number => true
+    }
+
+    def_module :compute_copy_number_cnvkit, {
+      :cnvkit_coverage => true,
+      :cnvkit_make_reference => true,
+      :cnvkit_fix => true
     }
 
     def_module :find_mutations, {

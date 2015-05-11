@@ -23,6 +23,9 @@
 :hg19_refflat: /cbc/resources/human/hg19/refSeq/refFlat.hg19.20111003.txt
 :hg19_rsem: /cbc/resources/human/hg19/rsem/gencode/rsem_gencode.v18_hg19
 
+:cnvkit_target: /cbc/resources/human/hg19/intervals/cnvkit/target-agilent-sure-select-v5.bed
+:cnvkit_background: /cbc/resources/human/hg19/intervals/cnvkit/antitarget-agilent-sure-select-v5.bed
+
 :hg19_indel_vcf: /cbc/resources/human/hg19/1000G/1000G_biallelic.indels.hg19.sorted.vcf
 :hg19_snp_vcf: /cbc/resources/human/hg19/dbSNP/dbsnp_132.hg19.sorted.vcf
 

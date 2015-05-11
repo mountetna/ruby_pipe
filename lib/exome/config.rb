@@ -78,6 +78,9 @@ module Exome
 
           "@sample_name.cov" => :sample_cov,
           "@sample_name.cov_gc" => :sample_cov_gc,
+          "@sample_name.cnvkit.target.cov" => :sample_target_cov,
+          "@sample_name.cnvkit.reference.cnn" => :sample_reference_cnn,
+          "@sample_name.cnvkit.antitarget.cov" => :sample_antitarget_cov,
           "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
@@ -87,6 +90,7 @@ module Exome
         },
         ":normal_name" => {
           ":normal_name.cov" => :normal_cov,
+          ":normal_name.cnvkit.reference.cnn" => :normal_reference_cnn,
         },
         "@lane_name" => {
           "merged_lane.bam" => :merged_lane_bam,
@@ -153,7 +157,10 @@ module Exome
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :sample_exon_cnr,
+          "@sample_name.cnvkit.cnr" => :sample_cnr,
           "@sample_name.cnr.RData" => :tumor_cnr_rdata,
+          "@sample_name.cnvkit.RData" => :tumor_cnvkit_rdata,
+          "@sample_name.cnvkit.seg" => :tumor_cnvkit_seg,
           "@sample_name.ascat.RData" => :tumor_ascat_rdata,
           "@sample_name.ascat.txt" => :tumor_ascat_txt,
           "@sample_name.cnr.seg" => :tumor_cnr_seg,
