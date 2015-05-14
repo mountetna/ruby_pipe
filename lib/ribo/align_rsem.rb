@@ -9,7 +9,7 @@ module Ribo
 
     class RsemCount
       include Pipeline::Task
-      requires_file :clipped_fastq
+      requires_file :non_ribo_fastq
       outs_file :rsem_genome_bam
       
       def run
@@ -19,7 +19,7 @@ module Ribo
             :output_genome_bam => true,
             :bowtie2 => true,
             :args => {
-              :fq1s => rsem_format(config.clipped_fastq),
+              :fq1s => rsem_format(config.non_ribo_fastq),
               :reference => rsem_format(config.reference_rsem),
               :sample_name => config.fraction_name,
             }, :output => config.rsem_scratch_dir or error_exit "Could not run RSEM"

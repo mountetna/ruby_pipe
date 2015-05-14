@@ -2,7 +2,7 @@ module Ribo
   class Align
     include Pipeline::Step
     runs_tasks :clip_fastq, :align_single, :map_reads, :enforce_label
-    has_tasks :soak_ribo, :cull_non_ribo, :make_nonribo_fastq
+    has_tasks :clip_fastq, :align_single, :map_reads, :enforce_label, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq
     runs_on :fractions
     resources :threads => 6
 
