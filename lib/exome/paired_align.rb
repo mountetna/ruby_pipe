@@ -26,7 +26,7 @@ module Exome
       :patient_realign, 
       :make_samples,
       :hybrid_qc, :hybrid_qc_summary, 
-      :sample_coverage, :compute_normals, :copy_number, 
+      :sample_coverage, :copy_number, 
       :cnvkit_coverage, :cnvkit_make_reference, :cnvkit_fix,
       :run_ascat,
       :mut_det, :mut_filter, :combine_muts,
@@ -81,7 +81,6 @@ module Exome
 
     def_module :ascat_purity, {
       :sample_coverage => true,
-      :compute_normals => true,
       :copy_number => true,
       :run_ascat => true
     }
