@@ -152,6 +152,7 @@ module Exome
           "@sample_name.:bam_label.bam" => :output_bam,
           "@sample_name.:bam_label.bam.bai" => :sample_bai,
           "@sample_name.mut.txt" => :tumor_muts,
+          "@sample_name.stratton.pdf" => :stratton_plot_pdf,
           "@sample_name.somatic.maf" => :tumor_maf,
           "@sample_name.germline.maf" => :germline_maf,
           "@sample_name.all_muts.maf" => :all_muts_maf,

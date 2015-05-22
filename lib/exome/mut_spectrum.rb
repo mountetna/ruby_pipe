@@ -32,7 +32,10 @@ module Exome
       include Pipeline::Task
 
       requires_files :tumor_context_maf
+      dumps_file :stratton_plot_pdf
+
       def run
+        r_script :stratton, :doStrattonPlot, config.tumor_context_maf, config.stratton_plot_pdf
       end
     end
   end

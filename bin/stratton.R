@@ -1,5 +1,19 @@
+#!/usr/bin/env Rscript
 
-stratton_plot = function(maf_file) {
+if (!interactive()) {
+	args = commandArgs(TRUE)
+	lib_dir = args[1]
+	cmd = args[2]
+
+	if (length(args) < 1) {
+	  print("Usage:")
+	  print("  segment.R <lib_dir> doSegCbs <logr_file> <rdata_file> <seg_file> <sample_name>")
+	  quit()
+	}
+	source(paste(lib_dir,"bin", "chrom.R",sep="/"))
+}
+
+doStrattonPlot = function(maf_file, output_pdf) {
 	##load in maf file
 	df <- read.table(file=maf_file, header=TRUE, sep="\t",comment.char="#")
 	##load in exome and whole genome context lookup files
@@ -73,6 +87,12 @@ stratton_plot = function(maf_file) {
 	"C[T/G]C"="T>G", "C[T/G]G"="T>G", "C[T/G]T"="T>G", "G[T/G]A"="T>G", "G[T/G]C"="T>G", "G[T/G]G"="T>G", "G[T/G]T"="T>G", "T[T/G]A"="T>G", "T[T/G]C"="T>G", "T[T/G]G"="T>G", "T[T/G]T"="T>G"))
 
 	#PLOT context re: Alexandrov
+	pdf(output_pdf,width=10,height=3)
 	ggp <- ggplot(df_ctxt, aes(x=context, y=norm, fill=color_ctxt))
-	ggp + geom_histogram(stat="identity") + scale_fill_manual(values=c("#1EBBEB", "#000000", "#E0242A", "#A3A3A3", "#A3CC6E", "#EDC6C2")) + theme_bw() + theme(axis.text.x=element_text(angle = 90,vjust = 0.5))
+	print(ggp + geom_histogram(stat="identity") + scale_fill_manual(values=c("#1EBBEB", "#000000", "#E0242A", "#A3A3A3", "#A3CC6E", "#EDC6C2")) + theme_bw() + theme(axis.text.x=element_text(angle = 90,vjust = 0.5)))
+	dev.off()
+}
+
+if (!interactive()) {
+	do.call(cmd,as.list(args[-1:-2]))
 }

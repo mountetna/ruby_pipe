@@ -1,17 +1,19 @@
 #!/usr/bin/env Rscript
 suppressMessages(library(ABSOLUTE))
 
-args = commandArgs(TRUE)
-lib_dir = args[1]
-cmd = args[2]
+if (!interactive()) {
+	args = commandArgs(TRUE)
+	lib_dir = args[1]
+	cmd = args[2]
 
-# Get input and set globals
+	# Get input and set globals
 
-if (length(args) < 1) {
-  print("Usage:")
-  print("  absolute.R <lib_dir> callSample <sample_name> <seg_file> <maf_file> <results_dir>")
-  print("  absolute.R <lib_dir> createReview <cohort_name> <results_dir> <list of filenames>")
-  quit()
+	if (length(args) < 1) {
+	  print("Usage:")
+	  print("  absolute.R <lib_dir> callSample <sample_name> <seg_file> <maf_file> <results_dir>")
+	  print("  absolute.R <lib_dir> createReview <cohort_name> <results_dir> <list of filenames>")
+	  quit()
+	}
 }
 
 extractReview = function(reviewed_file, userid, mod_file, review_dir, cohort_name) {
