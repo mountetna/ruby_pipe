@@ -14,9 +14,20 @@ module Pipeline
         bwa "sampe #{config.bwa_idx} #{params[:m1]} #{params[:m2]} #{params[:fq1]} #{params[:fq2]}", params[:out]
       end
 
+
       def bwa_mem(params)
-        params = { :threads => config.threads, :index => config.bwa_idx }.merge(params)
-        bwa "mem -t #{params[:threads]} -M #{params[:index]} #{params[:fq1]} #{params[:fq2]}", params[:out]
+        params = { threads: config.threads, index: config.bwa_idx, mark_secondary: true }.merge(params)
+
+        opt_map = { threads: :t,
+                    mark_secondary: :M,
+                    mismatch_penalty: :B,
+                    min_score: :T,
+                    index: nil,
+                    fq1: nil,
+                    fq2: nil }
+        out = params.delete :out
+        args = map_opts(opt_map, params) { |flag| "-#{flag}" }
+        bwa "mem #{args}", out
       end
 
       def bwa_single(params)

@@ -20,7 +20,6 @@ module Ribo
           "@fraction_name.unaligned.sam" => :unaligned_sam,
           "@fraction_name.unaligned.fq" => :unaligned_fastq,
           "@fraction_name.aligned.sam" => :bwa_aligned_sam,
-          "@fraction_name.aligned.bam" => :bwa_aligned_bam,
           "@fraction_name.combined.header" => :combined_header,
           "@fraction_name.tophat.header" => :tophat_header,
           "@fraction_name.genome.header" => :genome_header,
@@ -58,7 +57,8 @@ module Ribo
           "@fraction_name.normal.cov" => :normal_cov,
           "@fraction_name.null.cov" => :null_cov,
           "@fraction_name.bam" => :output_bam,
-          "@fraction_name.bam.bai" => :output_bai
+          "@fraction_name.bam.bai" => :output_bai,
+          "@fraction_name.aligned.bam" => :bwa_aligned_bam
         },
         "babel" => {
           "@babel_name" => :babel_output,

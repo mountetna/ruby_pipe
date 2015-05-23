@@ -137,6 +137,18 @@ module Pipeline
     end
 
     private
+    def map_opts mmap, opts, sep=" "
+      # build an arg string from the map and the method options
+      mmap.map do |opt,flag|
+        next unless opts[opt]
+        opts[opt] = nil if opts[opt] == true
+
+        flag = yield flag if flag
+
+        [ flag, opts[opt] ].compact.join sep
+      end.join sep
+    end
+
     def format_opts(o,fix_score=nil,&block)
       o.map do |key,value| 
         key = key.to_s.gsub(/_/,"-") if fix_score

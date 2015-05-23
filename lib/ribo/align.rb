@@ -25,7 +25,7 @@ module Ribo
 
       def run
         log_info "Pairing aligned reads"
-        bwa_mem :fq1 =>  config.clipped_fastq, :index => config.ribo_bwa_idx, :out => config.ribo_sam or error_exit "BWA mem failed"
+        bwa_mem fq1:  config.clipped_fastq, index: config.ribo_bwa_idx, min_score: 23, out: config.ribo_sam or error_exit "BWA mem failed"
       end
     end
 
