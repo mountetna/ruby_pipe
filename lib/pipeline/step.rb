@@ -152,7 +152,7 @@ module Pipeline
     def cleanup
       # run the vacuum script
       vacuum
-      return if config.keep_temp_files
+      return # if config.keep_temp_files
       tasks.each do |t|
         self.class.daughter_class(t).dump_files.each do |f|
           filename = config.send(f)
