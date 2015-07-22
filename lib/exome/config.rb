@@ -224,7 +224,7 @@ module Exome
         s.extend_with :chroms => chromosomes
         s.extend_with :chunks => make_chunks(s)
         s.add_member :lane_name, "lane0" if !s.lane_name
-        s.add_member :patient_name, "patient#{s.patient || 0}"
+        s.add_member :patient_name, "patient0" if !s.patient_name
       end
       @config.extend_with :lanes => make_lanes
       lanes.each do |lane|
