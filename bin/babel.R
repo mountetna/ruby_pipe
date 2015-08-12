@@ -66,7 +66,7 @@ filter_by_rpkm = function(coverage,min_rpkm) {
 	lib_size = colSums(gexp)
 	rpkm = t(t( gexp / (coverage$size / 1e3) ) / (lib_size / 1e6))
 	keep = apply(rpkm,1,function(gene) {
-		return(all(gene > min_rpkm))
+		return(any(gene > min_rpkm))
 		})
 
 	return(coverage[keep,])
