@@ -46,9 +46,10 @@ module Pipeline
         "x=depend:afterany:#{job}"
       end
 
-      def run vars,opts
+      def run vars, opts
         run_job vars,opts do |res,fields|
           cmd = "/opt/moab/bin/msub #{res.map{|r| "-l #{r}"}.join(" ")} #{fields.map{ |o,v| "-#{o} #{v}" }.join(" ")} #{vars[:LIB_DIR]}/step_pipe.rb |tail -1"
+          yield cmd if block_given?
           %x{#{cmd}}
         end
       end
@@ -187,7 +188,9 @@ module Pipeline
         :queue => config.step_queue
       }.merge(opts || {})
 
-      scheduler.run(vars, opts)
+      scheduler.run(vars, opts) do |cmd|
+        log_info "Scheduled #{config.step} with #{cmd}"
+      end
     end
   end
 end
