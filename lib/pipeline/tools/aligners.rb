@@ -58,6 +58,8 @@ module Pipeline
         #opts[ "#{config.qual_type}_quals".to_sym ] = true if !opts[:bam] && !opts[:sam]
         args = opts.delete(:args)
         output = opts.delete :output
+        ensure_dir opts[:temporary_folder]
+
         Dir.chdir(output) do
           run_cmd "#{config.rsem_dir}/rsem-#{type.to_s.gsub(/_/,"-")} #{format_opts(opts,true)} #{args.values.join(" ")}"
         end

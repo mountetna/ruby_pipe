@@ -8,6 +8,9 @@ module Ribo
     def_var :output_bams do samples.map{|s| output_bam(s) } end
 
     dir_tree({
+      ":tmp_dir" => {
+        "@fraction_name.rsem.tmp" => :rsem_tmp_dir
+      },
       ":scratch_dir" => {
         "@sample_name" => {
           "@fraction_name.clipped.fq" => :clipped_fastq,
@@ -16,7 +19,7 @@ module Ribo
           "@fraction_name.non_ribo.fq" => :non_ribo_fastq,
           "@fraction_name.read.sai" => :read_sai,
           "@fraction_name.mapped.sam" => :mapped_sam,
-          "@fraction_name.genome.bam" => :genome_bam,
+          "@fraction_name.genome.sorted.bam" => :genome_bam,
           "@fraction_name.unaligned.sam" => :unaligned_sam,
           "@fraction_name.unaligned.fq" => :unaligned_fastq,
           "@fraction_name.aligned.sam" => :bwa_aligned_sam,
@@ -33,13 +36,13 @@ module Ribo
           },
           "@fraction_name.rsem" => {
             "." => :rsem_scratch_dir,
-            "tmp" => :rsem_tmp_dir,
             "@fraction_name.genes.results" => :rsem_scratch_genes_results,
             "@fraction_name.isoforms.results" => :rsem_scratch_isoforms_results,
             "@fraction_name.transcript.bam" => :rsem_scratch_txp_unsorted_bam,
             "@fraction_name.transcript.sorted.bam" => :rsem_scratch_txp_bam,
             "@fraction_name.transcript.sorted.bam.bai" => :rsem_scratch_txp_bai,
-            "@fraction_name.genome.bam" => :rsem_genome_bam
+            "@fraction_name.genome.sorted.bam" => :rsem_genome_bam,
+            "@fraction_name.genome.sorted.bam.bai" => :rsem_genome_bai
           },
           "@fraction_name.rsem_aligned.bam" => :rsem_aligned_bam,
           "@fraction_name.rsem_aligned.sam" => :rsem_aligned_sam,
@@ -57,7 +60,7 @@ module Ribo
           "@fraction_name.normal.cov" => :normal_cov,
           "@fraction_name.null.cov" => :null_cov,
           "@fraction_name.bam" => :output_bam,
-          "@fraction_name.bam.bai" => :output_bai,
+          "@fraction_name.bai" => :output_bai,
           "@fraction_name.aligned.bam" => :bwa_aligned_bam
         },
         "babel" => {

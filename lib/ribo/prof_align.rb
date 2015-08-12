@@ -13,7 +13,7 @@ require 'ribo/babel'
 module Ribo
   class ProfAlign 
     include Pipeline::Script
-    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine_rsem, :combine, :coverage, :qc, :summary, :babel
+    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine, :coverage, :qc, :summary, :babel
     def_module :default, :align => true,
       :tophat => true,
       :combine => true,
@@ -24,7 +24,6 @@ module Ribo
     def_module :rsem, :align => [ :clip_fastq, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq ],
       :rsem_align => true,
       :bwa_align => true,
-      :combine_rsem => true,
       :coverage => true,
       :qc => true,
       :summary => true,

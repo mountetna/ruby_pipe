@@ -4,7 +4,7 @@ module Ribo
   class RsemAlign
     include Pipeline::Step
     runs_tasks :rsem_count, :collect_unmapped, :make_unaligned_fastq, :copy_rsem_bam
-    resources :threads => 12
+    resources :threads => 12, :memory => "4gb"
     runs_on :fractions
 
     class RsemCount
@@ -14,7 +14,7 @@ module Ribo
       
       def run
         rsem :calculate_expression,
-            :temporary_folder => File.realdirpath(config.rsem_tmp_dir),
+            :temporary_folder => config.rsem_tmp_dir,
             :num_threads => config.threads,
             :output_genome_bam => true,
             :strand_specific => true,
@@ -54,11 +54,21 @@ module Ribo
 
     class CopyRsemBam
       include Pipeline::Task
-      requires_file :rsem_genome_bam
-      outs_file :output_bam
+      requires_file :rsem_genome_bam, :rsem_genome_bai
+      outs_file :output_bam, :output_bai
 
       def run
-        FileUtils.cp config.rsem_genome_bam, config.output_bam or error_exit "Failed to copy BAM file"
+        begin
+          FileUtils.cp config.rsem_genome_bam, config.output_bam
+        rescue
+          error_exit "Failed to copy BAM file"
+        end
+
+        begin
+          FileUtils.cp config.rsem_genome_bai, config.output_bai
+        rescue
+          error_exit "Failed to copy BAI file"
+        end
       end
     end
   end
