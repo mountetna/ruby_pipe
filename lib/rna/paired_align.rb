@@ -45,10 +45,14 @@ module Rna
       include Pipeline::Usage
 
       def input(args)
-        sample = get_sample args.first
+        sample = get_sample args.shift
         inputs = []
-        getlines "your fastq files" do |l|
-          inputs += l.strip.split
+        unless args.empty?
+          inputs += %x{ ls #{args.first} }.strip.split
+        else
+          getlines "your fastq files" do |l|
+            inputs += l.strip.split
+          end
         end
         sample[:replicates] ||= []
         sample[:replicates].push :inputs => pair_fastqs(inputs)
