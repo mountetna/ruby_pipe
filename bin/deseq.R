@@ -18,6 +18,7 @@ doDeseq=function(counts_file,exp_name,ctrl_name,fdr,diff_file) {
 	counts = read.table(counts_file,header=T,sep="\t",row.names="gene_id")
 	# trim 
 	counts = counts[ , grep(paste(replicate_name(exp_name),replicate_name(ctrl_name),sep="|"),colnames(counts)) ]
+	counts = apply(counts,2,function(row) { return(as.integer(row)) })
 	conditions = factor( c("experiment", "control")[ as.integer(grepl(replicate_name(ctrl_name),colnames(counts)))+1 ] )
 	library(DESeq)
 	cds = newCountDataSet( counts, conditions )
