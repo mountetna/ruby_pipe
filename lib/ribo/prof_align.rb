@@ -3,6 +3,7 @@ require 'pipeline'
 require 'ribo/config'
 require 'ribo/align'
 require 'ribo/tophat'
+require 'ribo/build'
 require 'ribo/combine'
 require 'ribo/coverage'
 require 'ribo/qc'
@@ -13,7 +14,8 @@ require 'ribo/babel'
 module Ribo
   class ProfAlign 
     include Pipeline::Script
-    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine, :coverage, :qc, :summary, :babel
+    runs_steps :align, :rsem_align, :tophat, :bwa_align, :combine, :coverage, :qc, :summary, :babel, :build
+
     def_module :default, :align => true,
       :tophat => true,
       :combine => true,
@@ -21,6 +23,7 @@ module Ribo
       :qc => true,
       :summary => true
 
+    def_module :setup, build: [ :create_transcript_model ]
     def_module :rsem, :align => [ :clip_fastq, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq ],
       :rsem_align => true,
       :bwa_align => true,
@@ -28,6 +31,10 @@ module Ribo
       :qc => true,
       :summary => true,
       :babel => true
+
+    def_module :transcript_model_coverage, 
+      coverage: [ :transcript_model_coverage ],
+      summary: [ :summarize_transcript_model_cov ]
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator

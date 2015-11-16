@@ -7,7 +7,7 @@ require 'gtf'
 module Ribo
   class Summary
     include Pipeline::Step
-    runs_tasks :summarize_normal_cov, :summarize_qc
+    runs_tasks :summarize_normal_cov, :summarize_transcript_model_cov, :summarize_qc
 
     class SummarizeQc
       include Pipeline::Task
@@ -82,6 +82,46 @@ module Ribo
         end
 
         summary.print config.normal_summary
+      end
+    end
+    class SummarizeTranscriptModelCov
+      include Pipeline::Task
+      requires_file :transcript_model_gtf
+      outs_file :transcript_model_summaries
+
+      class CoverageTable <  HashTable
+        columns :gid, :count
+        parse_mode :noheader
+      end
+      
+      def run
+        log_info "Loading GTF"
+        gtf = GTF.new index: [ :gene_id ]
+        gtf.parse config.transcript_model_gtf
+
+        summary_columns = [ :gene_id, :symbol, :size, config.fractions.map{|f|f.fraction_name.to_sym} ].flatten
+        
+        config.transcript_model_regions.each do |region|
+          summary = HashTable.new columns: summary_columns, index: [ :gene_id ]
+          config.fractions.each do |s|
+            # read in each file name and build up a hash of interesting information
+            cov = CoverageTable.new.parse config.transcript_model_coverage(region, s)
+            cov.each do |gene|
+              if summary.index[:gene_id][gene.gid].count == 0
+                summary << { 
+                  gene_id: gene.gid, 
+                  symbol: gtf.index[:gene_id][gene.gid].map(&:gene_name).first,
+                  size: gtf.index[:gene_id][gene.gid].select{|f| f.feature == region.to_s}.inject(0){|sum,f| sum += f.size },
+                  s.fraction_name.to_sym => gene.count
+                }
+              else
+                entry = summary.index[:gene_id][gene.gid].first
+                entry.update s.fraction_name.to_sym => gene.count
+              end
+            end
+          end
+          summary.print config.transcript_model_summary(region)
+        end
       end
     end
   end

@@ -56,7 +56,9 @@ module Ribo
         }
       },
       ":output_dir" => {
+        "transcript_model.gtf" => :transcript_model_gtf,
         "@sample_name" => {
+          "@fraction_name.transcript_model.cov" => :transcript_model_coverage_base,
           "@fraction_name.normal.cov" => :normal_cov,
           "@fraction_name.null.cov" => :null_cov,
           "@fraction_name.bam" => :output_bam,
@@ -70,6 +72,7 @@ module Ribo
           "@babel_name.between.babel" => :between_babel
         },
         "@cohort_name.normal_cov" => :normal_summary,
+        "@cohort_name.transcript_model.cov" => :transcript_model_summary_base,
         "@cohort_name.null_cov" => :null_summary,
       },
       ":metrics_dir" => {
@@ -97,6 +100,25 @@ module Ribo
 
     #coverage
     def_var :model_type do :unified_model end
+    def_var :transcript_model_coverage do |name,fraction| 
+      transcript_model_coverage_base(fraction)
+        .sub(/transcript_model/,name.to_s)
+    end
+    def_var :transcript_model_coverages do 
+      transcript_model_regions.map do |name|
+        transcript_model_coverage(name)
+      end
+    end
+    def_var :transcript_model_summary do |name| 
+      transcript_model_summary_base.sub(/transcript_model/,name.to_s)
+    end
+    def_var :transcript_model_summaries do 
+      transcript_model_regions.map do |name|
+        transcript_model_summary(name)
+      end
+    end
+    def_var :transcript_model_regions do [ :utr5, :utr3, :orf, :start, :stop ] end
+    #def_var :transcript_model_regions do [ :orf ] end
 
     def init_hook
       samples.each do |s|
