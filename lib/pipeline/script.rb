@@ -106,6 +106,7 @@ module Pipeline
     usage "stop <config_file.yml> [please]", "stop the pipeline, optionally waiting for the current step to finish"
     usage "clean <config_file.yml> <scratch|output|list> <step|all> [<task>]", "Clean up files from a given run"
     usage "timer <config_file.yml>", "Generate table of time to completion for each step."
+    usage "debug_task <config_file.yml> <step> <trial> <task>", "Run a task in the shell (for debugging)"
 
     def generate(args)
       self.class.daughter_class(:config_generator).new *args
@@ -154,6 +155,18 @@ module Pipeline
     def timer(args)
       args = set_config args, :audit
       timer_job(args)
+    end
+
+    def debug_task(args)
+      args = set_config args, :audit
+
+      step_name, trial_name, task_name = args
+      step = create_step step_name.to_sym
+
+      config.set_opt :job_number, trial_name.to_i + 1
+
+      task = step.create_task(task_name.to_sym)
+      task.run
     end
 
     def list_steps(args)
