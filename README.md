@@ -12,14 +12,14 @@ Individual pipelines may be invoked through a common script interface based on s
 
     $ exome_paired_align
     Commands:
-     generate &lt;cohort_name>                    # Generate a new config file for a cohort of samples.
-     audit &lt;config_file.yml>                   # Audit the pipeline to see which steps are complete.
-     start &lt;config_file.yml> [&lt;step>]          # Start the pipeline at the beginning or at &lt;step>
-     run_step &lt;config_file.yml> &lt;step_name>    # Run just the named step
-     list_steps &lt;config_file.yml>              # List steps for this pipeline.
-     stop &lt;config_file.yml> [please]           # stop the pipeline, optionally waiting for the current step to finish
-     clean &lt;config_file.yml> &lt;scratch|output|list> &lt;step|all> [&lt;task>]# Clean up files from a given run
-     timer &lt;config_file.yml>                   # Generate table of time to completion for each step.
+     generate <cohort_name>                    # Generate a new config file for a cohort of samples.
+     audit <config_file.yml>                   # Audit the pipeline to see which steps are complete.
+     start <config_file.yml> [<step>]          # Start the pipeline at the beginning or at <step>
+     run_step <config_file.yml> <step_name>    # Run just the named step
+     list_steps <config_file.yml>              # List steps for this pipeline.
+     stop <config_file.yml> [please]           # stop the pipeline, optionally waiting for the current step to finish
+     clean <config_file.yml> <scratch|output|list> <step|all> [<task>]# Clean up files from a given run
+     timer <config_file.yml>                   # Generate table of time to completion for each step.
 
 
 Creating a config file
@@ -185,14 +185,14 @@ until the end to clean up, mostly because if things mess up, you may
 want your temp files so you can resume from the middle.
 
 The first thing you want to do is this:
-    $ exome_paired_align clean example.exome_paired_align.yml list &lt;step>
+    $ exome_paired_align clean example.exome_paired_align.yml list <step>
 
 This will produce a summary of how many files have been created by the
 step, split into 'scratch' (temp) and 'output' (permanent) categories.
 N.B. this division is somewhat arbitrary and needs a lot of cleanup.
 
 You can clean scratch or output files separately:
-    $ exome_paired_align clean example.exome_paired_align.yml scratch &lt;step>
+    $ exome_paired_align clean example.exome_paired_align.yml scratch <step>
 The separation is intentional, to prevent accidents. It's also
 possible to say 'all' instead of cleaning step-by-step, but I'm
 usually not that brave.
