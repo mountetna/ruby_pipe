@@ -8,18 +8,18 @@ ruby_pipe expects certain tools to be in the path when it runs. Amongst them are
 
 Invoking a pipeline script
 ===
-Individual pipelines may be invoked through a common script interface based on symbolic links. The file 'run_pipe.rb' will run the pipeline <pipe>/<script>.rb if it is symlinked to 'pipe_script'. E.g. if you symlink this file to the name exome_paired_align (somewhere in your path), it will run the script exome/paired_align.rb. Running the pipeline command with no arguments will show you a list of available commands:
+Individual pipelines may be invoked through a common script interface based on symbolic links. The file 'run_pipe.rb' will run the pipeline &lt;pipe>&lt;script>.rb if it is symlinked to 'pipe_script'. E.g. if you symlink this file to the name exome_paired_align (somewhere in your path), it will run the script exome/paired_align.rb. Running the pipeline command with no arguments will show you a list of available commands:
 
     $ exome_paired_align
     Commands:
-     generate <cohort_name>                    # Generate a new config file for a cohort of samples.
-     audit <config_file.yml>                   # Audit the pipeline to see which steps are complete.
-     start <config_file.yml> [<step>]          # Start the pipeline at the beginning or at <step>
-     run_step <config_file.yml> <step_name>    # Run just the named step
-     list_steps <config_file.yml>              # List steps for this pipeline.
-     stop <config_file.yml> [please]           # stop the pipeline, optionally waiting for the current step to finish
-     clean <config_file.yml> <scratch|output|list> <step|all> [<task>]# Clean up files from a given run
-     timer <config_file.yml>                   # Generate table of time to completion for each step.
+     generate &lt;cohort_name>                    # Generate a new config file for a cohort of samples.
+     audit &lt;config_file.yml>                   # Audit the pipeline to see which steps are complete.
+     start &lt;config_file.yml> [&lt;step>]          # Start the pipeline at the beginning or at &lt;step>
+     run_step &lt;config_file.yml> &lt;step_name>    # Run just the named step
+     list_steps &lt;config_file.yml>              # List steps for this pipeline.
+     stop &lt;config_file.yml> [please]           # stop the pipeline, optionally waiting for the current step to finish
+     clean &lt;config_file.yml> &lt;scratch|output|list> &lt;step|all> [&lt;task>]# Clean up files from a given run
+     timer &lt;config_file.yml>                   # Generate table of time to completion for each step.
 
 
 Creating a config file
@@ -30,8 +30,8 @@ defines the environment for your analysis, most importantly the list
 of samples, with sample names, normal names, input fastqs, patient
 ids, etc., as well as any flags that ought to be set.
 
-'generate <cohort_name>' will drop you into a mini-shell where you can
-setup a configuration and print it to a file. 'generate <config_file>'
+'generate &lt;cohort_name>' will drop you into a mini-shell where you can
+setup a configuration and print it to a file. 'generate &lt;config_file>'
 will drop you into a mini-shell to continue editing a generated file.
 Sometimes I find it easier to use the mini-shell, sometimes I just use
 it to make a skeleton and create the rest in my favorite editor (vim).
@@ -185,14 +185,14 @@ until the end to clean up, mostly because if things mess up, you may
 want your temp files so you can resume from the middle.
 
 The first thing you want to do is this:
-    $ exome_paired_align clean example.exome_paired_align.yml list <step>
+    $ exome_paired_align clean example.exome_paired_align.yml list &lt;step>
 
 This will produce a summary of how many files have been created by the
 step, split into 'scratch' (temp) and 'output' (permanent) categories.
 N.B. this division is somewhat arbitrary and needs a lot of cleanup.
 
 You can clean scratch or output files separately:
-    $ exome_paired_align clean example.exome_paired_align.yml scratch <step>
+    $ exome_paired_align clean example.exome_paired_align.yml scratch &lt;step>
 The separation is intentional, to prevent accidents. It's also
 possible to say 'all' instead of cleaning step-by-step, but I'm
 usually not that brave.
@@ -203,7 +203,7 @@ Reading logs
 The logs are copious and may run into the hundreds of megabytes. They
 are also in color (I have a fetish), so export LESS=-R to read them.
 Usually they write to the ./log directory and have the name format
-'<pipe>.<cohort_name>.<step>.<trial>log', e.g.,
+'&lt;pipe>.&lt;cohort_name>.&lt;step>.&lt;trial>log', e.g.,
 "exome.example.mut_det.22.log". ERROR files, which show up in the
 working directory, will usually tell you which logs to look at. There
 is also a summary log file for the script, e.g.  "exome.example.paired_align.log"
