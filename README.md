@@ -53,13 +53,13 @@ Here is a short sample config file which will set you up for an exome run:
         - :fq1: /data/sample_exp/normal_R1_001.fastq.gz
           :fq2: /data/sample_exp/normal_R2_001.fastq.gz
     - :sample_name: tumor
-	  :normal_name: normal
-	  :inputs:
-	  - :fq1: /data/sample_exp/tumor_R1_001.fastq.gz
+      :normal_name: normal
+      :inputs:
+      - :fq1: /data/sample_exp/tumor_R1_001.fastq.gz
         :fq2: /data/sample_exp/tumor_R2_001.fastq.gz
-	  - :fq1: /data/sample_exp/tumor_R1_002.fastq.gz
-    	:fq2: /data/sample_exp/tumor_R2_002.fastq.gz
-	:interval_list: "/resources/intervals/SureSelectHumanAllExonV4_UTRs_hg19___TARGETS.ilist"
+      - :fq1: /data/sample_exp/tumor_R1_002.fastq.gz
+        :fq2: /data/sample_exp/tumor_R2_002.fastq.gz
+    :interval_list: "/resources/intervals/SureSelectHumanAllExonV4_UTRs_hg19___TARGETS.ilist"
 
 The generate shell is helpful in putting together a list of fastq
 files for a sample - you can specify this as a pattern:
@@ -76,8 +76,8 @@ thing. For example, if I already have a set of input BAM files, and I
 just want to run mutation calling on it, I can do that. I just have to
 specify the inputs in my config file:
     :samples:
-	- :sample_name: tumor
-	  :input_bam: /data/sample_exp/tumor.bam
+    - :sample_name: tumor
+      :input_bam: /data/sample_exp/tumor.bam
 
 Then I specify the set of modules I want to run.
 :modules: [ find_mutations ]
