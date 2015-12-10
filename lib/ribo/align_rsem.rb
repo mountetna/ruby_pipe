@@ -4,7 +4,7 @@ module Ribo
   class RsemAlign
     include Pipeline::Step
     runs_tasks :rsem_count, :collect_unmapped, :make_unaligned_fastq, :copy_rsem_bam
-    resources :threads => 12, :memory => "4gb"
+    resources :threads => 6, :memory => "4gb"
     runs_on :fractions
 
     class RsemCount

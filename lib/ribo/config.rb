@@ -73,6 +73,7 @@ module Ribo
         },
         "@cohort_name.normal_cov" => :normal_summary,
         "@cohort_name.transcript_model.cov" => :transcript_model_summary_base,
+        "@cohort_name.orf.cov" => :orf_summary,
         "@cohort_name.null_cov" => :null_summary,
       },
       ":metrics_dir" => {

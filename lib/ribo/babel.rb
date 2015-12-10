@@ -6,16 +6,16 @@ module Ribo
 
     class RunBabel
       include Pipeline::Task
-      requires_file :normal_summary
+      requires_file :orf_summary
       outs_file :within_babel, :combined_babel, :between_babel
 
       def run
-        r_script :babel, :doBabel, config.normal_summary,
+        r_script :babel, :doBabel, config.orf_summary,
           config.babel_output,
           config.babel.groups.map{|group| "#{group.group_name}=#{group.samples.join(",")}" }.join(":"),
           config.babel_num_reps,
           config.babel_min_rna,
-          config.babel_min_rpkm or error_exit "Could not run DESeq"
+          config.babel_min_rpkm or error_exit "Could not run Babel"
       end
     end
   end
