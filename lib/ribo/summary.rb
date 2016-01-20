@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'picard_metrics'
 require 'flagstat'
 require 'hash_table'
 require 'gtf'
@@ -18,25 +19,26 @@ module Ribo
         config.fractions.each do |f|
           # read in each file name and build up a hash of interesting information
           sample_qc = {}
+          qc[f.fraction_name] = sample_qc
+
           flags = Flagstat.new config.qc_flag(f)
           flags.each do |flag,value|
             sample_qc[flag] = value.first
           end
 
-          sample_qc[:splice_counts] = File.read(config.qc_splice_counts f).to_i
-          qc[s.sample_name] = sample_qc
+          mets = PicardMetrics.new
+          mets.parse config.qc_rnaseq(f)
 
-          align = HashTable.new comment: /^(#|$)/
-          align.parse config.qc_align_metrics(f)
-          align.columns.each do |flag|
-            sample_qc[flag] = align.first[flag]
-          end
-          
-          rnaseq = HashTable.new comment: /^(#|$)/, downcase: true
-          rnaseq.parse config.qc_rnaseq(s)
-          rnaseq.columns.each do |flag|
-            sample_qc[flag] = rnaseq.first[flag]
-          end
+          sample_qc.update mets.sections[:rna_seq_metrics].metrics
+
+          rrna_metrics = HashTable.new columns: [ :name, :count ], 
+                          types: { count: :int }, 
+                          index: [ :name ], 
+                          parse_mode: :noheader
+          rrna_metrics.parse config.qc_rrna_metrics f
+          sample_qc[:rrna_reads] = rrna_metrics.index[:name]["rRNA_reads"].first.count
+          sample_qc[:non_rrna_reads] = rrna_metrics.index[:name]["non_rRNA_reads"].first.count
+          sample_qc[:pct_rrna] = (sample_qc[:rrna_reads] / (sample_qc[:rrna_reads] + sample_qc[:non_rrna_reads]).to_f).round(5)
         end
         if qc.size > 1
           File.open(config.qc_summary, "w") do |f|

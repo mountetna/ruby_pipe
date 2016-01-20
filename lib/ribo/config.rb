@@ -83,6 +83,7 @@ module Ribo
           "@fraction_name.rnaseq_pdf" => :qc_pdf,
           "@fraction_name.splice_counts" => :qc_splice_counts,
           "@fraction_name.alignment_metrics" => :qc_align_metrics,
+          "@fraction_name.rrna_metrics" => :qc_rrna_metrics,
         },
         "@cohort_name.qc_summary" => :qc_summary
       }

@@ -2,7 +2,7 @@ module Ribo
   class Align
     include Pipeline::Step
     runs_tasks :clip_fastq, :align_single, :map_reads, :enforce_label
-    has_tasks :clip_fastq, :align_single, :map_reads, :enforce_label, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq
+    has_tasks :clip_fastq, :align_single, :map_reads, :enforce_label, :soak_ribo, :cull_non_ribo, :collect_rrna_metrics, :make_nonribo_fastq
     runs_on :fractions
     resources :threads => 6
 
@@ -40,6 +40,23 @@ module Ribo
           :I => config.ribo_sam,
           :ALIGNMENT_STATUS => :Unaligned,
           :out => config.non_ribo_sam or error_exit "picard view_sam failed"
+      end
+    end
+
+    class CollectRrnaMetrics
+      include Pipeline::Task
+      requires_file :ribo_sam, :non_ribo_sam
+      dumps_file :qc_rrna_metrics
+
+      def run
+        ribo_count = %x{ wc -l #{config.ribo_sam} }.to_i
+        non_ribo_count = %x{ wc -l #{config.non_ribo_sam} }.to_i
+        header_count = %x{ head -200 #{config.non_ribo_sam} | grep ^@ | wc -l }.to_i
+
+        File.open config.qc_rrna_metrics, "w" do |f|
+          f.puts "rRNA_reads\t#{ribo_count - header_count}"
+          f.puts "non_rRNA_reads\t#{non_ribo_count - header_count}"
+        end
       end
     end
     

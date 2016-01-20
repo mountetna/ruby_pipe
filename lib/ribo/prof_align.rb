@@ -24,7 +24,7 @@ module Ribo
       :summary => true
 
     def_module :setup, build: [ :create_transcript_model ]
-    def_module :rsem, :align => [ :clip_fastq, :soak_ribo, :cull_non_ribo, :make_nonribo_fastq ],
+    def_module :rsem, :align => [ :clip_fastq, :soak_ribo, :cull_non_ribo, :collect_rrna_metrics, :make_nonribo_fastq ],
       :rsem_align => true,
       :bwa_align => true,
       :coverage => true,
@@ -34,7 +34,7 @@ module Ribo
 
     def_module :transcript_model_coverage, 
       coverage: [ :transcript_model_coverage ],
-      summary: [ :summarize_transcript_model_cov ]
+      summary: [ :summarize_transcript_model_cov, :summarize_qc ]
 
     class ConfigGenerator
       include Pipeline::ConfigGenerator
