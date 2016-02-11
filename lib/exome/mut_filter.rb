@@ -34,7 +34,7 @@ module Exome
       :filter_muts_pindel, :concat_chroms, :filter_muts_annovar, :filter_muts_somatic_indel
 
     runs_on :tumor_samples, :chroms
-    resources :internet => 1
+    resources :internet => 1, memory: "4gb"
 
     class FilterMuts
       include Pipeline::Task
