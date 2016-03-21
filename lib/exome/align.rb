@@ -1,7 +1,7 @@
 module Exome
   class DumpFastqs
     include Pipeline::Step
-    runs_task :purify_bam, :create_fastq_from_bam
+    runs_task :purify_bam, :sort_bam, :create_fastq_from_bam
     runs_on :samples, :inputs
 
     class PurifyBam
@@ -14,15 +14,27 @@ module Exome
       end
     end
 
+    class SortBam
+      include Pipeline::Task
+      skip_without :reads_bam
+      requires_file :chaste_bam
+      outs_file :chaste_sorted_bam
+
+      def run
+        samtools "sort -n #{config.chaste_bam} #{config.chaste_sorted_bam.sub(/.bam/,'')}", nil or error_exit "Could not sort bam file"
+      end
+    end
+
     class CreateFastqFromBam
       # you only need to do this if you have your bams in reads
       include Pipeline::Task
       skip_without :reads_bam
-      requires_file :chaste_bam
+      requires_file :chaste_sorted_bam
       outs_file :reads1_fastq, :reads2_fastq
 
       def run
-        picard :sam_to_fastq, :INPUT => config.chaste_bam, :FASTQ => ">(gzip -c > #{config.reads1_fastq})", :SECOND_END_FASTQ => ">(gzip -c > #{config.reads2_fastq})" or error_exit "Could not split bam file to fastqs"
+        #picard :sam_to_fastq, :INPUT => config.chaste_bam, :FASTQ => ">(gzip -c > #{config.reads1_fastq})", :SECOND_END_FASTQ => ">(gzip -c > #{config.reads2_fastq})" or error_exit "Could not split bam file to fastqs"
+        bedtools_bamtofastq config.chaste_sorted_bam, config.reads1_fastq, config.reads2_fastq or error_exit "Could not split bam file to fastqs"
       end
     end
   end

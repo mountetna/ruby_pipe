@@ -51,7 +51,8 @@ module Pipeline
     end
     module SNVDetection
       def mutect(opts)
-        opts = { :logging_level => config.logging_level,
+        opts = { 
+          :logging_level => config.logging_level,
           :analysis_type => "MuTect",
           :baq => "CALCULATE_AS_NECESSARY",
           :reference_sequence => config.reference_fa,
@@ -67,6 +68,15 @@ module Pipeline
         }.merge(opts) if opts.delete :no_normal_filter
 
         java :bin => config.java6, :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
+      end
+
+      def freebayes(opts)
+        opts = { 
+          :fasta_reference => config.reference_fa,
+        }.merge(opts)
+        bam_file = opts.delete :bam
+        output_file = opts.delete :output
+        run_cmd "#{config.freebayes_dir}/bin/freebayes #{format_opts(opts,true)} #{bam_file} > #{output_file}"
       end
     end
     module Annotation

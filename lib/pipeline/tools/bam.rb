@@ -57,10 +57,16 @@ module Pipeline
         end
       end
     end
+    module Bedtools
+      def bedtools_bamtofastq bam, fq1, fq2
+        run_cmd "#{config.bedtools_dir}/bedtools bamtofastq -i #{bam} -fq >(gzip -c > #{fq1}) -fq2 >(gzip -c > #{fq2})"
+      end
+    end
     module Bam
       include Pipeline::Tools::Gatk
       include Pipeline::Tools::Picard
       include Pipeline::Tools::Samtools
+      include Pipeline::Tools::Bedtools
     end
   end
 end

@@ -22,6 +22,7 @@ module Exome
           },
 
           "input.@input_name.chaste.bam" => :chaste_bam,
+          "input.@input_name.chaste.sorted.bam" => :chaste_sorted_bam,
           "input.@input_name.reads1.fastq.gz" => :reads1_fastq,
           "input.@input_name.reads2.fastq.gz" => :reads2_fastq,
 
@@ -68,6 +69,8 @@ module Exome
 
           "@chrom_name.somatic.maf" => :tumor_chrom_maf,
           "@chrom_name.germline.maf" => :germline_chrom_maf,
+          "@chrom_name.germline.unfiltered.vcf" => :germline_unfiltered_vcf,
+          "@chrom_name.germline.annotated.vcf" => :germline_annotated_vcf,
           "@chrom_name.all_muts.maf" => :all_muts_chrom_maf,
 
           "@sample_name.context.maf" => :tumor_context_maf,
@@ -217,9 +220,9 @@ module Exome
           s.inputs.each do |i|
             i.add_member :input_name, i.index
           end
-          s.extend_with :fastqs => s.inputs.map{|i|
-            [ make_fastq(i.fq1), make_fastq(i.fq2) ]
-          }.flatten
+            s.extend_with :fastqs => s.inputs.map{|i|
+              i.fq1 ?  [ make_fastq(i.fq1), make_fastq(i.fq2) ] : nil
+            }.flatten
         end
         s.extend_with :chroms => chromosomes
         s.extend_with :chunks => make_chunks(s)
