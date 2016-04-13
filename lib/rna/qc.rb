@@ -1,4 +1,5 @@
 require 'picard_metrics'
+require 'flagstat'
 
 module Rna
   class Qc
@@ -48,6 +49,7 @@ module Rna
     class SummarizeQc
       include Pipeline::Task
       requires_files :samples__replicates__qc_rnaseqs
+      requires_files :samples__replicates__qc_flags
       outs_file :qc_summary
 
       def run
@@ -56,11 +58,16 @@ module Rna
           sample.replicates.each do |rep|
             mets = PicardMetrics.new
             mets.parse config.qc_rnaseq(rep)
+            flags = Flagstat.new config.qc_flag(rep)
 
             if !table
-              table = HashTable.new columns: [:replicate] + mets.sections[:rna_seq_metrics].metrics.keys
+              table = HashTable.new columns: [:replicate] + 
+                flags.clean_hash.keys + 
+                mets.sections[:rna_seq_metrics].metrics.keys
             end
-            table << mets.sections[:rna_seq_metrics].metrics.merge( replicate: config.sample_replicate_name(rep) )
+            table << mets.sections[:rna_seq_metrics].metrics.merge(
+              replicate: config.sample_replicate_name(rep)
+            ).merge( flags.clean_hash )
           end
         end
         table.print config.qc_summary
