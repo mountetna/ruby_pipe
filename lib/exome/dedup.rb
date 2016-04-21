@@ -20,9 +20,6 @@ module Exome
           :CREATE_INDEX => :true,
           :REMOVE_DUPLICATES => :false 
         }
-        if config.picard_regex
-          opts.update READ_NAME_REGEX: "\"#{config.picard_regex}\""
-        end
 	picard :mark_duplicates, opts or error_exit "Mark duplicates failed"
       end
     end
