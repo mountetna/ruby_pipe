@@ -159,7 +159,6 @@ module Exome
           "@sample_name.somatic.maf" => :tumor_maf,
           "@sample_name.germline.maf" => :germline_maf,
           "@sample_name.all_muts.maf" => :all_muts_maf,
-          "@sample_name.mutations" => :sample_mutations,
           "@sample_name.gene_cnr" => :tumor_gene_cnr,
           "@sample_name.exon_cnr" => :sample_exon_cnr,
           "@sample_name.cnvkit.cnr" => :sample_cnr,

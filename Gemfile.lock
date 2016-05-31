@@ -3,11 +3,13 @@ GEM
   specs:
     colored (1.2)
     extlib (0.9.16)
-    humanize (1.1.0)
-    json (1.7.6)
-    net-http-persistent (2.8)
-    nokogiri (1.5.6)
-    sequel (3.45.0)
+    humanize (1.1.2)
+    json (1.8.3)
+    mini_portile2 (2.0.0)
+    net-http-persistent (2.9.4)
+    nokogiri (1.6.7.2)
+      mini_portile2 (~> 2.0.0.rc2)
+    sequel (4.34.0)
 
 PLATFORMS
   ruby
@@ -20,3 +22,6 @@ DEPENDENCIES
   net-http-persistent
   nokogiri
   sequel
+
+BUNDLED WITH
+   1.12.4

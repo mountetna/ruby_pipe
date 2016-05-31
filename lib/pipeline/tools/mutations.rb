@@ -58,6 +58,7 @@ module Pipeline
           :reference_sequence => config.reference_fa,
           :dbsnp => config.reference_snp_vcf,
           :num_threads => config.threads,
+          :phone_home => "NO_ET",
           :cosmic => config.cosmic_vcf,
         }.merge(opts)
 
