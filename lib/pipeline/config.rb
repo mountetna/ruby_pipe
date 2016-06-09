@@ -298,7 +298,7 @@ module Pipeline
       if @config[meth]
         return @config[meth]
       # check for it on the job_item
-      elsif job_item && job_item != @config && job_item.property(meth)
+      elsif job_item && job_item != @config && job_item.property(meth) && args.length == 0
         return job_item.property meth
       # if not there, it could be in the procs table, to be found interactively
       elsif @procs[meth]
