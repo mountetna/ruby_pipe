@@ -17,6 +17,7 @@ module Ribo
             :temporary_folder => config.rsem_tmp_dir,
             :num_threads => config.threads,
             :output_genome_bam => true,
+            :sort_bam_by_coordinate => true,
             :strand_specific => true,
             :bowtie2 => true,
             :args => {
