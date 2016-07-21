@@ -26,7 +26,7 @@ class Flagstat
 
   def each
     @flags.each do |flag,l|
-      yield f,l
+      yield flag,l
     end
   end
 
