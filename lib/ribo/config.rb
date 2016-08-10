@@ -24,7 +24,6 @@ module Ribo
           "@fraction_name.unaligned.fq" => :unaligned_fastq,
           "@fraction_name.aligned.sam" => :bwa_aligned_sam,
           "@fraction_name.combined.header" => :combined_header,
-          "@fraction_name.tophat.header" => :tophat_header,
           "@fraction_name.genome.header" => :genome_header,
           "@fraction_name.tophat.header" => :tophat_header,
           "@fraction_name.tophat" => {
