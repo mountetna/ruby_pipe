@@ -65,10 +65,21 @@ module Pipeline
         end
       end
     end
+    module Kallisto
+      def kallisto_quant opts
+        fastqs = opts.delete :input
+        bam = opts.delete :bam
+        opts = opts.merge(
+          pseudobam: true
+        )
+        run_cmd "#{config.kallisto_dir}/kallisto quant #{format_opts(opts,true)} #{fastqs.join(" ")} | samtools view -Sb - > #{bam}"
+      end
+    end
     module Aligners
       include Pipeline::Tools::BWA
       include Pipeline::Tools::Tophat
       include Pipeline::Tools::Rsem
+      include Pipeline::Tools::Kallisto
     end
   end
 end

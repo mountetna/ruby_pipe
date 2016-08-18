@@ -40,6 +40,10 @@ module Rna
               "." => :chimera_dir,
               "chimeras.bedpe" => :chimera_bedpe
             },
+            "kallisto" => {
+              "." => :kallisto_scratch,
+              "abundance.tsv" => :kallisto_abundance_tsv,
+            },
             "tophat" => {
               "." => :tophat_scratch,
               "accepted_hits.bam" => :accepted_bam,
@@ -103,7 +107,10 @@ module Rna
           "@sample_name.mutations" => :sample_mutations,
           "@sample_name.@normal_name.diff_exp" => :diff_exp_table,
           "@sample_name.@replicate_name.transcripts.cov" => :transcripts_cov,
-          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts
+          "@sample_name.@replicate_name.exon_splice_counts" => :exon_splice_counts,
+          "@sample_name.@replicate_name.kallisto.genes.results" => :kallisto_genes_results,
+          "@sample_name.@replicate_name.kallisto.isoforms.results" => :kallisto_isoforms_results,
+          "@sample_name.@replicate_name.kallisto.genome.bam" => :kallisto_genome_bam,
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
@@ -111,7 +118,8 @@ module Rna
           "@cohort_name.ug.filtered.vcf" => :ug_filtered_vcf,
           "@cohort_name.fpkm_table" => :fpkm_table,
           "@cohort_name.tpm_table" => :tpm_table,
-          "@cohort_name.coverage_table" => :coverage_table
+          "@cohort_name.coverage_table" => :coverage_table,
+          "@cohort_name.kallisto.coverage_table" => :kallisto_coverage_table
         }
       }
     })
