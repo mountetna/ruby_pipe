@@ -75,7 +75,7 @@ module Rna
     class RsemCount
       include Pipeline::Task
       requires_file :input_fastq1s, :input_fastq2s
-      outs_file :rsem_scratch_genes_results, :rsem_scratch_isoforms_results, :rsem_scratch_genome_unsorted_bam
+      outs_file :output_bam, :output_bai, :rsem_genes_results, :rsem_isoforms_results
       
       def run
         args = {
@@ -92,6 +92,16 @@ module Rna
           output_genome_bam: true,
           sort_bam_by_coordinate: true,
           args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
+
+        # Move bam files to output
+        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.output_bam or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_genome_bai, config.output_bai or error_exit "Could not move file"
+
+        # Move gene and isoform counts to output
+        FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"
+
+        FileUtils.rm_rf config.rsem_scratch_dir or error_exit "Could not remove RSEM scratch dir"
       end
     end
     class RsemSingleCount
@@ -113,77 +123,54 @@ module Rna
       end
     end
   end
-  class RsemFormat
-    include Pipeline::Step
-    runs_tasks :rsem_move
-    audit_report :sample_replicate_name
-    runs_on :samples, :replicates
-
-    class RsemMove
-      include Pipeline::Task
-      requires_file :rsem_scratch_genome_sorted_bam, :rsem_scratch_isoforms_results, :rsem_scratch_genes_results, :rsem_scratch_genome_bai
-      outs_file :output_bam, :output_bai, :rsem_genes_results, :rsem_isoforms_results
-
-      def run
-        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.output_bam or error_exit "Could not move file"
-        FileUtils.mv config.rsem_scratch_genome_bai, config.output_bai or error_exit "Could not move file"
-        FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
-        FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"
-      end
-    end
-  end
   class BwaAlign
     include Pipeline::Step
     runs_on :samples, :replicates
-    runs_tasks :collect_unmapped, :make_unaligned_fastq, :align_unmapped, :sam_to_bam
+    runs_tasks :collect_unmapped, :align_unmapped
     resources :threads => 12, memory: "3gb"
 
     class CollectUnmapped
       include Pipeline::Task
       requires_file :output_bam
-      outs_file :unaligned_sam
+      outs_file :unaligned1_fastq_gz, :unaligned2_fastq_gz
 
       def run
         log_info "Culling unaligned reads"
+
         picard :view_sam,
           :I => config.output_bam,
           :ALIGNMENT_STATUS => :Unaligned,
           :out => config.unaligned_sam or error_exit "picard view_sam failed"
-      end
-    end
-    class MakeUnalignedFastq
-      include Pipeline::Task
-      requires_file :unaligned_sam
-      dumps_file :unaligned1_fastq, :unaligned2_fastq
 
-      def run
         picard :sam_to_fastq,
           :I => config.unaligned_sam,
           :FASTQ => config.unaligned1_fastq,
           :SECOND_END_FASTQ => config.unaligned2_fastq or error_exit "picard sam_to_fastq failed"
+
+        run_cmd "gzip -c #{config.unaligned1_fastq} > #{config.unaligned1_fastq_gz}" or error_exit "Could not gzip fastq file"
+        run_cmd "gzip -c #{config.unaligned2_fastq} > #{config.unaligned2_fastq_gz}" or error_exit "Could not gzip fastq file"
+
+        FileUtils.rm config.unaligned_sam or error_exit "Could not delete sam file."
       end
     end
     class AlignUnmapped
       include Pipeline::Task
-
-      requires_file :unaligned1_fastq, :unaligned2_fastq
-      dumps_file :bwa_aligned_sam
-
-      def run
-        bwa_mem fq1: config.unaligned1_fastq, fq2: config.unaligned2_fastq, out: config.bwa_aligned_sam or error_exit "Could not run BWA"
-      end
-    end
-    class SamToBam
-      include Pipeline::Task
-
-      requires_file :bwa_aligned_sam
+      requires_file :unaligned1_fastq_gz, :unaligned2_fastq_gz
       outs_file :bwa_aligned_bam
+
       def run
+        bwa_mem fq1: config.unaligned1_fastq_gz, fq2: config.unaligned2_fastq_gz, out: config.bwa_aligned_sam or error_exit "Could not run BWA"
+
         picard :sort_sam,
           :I => config.bwa_aligned_sam,
           :OUTPUT => config.bwa_aligned_bam,
           :CREATE_INDEX => :true,
           :SORT_ORDER => :coordinate or error_exit "picard sort_sam failed"
+
+        FileUtils.rm config.bwa_aligned_sam or error_exit "Could not rm bwa sam"
+
+        FileUtils.rm config.unaligned1_fastq_gz or error_exit "Could not rm fastq"
+        FileUtils.rm config.unaligned2_fastq_gz or error_exit "Could not rm fastq"
       end
     end
   end

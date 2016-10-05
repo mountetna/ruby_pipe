@@ -25,7 +25,6 @@ module Rna
 
     def_module :rsem,
       :rsem_count => true,
-      :rsem_format => true,
       :bwa_align => true,
       :qc => true,
       :qc_summary => true,

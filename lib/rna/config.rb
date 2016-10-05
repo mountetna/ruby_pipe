@@ -74,6 +74,8 @@ module Rna
             "@sample_name.@replicate_name.unaligned.sam" => :unaligned_sam,
             "@sample_name.@replicate_name.unaligned1.fq" => :unaligned1_fastq,
             "@sample_name.@replicate_name.unaligned2.fq" => :unaligned2_fastq,
+            "@sample_name.@replicate_name.unaligned1.fastq.gz" => :unaligned1_fastq_gz,
+            "@sample_name.@replicate_name.unaligned2.fastq.gz" => :unaligned2_fastq_gz,
             "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam
           },
           "cuffdiff_@normal_name" => {
