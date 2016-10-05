@@ -85,11 +85,13 @@ module Rna
           sample_name: config.sample_replicate_name
         }
         rsem :calculate_expression, 
-            paired_end: true,
-            temporary_folder: File.realdirpath(config.rsem_tmp_dir),
-            num_threads: config.threads,
-            output_genome_bam: true,
-            args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
+          paired_end: true,
+          bowtie2: true,
+          temporary_folder: File.realdirpath(config.rsem_tmp_dir),
+          num_threads: config.threads,
+          output_genome_bam: true,
+          sort_bam_by_coordinate: true,
+          args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
       end
     end
     class RsemSingleCount
@@ -127,6 +129,61 @@ module Rna
         FileUtils.mv config.rsem_scratch_genome_bai, config.output_bai or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"
+      end
+    end
+  end
+  class BwaAlign
+    include Pipeline::Step
+    runs_on :samples, :replicates
+    runs_tasks :collect_unmapped, :make_unaligned_fastq, :align_unmapped, :sam_to_bam
+    resources :threads => 12, memory: "3gb"
+
+    class CollectUnmapped
+      include Pipeline::Task
+      requires_file :output_bam
+      outs_file :unaligned_sam
+
+      def run
+        log_info "Culling unaligned reads"
+        picard :view_sam,
+          :I => config.output_bam,
+          :ALIGNMENT_STATUS => :Unaligned,
+          :out => config.unaligned_sam or error_exit "picard view_sam failed"
+      end
+    end
+    class MakeUnalignedFastq
+      include Pipeline::Task
+      requires_file :unaligned_sam
+      dumps_file :unaligned1_fastq, :unaligned2_fastq
+
+      def run
+        picard :sam_to_fastq,
+          :I => config.unaligned_sam,
+          :FASTQ => config.unaligned1_fastq,
+          :SECOND_END_FASTQ => config.unaligned2_fastq or error_exit "picard sam_to_fastq failed"
+      end
+    end
+    class AlignUnmapped
+      include Pipeline::Task
+
+      requires_file :unaligned1_fastq, :unaligned2_fastq
+      dumps_file :bwa_aligned_sam
+
+      def run
+        bwa_mem fq1: config.unaligned1_fastq, fq2: config.unaligned2_fastq, out: config.bwa_aligned_sam or error_exit "Could not run BWA"
+      end
+    end
+    class SamToBam
+      include Pipeline::Task
+
+      requires_file :bwa_aligned_sam
+      outs_file :bwa_aligned_bam
+      def run
+        picard :sort_sam,
+          :I => config.bwa_aligned_sam,
+          :OUTPUT => config.bwa_aligned_bam,
+          :CREATE_INDEX => :true,
+          :SORT_ORDER => :coordinate or error_exit "picard sort_sam failed"
       end
     end
   end

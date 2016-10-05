@@ -70,7 +70,11 @@ module Rna
               "@sample_name.@replicate_name.genome.sorted.bam" => :rsem_scratch_genome_sorted_bam,
               "@sample_name.@replicate_name.genome.patched.bam" => :rsem_scratch_genome_patched_bam,
               "@sample_name.@replicate_name.genome.sorted.bam.bai" => :rsem_scratch_genome_bai,
-            }
+            },
+            "@sample_name.@replicate_name.unaligned.sam" => :unaligned_sam,
+            "@sample_name.@replicate_name.unaligned1.fq" => :unaligned1_fastq,
+            "@sample_name.@replicate_name.unaligned2.fq" => :unaligned2_fastq,
+            "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam
           },
           "cuffdiff_@normal_name" => {
             "." => :cuffdiff_dir,
@@ -91,7 +95,10 @@ module Rna
           "@sample_name.@replicate_name.flagstat" => :qc_flag,
           "@sample_name.@replicate_name.rnaseq_metrics" => :qc_rnaseq,
           "@sample_name.@replicate_name.rnaseq.pdf" => :qc_pdf,
-          "@sample_name.@replicate_name.alignment_metrics" => :qc_align_metrics
+          "@sample_name.@replicate_name.alignment_metrics" => :qc_align_metrics,
+          "@sample_name.@replicate_name.bwa_flagstat" => :bwa_qc_flag,
+          "@sample_name.@replicate_name.bwa_rnaseq_metrics" => :bwa_qc_rnaseq,
+          "@sample_name.@replicate_name.bwa_rnaseq.pdf" => :bwa_qc_pdf,
         },
         "@cohort_name.qc_summary" => :qc_summary
       },
@@ -111,6 +118,7 @@ module Rna
           "@sample_name.@replicate_name.kallisto.genes.results" => :kallisto_genes_results,
           "@sample_name.@replicate_name.kallisto.isoforms.results" => :kallisto_isoforms_results,
           "@sample_name.@replicate_name.kallisto.genome.bam" => :kallisto_genome_bam,
+          "@sample_name.@replicate_name.bwa_aligned.bam" => :bwa_aligned_bam
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
@@ -138,6 +146,10 @@ module Rna
 
     # qc
     def_var :qc_bam do replicate_bam end
+    
+    # bwa_qc
+    def_var :bwa_qc_bam do replicate_bam end
+
 
     # diff_exp
     def_var :q_value_cutoff do 0.001 end

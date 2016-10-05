@@ -17,6 +17,7 @@ module Rna
   class PairedAlign 
     include Pipeline::Script
     runs_steps :rsem_count, :rsem_single_count, :rsem_format, :tophat_align,
+      :bwa_align,
       :qc, :qc_summary, :cufflinks_count, :cuff_diff_exp,
       :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp,
       :splice_count, :detect_fusions, #, :univ_geno, :filter_muts
@@ -25,6 +26,7 @@ module Rna
     def_module :rsem,
       :rsem_count => true,
       :rsem_format => true,
+      :bwa_align => true,
       :qc => true,
       :qc_summary => true,
       :assemble_rsem_transcripts => true,

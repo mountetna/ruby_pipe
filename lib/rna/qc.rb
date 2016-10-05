@@ -4,7 +4,7 @@ require 'flagstat'
 module Rna
   class Qc
     include Pipeline::Step
-    runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics
+    runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics, :bwa_calc_flags, :bwa_calc_rna_metrics
     runs_on :samples, :replicates
 
     class CalcFlags
@@ -25,7 +25,7 @@ module Rna
 
       def run
 	log_info "Calculate rnaseq metrics"
-        picard :collect_rna_seq_metrics, :ASSUME_SORTED => :true, :REF_FLAT => config.hg19_refflat, :RIBOSOMAL_INTERVALS => config.hg19_rrna_intervals, :STRAND_SPECIFICITY => :NONE,
+        picard :collect_rna_seq_metrics, :ASSUME_SORTED => :true, :REF_FLAT => config.reference_refflat, :RIBOSOMAL_INTERVALS => config.reference_rrna_intervals, :STRAND_SPECIFICITY => :NONE,
           :CHART_OUTPUT => config.qc_pdf, :INPUT => config.qc_bam, :OUTPUT => config.qc_rnaseq or error_exit "RNAseq metrics failed"
       end
     end
@@ -40,7 +40,66 @@ module Rna
         picard :collect_alignment_summary_metrics, :INPUT => config.qc_bam, :OUTPUT => config.qc_align_metrics or error_exit "Alignment metrics failed"
       end
     end
+
+    class BwaCalcFlags
+      include Pipeline::Task
+      requires_file :bwa_aligned_bam
+      outs_file :bwa_qc_flag
+
+      def run
+	log_info "Calculate flag statistics"
+        sam_flags config.bwa_aligned_bam, config.bwa_qc_flag or error_exit "Flagstats failed"
+      end
+    end
+
+    class BwaCalcRnaMetrics
+      include Pipeline::Task
+      requires_file :bwa_aligned_bam
+      outs_file :bwa_qc_rnaseq, :bwa_qc_pdf
+
+      def run
+	log_info "Calculate rnaseq metrics"
+        picard :collect_rna_seq_metrics, :ASSUME_SORTED => :true, :REF_FLAT => config.reference_refflat, :RIBOSOMAL_INTERVALS => config.reference_rrna_bwa_intervals, :STRAND_SPECIFICITY => :NONE,
+          :CHART_OUTPUT => config.bwa_qc_pdf, :INPUT => config.bwa_aligned_bam, :OUTPUT => config.bwa_qc_rnaseq or error_exit "RNAseq metrics failed"
+      end
+    end
   end
+ 
+  
+  class BwaQcSummary
+    include Pipeline::Step
+    runs_on :cohort
+    runs_tasks :bwa_summarize_qc
+
+    class SummarizeQc
+      include Pipeline::Task
+      requires_files :samples__replicates__bwa_qc_rnaseqs
+      requires_files :samples__replicates__bwa_qc_flags
+      outs_file :bw_qc_summary
+
+      def run
+        table = nil
+        config.samples.each do |sample|
+          sample.replicates.each do |rep|
+            mets = PicardMetrics.new
+            mets.parse config.bwa_qc_rnaseq(rep)
+            flags = Flagstat.new config.bwa_qc_flag(rep)
+
+            if !table
+              table = HashTable.new columns: [:replicate] + 
+                flags.clean_hash.keys + 
+                mets.sections[:rna_seq_metrics].metrics.keys
+            end
+            table << mets.sections[:rna_seq_metrics].metrics.merge(
+              replicate: config.sample_replicate_name(rep)
+            ).merge( flags.clean_hash )
+          end
+        end
+        table.print config.bwa_qc_summary
+      end
+    end
+  end
+
   class QcSummary
     include Pipeline::Step
     runs_on :cohort
