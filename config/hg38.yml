@@ -3,6 +3,6 @@
 :kallisto_index: /cbc/resources/human/hg38/ensembl/Homo_sapiens_GRCch38.idx
 :hg38_rsem: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85
 :bowtie2_idx: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85
-:hg38_refflat: /taylorlab/data/samadb/ipi/ref/refFlat.hg38.85.20160831.txt
+:hg38_refflat: /taylorlab/data/samadb/ipi/ref/refFlat.hg38.85.20161209.txt
 :hg38_rrna_intervals: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85.rRNA.20160902.interval_list
 :hg38_rrna_bwa_intervals: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85.rRNA.20160921.interval_bwa_list
