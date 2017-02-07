@@ -14,7 +14,7 @@ module Rna
 
     empty_var :splice_gtf
 
-    def_var :bam_label do "aligned.sorted" end
+    def_var :bam_label do "aligned.deduplicated.sorted" end
     def_var :fdr_cutoff do 0.10 end
     def_var :normal_bams do replicate_bams normal end
 
@@ -29,6 +29,9 @@ module Rna
     def_var :sample_replicate_name do |r| "#{(r || job_item).property :sample_name}.#{(r || job_item).property :replicate_name}" end
 
     dir_tree({
+      ":tmp_dir" => {
+        "@cohort_name.@sample_name.@replicate_name.rsem_tmp" => :rsem_tmp_dir
+      },
       ":scratch_dir" => {
         "@sample_name" => {
           "@replicate_name" => {
@@ -59,7 +62,7 @@ module Rna
             },
             "rsem" => {
               "." => :rsem_scratch_dir,
-              "tmp" => :rsem_tmp_dir,
+              #"tmp" => :rsem_tmp_dir,
               "@sample_name.@replicate_name.genes.results" => :rsem_scratch_genes_results,
               "@sample_name.@replicate_name.isoforms.results" => :rsem_scratch_isoforms_results,
               "@sample_name.@replicate_name.transcript.bam" => :rsem_scratch_txp_unsorted_bam,
@@ -71,6 +74,7 @@ module Rna
               "@sample_name.@replicate_name.genome.patched.bam" => :rsem_scratch_genome_patched_bam,
               "@sample_name.@replicate_name.genome.sorted.bam.bai" => :rsem_scratch_genome_bai,
             },
+            "@sample_name.@replicate_name.rsem.genome.sorted.bam" => :rsem_genome_sorted_bam,
             "@sample_name.@replicate_name.unaligned.sam" => :unaligned_sam,
             "@sample_name.@replicate_name.unaligned1.fq" => :unaligned1_fastq,
             "@sample_name.@replicate_name.unaligned2.fq" => :unaligned2_fastq,
@@ -101,6 +105,7 @@ module Rna
           "@sample_name.@replicate_name.bwa_flagstat" => :bwa_qc_flag,
           "@sample_name.@replicate_name.bwa_rnaseq_metrics" => :bwa_qc_rnaseq,
           "@sample_name.@replicate_name.bwa_rnaseq.pdf" => :bwa_qc_pdf,
+          "@sample_name.@replicate_name.duplication_metrics" => :duplication_metrics,
         },
         "@cohort_name.qc_summary" => :qc_summary
       },

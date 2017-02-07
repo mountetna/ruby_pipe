@@ -66,7 +66,7 @@ module Rna
   end
   class RsemCount
     include Pipeline::Step
-    runs_tasks :rsem_count
+    runs_tasks :rsem_count, :rsem_mark_duplicates
     has_tasks :rsem_single_count
     audit_report :sample_replicate_name
     resources :threads => 12
@@ -75,9 +75,12 @@ module Rna
     class RsemCount
       include Pipeline::Task
       requires_file :input_fastq1s, :input_fastq2s
-      outs_file :output_bam, :output_bai, :rsem_genes_results, :rsem_isoforms_results
+      dumps_file :rsem_genome_sorted_bam
+      outs_file :rsem_genes_results, :rsem_isoforms_results
       
       def run
+        ensure_dir config.rsem_scratch_dir
+        ensure_dir config.rsem_tmp_dir
         args = {
           fq1s: rsem_format(*config.input_fastq1s),
           fq2s: rsem_format(*config.input_fastq2s),
@@ -94,14 +97,30 @@ module Rna
           args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
 
         # Move bam files to output
-        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.output_bam or error_exit "Could not move file"
-        FileUtils.mv config.rsem_scratch_genome_bai, config.output_bai or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.rsem_genome_sorted_bam or error_exit "Could not move file"
 
         # Move gene and isoform counts to output
         FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
         FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"
 
         FileUtils.rm_rf config.rsem_scratch_dir or error_exit "Could not remove RSEM scratch dir"
+      end
+    end
+    class RsemMarkDuplicates
+      include Pipeline::Task
+      requires_file :rsem_genome_sorted_bam
+      outs_file :output_bam, :output_bai, :duplication_metrics
+
+      def run
+        log_info "Mark duplicates"
+        opts = {
+          :INPUT => config.rsem_genome_sorted_bam,
+          :OUTPUT => config.output_bam,
+          :METRICS_FILE => config.duplication_metrics, 
+          :CREATE_INDEX => :true,
+          :REMOVE_DUPLICATES => :false 
+        }
+        picard :mark_duplicates, opts or error_exit "Mark duplicates failed"
       end
     end
     class RsemSingleCount
