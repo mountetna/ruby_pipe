@@ -10,14 +10,19 @@
     :min_alt_freq: 0.03
 :mutect:
   :germline:
-    :has_dbsnp_site: COSMIC
     :has_judgement: REJECT
     :has_covered: COVERED
     :min_n_var_freq: 0.1
     :min_t_var_freq: 0.1
   :somatic:
-    :has_judgement: KEEP
-    :has_covered: COVERED
+    :either:
+      :all1:
+        :include_dbsnp_site: COSMIC
+        :max_n_alt_count: 1
+        :min_t_alt_count: 3
+      :all2:
+        :has_judgement: KEEP
+        :has_covered: COVERED
     :max_q0_ratio: 1
     #:whitelisted: whitelist.gtf
   #:include_dbsnp_site: [ COSMIC, NOVEL ]

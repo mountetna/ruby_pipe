@@ -71,7 +71,7 @@ module Exome
           :variant_classification => mut.best_effect.annotation,
           :variant_type => mut.variant_type,
           :dbsnp_rs => mut.id,
-          :dbsnp_val_status => nil,
+          :dbsnp_val_status => mut.dbsnp_site,
           :tumor_sample_barcode => config.sample_name,
           :matched_norm_sample_barcode => config.normal_name,
           :bam_file => config.sample_bam,
@@ -118,8 +118,6 @@ module Exome
           if snpeff_filter.passes?(l.best_effect)
             if is_somatic
               @somatic_maf << mut
-            #else
-              #@germline_maf << mut
             end
           end
           @all_muts_maf << mut if is_somatic
@@ -185,7 +183,7 @@ module Exome
         mt.each do |m|
           v << {
                  :chrom => m.contig, :pos => m.position, :ref => m.ref_allele,
-                 :info => "JM=#{m.judgement};CV=#{m.covered};MQ0=#{m.map_q0_reads}",
+                 :info => "JM=#{m.judgement};CV=#{m.covered};MQ0=#{m.map_q0_reads};SNP=#{m.dbsnp_site};",
                  :alt => m.alt_allele, :qual => ".", :filter => ".", :id => ".",
                  :format => [ "DP", "AD" ],
                  normal => [ m.n_ref_count + m.n_alt_count, [ m.n_ref_count, m.n_alt_count ].join(",") ],

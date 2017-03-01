@@ -41,6 +41,10 @@ class SnpeffVCF < VCF
       n_alt_count.to_f / (n_alt_count + n_ref_count)
     end
 
+    def dbsnp_site
+      info[:SNP]
+    end
+
     private
     class Effect
       ATTRS = [
@@ -152,6 +156,7 @@ class MutectSnpeffVCF < SnpeffVCF
     def judgement
       info[:JM]
     end
+
 
     def covered
       info[:CV]
