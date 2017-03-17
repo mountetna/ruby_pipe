@@ -75,12 +75,14 @@ module Rna
               "@sample_name.@replicate_name.genome.sorted.bam.bai" => :rsem_scratch_genome_bai,
             },
             "@sample_name.@replicate_name.rsem.genome.sorted.bam" => :rsem_genome_sorted_bam,
-            "@sample_name.@replicate_name.unaligned.sam" => :unaligned_sam,
+            "@sample_name.@replicate_name.unaligned.bam" => :unaligned_bam,
             "@sample_name.@replicate_name.unaligned1.fq" => :unaligned1_fastq,
             "@sample_name.@replicate_name.unaligned2.fq" => :unaligned2_fastq,
             "@sample_name.@replicate_name.unaligned1.fastq.gz" => :unaligned1_fastq_gz,
             "@sample_name.@replicate_name.unaligned2.fastq.gz" => :unaligned2_fastq_gz,
-            "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam
+            "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam,
+            "@sample_name.@replicate_name.total.sam" => :total_sam,
+            "@sample_name.@replicate_name.unique.sam" => :unique_sam
           },
           "cuffdiff_@normal_name" => {
             "." => :cuffdiff_dir,
@@ -106,6 +108,8 @@ module Rna
           "@sample_name.@replicate_name.bwa_rnaseq_metrics" => :bwa_qc_rnaseq,
           "@sample_name.@replicate_name.bwa_rnaseq.pdf" => :bwa_qc_pdf,
           "@sample_name.@replicate_name.duplication_metrics" => :duplication_metrics,
+          "@sample_name.@replicate_name.exon_total_cov" => :exon_total_cov,
+          "@sample_name.@replicate_name.exon_unique_cov" => :exon_unique_cov,
         },
         "@cohort_name.qc_summary" => :qc_summary
       },

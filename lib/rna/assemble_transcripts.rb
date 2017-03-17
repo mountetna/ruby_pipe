@@ -62,6 +62,7 @@ module Rna
   class AssembleRsemTranscripts
     include Pipeline::Step
     runs_tasks :make_tpm_table, :make_coverage_table
+    resources memory: "20gb"
 
     class MakeTpmTable
       include Pipeline::Task
@@ -73,8 +74,9 @@ module Rna
         summary = HashTable.new columns: [ :gene_id ] + names, index: [ :gene_id ]
         config.samples.each do |sample|
           sample.replicates.each do |rep|
-            gene_exps = HashTable.new.parse config.rsem_genes_results(rep)
             name = config.sample_replicate_name(rep).to_sym
+            log_info "Parsing replicate #{name}"
+            gene_exps = HashTable.new.parse config.rsem_genes_results(rep)
             gene_exps.each do |exp|
               if summary.index[:gene_id][exp.gene_id].count == 0
                 summary << { 

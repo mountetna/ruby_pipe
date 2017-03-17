@@ -101,7 +101,7 @@ module Pipeline
     end
 
     def htseq_count(params)
-      run_cmd "python -m HTSeq.scripts.count #{params[:input]} #{params[:gtf]} --type=#{params[:type]} -s no -q > #{params[:out]}"
+      run_cmd "python -m HTSeq.scripts.count #{params[:input]} #{params[:gtf]} --type=#{params[:type]} --idattr=#{params[:idattr] || :gene_id} -s no -q > #{params[:out]}"
     end
 
     def vcf_concat files, outfile

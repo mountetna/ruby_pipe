@@ -70,6 +70,7 @@ module Rna
     has_tasks :rsem_single_count
     audit_report :sample_replicate_name
     resources :threads => 12
+    resources memory: "50gb"
     runs_on :samples, :replicates
 
     class RsemCount
@@ -146,7 +147,7 @@ module Rna
     include Pipeline::Step
     runs_on :samples, :replicates
     runs_tasks :collect_unmapped, :align_unmapped
-    resources :threads => 12, memory: "3gb"
+    resources :threads => 12, memory: "50gb"
 
     class CollectUnmapped
       include Pipeline::Task
@@ -156,20 +157,17 @@ module Rna
       def run
         log_info "Culling unaligned reads"
 
-        picard :view_sam,
-          :I => config.output_bam,
-          :ALIGNMENT_STATUS => :Unaligned,
-          :out => config.unaligned_sam or error_exit "picard view_sam failed"
+        samtools "view -b -h -f 4", config.output_bam, config.unaligned_bam  or error_exit "Could not extract unmapped reads."
 
         picard :sam_to_fastq,
-          :I => config.unaligned_sam,
+          :I => config.unaligned_bam,
           :FASTQ => config.unaligned1_fastq,
           :SECOND_END_FASTQ => config.unaligned2_fastq or error_exit "picard sam_to_fastq failed"
 
         run_cmd "gzip -c #{config.unaligned1_fastq} > #{config.unaligned1_fastq_gz}" or error_exit "Could not gzip fastq file"
         run_cmd "gzip -c #{config.unaligned2_fastq} > #{config.unaligned2_fastq_gz}" or error_exit "Could not gzip fastq file"
 
-        FileUtils.rm config.unaligned_sam or error_exit "Could not delete sam file."
+        FileUtils.rm config.unaligned_bam or error_exit "Could not delete sam file."
       end
     end
     class AlignUnmapped
