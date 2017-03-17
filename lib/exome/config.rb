@@ -82,9 +82,9 @@ module Exome
 
           "@sample_name.cov" => :sample_cov,
           "@sample_name.cov_gc" => :sample_cov_gc,
-          "@sample_name.cnvkit.target.cov" => :sample_target_cov,
+          "@sample_name.cnvkit.targetcoverage.cnn" => :sample_target_cov,
           "@sample_name.cnvkit.reference.cnn" => :sample_reference_cnn,
-          "@sample_name.cnvkit.antitarget.cov" => :sample_antitarget_cov,
+          "@sample_name.cnvkit.antitargetcoverage.cnn" => :sample_antitarget_cov,
           "@sample_name.recal.bam" => :recal_bam,
           "absolute" => {
             "." => :absolute_scratch,
