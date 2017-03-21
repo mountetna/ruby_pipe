@@ -79,7 +79,7 @@ module Rna
           gtf: config.flat_reference_gtf, 
           type: "exon",
           idattr: "exon_id",
-          order: "pos"
+          order: "pos",
           out: config.exon_total_cov or error_exit "Computing coverage for total failed."
         File.unlink config.total_sam
 
@@ -89,7 +89,7 @@ module Rna
           gtf: config.flat_reference_gtf, 
           type: "exon",
           idattr: "exon_id",
-          order: "pos"
+          order: "pos",
           out: config.exon_unique_cov or error_exit "Computing coverage for unique failed."
         File.unlink config.unique_sam
       end
