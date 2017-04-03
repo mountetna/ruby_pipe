@@ -30,7 +30,7 @@ module Rna
 
     dir_tree({
       ":tmp_dir" => {
-        "@cohort_name.@sample_name.@replicate_name.rsem_tmp" => :rsem_tmp_dir
+        "@cohort_name.@sample_name.@replicate_name.rsem_tmp" => :rsem_tmp_dir,
         "@cohort_name.@sample_name.@replicate_name.rrna_tmp" => :rrna_tmp
       },
       ":scratch_dir" => {
