@@ -16,7 +16,7 @@ require 'rna/kallisto'
 module Rna
   class PairedAlign 
     include Pipeline::Script
-    runs_steps :rsem_count, :rsem_single_count, :rsem_format, :tophat_align,
+    runs_steps :deplete_ribo, :rsem_count, :rsem_single_count, :rsem_format, :tophat_align,
       :bwa_align,
       :qc, :qc_summary, :cufflinks_count, :cuff_diff_exp,
       :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp,
@@ -24,6 +24,7 @@ module Rna
       :kallisto_count, :assemble_kallisto_transcripts
 
     def_module :rsem,
+      :deplete_ribo => true,
       :rsem_count => true,
       :rsem_mark_duplicates => true,
       :bwa_align => true,

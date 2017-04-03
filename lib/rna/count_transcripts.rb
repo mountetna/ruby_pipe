@@ -64,6 +64,73 @@ module Rna
       end
     end
   end
+  class DepleteRibo
+    include Pipeline::Step
+    runs_tasks :soak_ribo, :cull_non_ribo, :collect_rrna_metrics
+    runs_on :samples, :replicates
+    resources :threads => 12
+    resources memory: "50gb"
+
+    class SoakRibo
+      include Pipeline::Task
+      requires_files :input_fastq1s, :input_fastq2s
+      dumps_file :rrna_sam
+
+      def run
+        log_info "Pairing aligned reads"
+        bwa_mem fq1:  config.input_fastq1s,
+          fq2:  config.input_fastq2s,
+          index: config.rrna_bwa_idx, 
+          min_score: 23, out: config.rrna_sam or error_exit "BWA mem failed"
+      end
+    end
+    class CullNonRibo
+      include Pipeline::Task
+      requires_file :rrna_sam
+      dumps_file :non_rrna1_fastq_gz, :non_rrna2_fastq_gz, :rrna_bam
+
+      def run
+        log_info "Culling unaligned reads"
+        picard :view_sam,
+          :I => config.rrna_sam,
+          :ALIGNMENT_STATUS => :Unaligned,
+          :out => config.non_rrna_sam or error_exit "picard view_sam failed"
+
+        picard :sam_to_fastq,
+          :I => config.non_rrna_sam,
+          :FASTQ => config.non_rrna1_fastq,
+          :SECOND_END_FASTQ => config.non_rrna2_fastq or error_exit "picard sam_to_fastq failed"
+
+        run_cmd "gzip -c #{config.non_rrna1_fastq} > #{config.non_rrna1_fastq_gz}" or error_exit "Could not gzip fastq file"
+        run_cmd "gzip -c #{config.non_rrna2_fastq} > #{config.non_rrna2_fastq_gz}" or error_exit "Could not gzip fastq file"
+        
+        run_cmd  "samtools view -Sb -F 4 #{config.rrna_sam} | samtools sort -o - #{config.rrna_tmp} >#{config.rrna_bam}"
+        run_cmd "samtools index #{config.rrna_bam}"
+
+        File.unlink config.non_rrna1_fastq
+        File.unlink config.non_rrna2_fastq
+        File.unlink config.non_rrna_sam
+        File.unlink config.rrna_sam
+      end
+    end
+    class CollectRrnaMetrics
+      include Pipeline::Task
+      requires_file :rrna_bam
+      outs_file :qc_rrna_metrics
+
+      def run
+        rrna_count = %x{ samtools view -F 4 -c #{config.rrna_bam} }.to_i
+        mt_rrna_count = %x{ samtools view -c #{config.rrna_bam} #{config.mt_rna_contigs} }.to_i
+
+        File.open config.qc_rrna_metrics, "w" do |f|
+          f.puts "rRNA_count\t#{rrna_count - mt_rrna_count}"
+          f.puts "mt_rRNA_count\t#{mt_rrna_count}"
+        end
+
+        File.unlink config.rrna_bam
+      end
+    end
+  end
   class RsemCount
     include Pipeline::Step
     runs_tasks :rsem_count, :rsem_mark_duplicates
@@ -75,7 +142,7 @@ module Rna
 
     class RsemCount
       include Pipeline::Task
-      requires_file :input_fastq1s, :input_fastq2s
+      requires_file :non_rrna1_fastq_gz, :non_rrna2_fastq_gz
       dumps_file :rsem_genome_sorted_bam
       outs_file :rsem_genes_results, :rsem_isoforms_results
       
@@ -83,8 +150,8 @@ module Rna
         ensure_dir config.rsem_scratch_dir
         ensure_dir config.rsem_tmp_dir
         args = {
-          fq1s: rsem_format(*config.input_fastq1s),
-          fq2s: rsem_format(*config.input_fastq2s),
+          fq1s: rsem_format(config.non_rrna1_fastq_gz),
+          fq2s: rsem_format(config.non_rrna2_fastq_gz),
           reference: rsem_format(config.reference_rsem),
           sample_name: config.sample_replicate_name
         }
@@ -98,13 +165,16 @@ module Rna
           args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
 
         # Move bam files to output
-        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.rsem_genome_sorted_bam or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.rsem_genome_sorted_bam or error_exit "Could not move genome_sorted_bam"
 
         # Move gene and isoform counts to output
-        FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move file"
-        FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move file"
+        FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move genes_results"
+        FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move isoforms_results"
 
         FileUtils.rm_rf config.rsem_scratch_dir or error_exit "Could not remove RSEM scratch dir"
+
+        File.unlink config.non_rrna1_fastq_gz
+        File.unlink config.non_rrna2_fastq_gz
       end
     end
     class RsemMarkDuplicates

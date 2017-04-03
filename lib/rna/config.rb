@@ -31,10 +31,18 @@ module Rna
     dir_tree({
       ":tmp_dir" => {
         "@cohort_name.@sample_name.@replicate_name.rsem_tmp" => :rsem_tmp_dir
+        "@cohort_name.@sample_name.@replicate_name.rrna_tmp" => :rrna_tmp
       },
       ":scratch_dir" => {
         "@sample_name" => {
           "@replicate_name" => {
+            "@sample_name.@replicate_name.rrna.sam" => :rrna_sam,
+            "@sample_name.@replicate_name.rrna.bam" => :rrna_bam,
+            "@sample_name.@replicate_name.non_rrna.sam" => :non_rrna_sam,
+            "@sample_name.@replicate_name.non_rrna1.fq" => :non_rrna1_fastq,
+            "@sample_name.@replicate_name.non_rrna2.fq" => :non_rrna2_fastq,
+            "@sample_name.@replicate_name.non_rrna1.fastq.gz" => :non_rrna1_fastq_gz,
+            "@sample_name.@replicate_name.non_rrna2.fastq.gz" => :non_rrna2_fastq_gz,
             "coverage.sam" => :coverage_sam,
             "splice.sam" => :splice_sam,
             "chimera1.fastq" => :chimera_fq1,
@@ -80,9 +88,7 @@ module Rna
             "@sample_name.@replicate_name.unaligned2.fq" => :unaligned2_fastq,
             "@sample_name.@replicate_name.unaligned1.fastq.gz" => :unaligned1_fastq_gz,
             "@sample_name.@replicate_name.unaligned2.fastq.gz" => :unaligned2_fastq_gz,
-            "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam,
-            "@sample_name.@replicate_name.total.sam" => :total_sam,
-            "@sample_name.@replicate_name.unique.sam" => :unique_sam
+            "@sample_name.@replicate_name.bwa_aligned.sam" => :bwa_aligned_sam
           },
           "cuffdiff_@normal_name" => {
             "." => :cuffdiff_dir,
@@ -110,6 +116,7 @@ module Rna
           "@sample_name.@replicate_name.duplication_metrics" => :duplication_metrics,
           "@sample_name.@replicate_name.exon_total_cov" => :exon_total_cov,
           "@sample_name.@replicate_name.exon_unique_cov" => :exon_unique_cov,
+          "@sample_name.@replicate_name.rrna_metrics" => :qc_rrna_metrics,
         },
         "@cohort_name.qc_summary" => :qc_summary
       },
@@ -129,7 +136,9 @@ module Rna
           "@sample_name.@replicate_name.kallisto.genes.results" => :kallisto_genes_results,
           "@sample_name.@replicate_name.kallisto.isoforms.results" => :kallisto_isoforms_results,
           "@sample_name.@replicate_name.kallisto.genome.bam" => :kallisto_genome_bam,
-          "@sample_name.@replicate_name.bwa_aligned.bam" => :bwa_aligned_bam
+          "@sample_name.@replicate_name.bwa_aligned.bam" => :bwa_aligned_bam,
+          "@sample_name.@replicate_name.total.sam" => :total_sam,
+          "@sample_name.@replicate_name.unique.sam" => :unique_sam
         },
         "@cohort_name" => {
           "@cohort_name.ug.raw.vcf" => :ug_raw_vcf,
