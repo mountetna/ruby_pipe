@@ -18,7 +18,7 @@ module Rna
     include Pipeline::Script
     runs_steps :deplete_ribo, :rsem_count, :rsem_single_count, :rsem_format, :tophat_align,
       :bwa_align,
-      :qc, :qc_summary, :cufflinks_count, :cuff_diff_exp,
+      :qc, :cufflinks_count, :cuff_diff_exp,
       :assemble_transcripts, :assemble_rsem_transcripts, :deseq_diff_exp,
       :splice_count, :detect_fusions, #, :univ_geno, :filter_muts
       :kallisto_count, :assemble_kallisto_transcripts
@@ -29,7 +29,6 @@ module Rna
       :rsem_mark_duplicates => true,
       :bwa_align => true,
       :qc => true,
-      :qc_summary => true,
       :assemble_rsem_transcripts => true,
       :deseq_diff_exp => true
 

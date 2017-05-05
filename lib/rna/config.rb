@@ -147,6 +147,8 @@ module Rna
           "@cohort_name.fpkm_table" => :fpkm_table,
           "@cohort_name.tpm_table" => :tpm_table,
           "@cohort_name.coverage_table" => :coverage_table,
+          "@cohort_name.gene_exp_table" => :gene_exp_table,
+          "@cohort_name.rna_seq_table" => :rna_seq_table,
           "@cohort_name.kallisto.coverage_table" => :kallisto_coverage_table
         }
       }
