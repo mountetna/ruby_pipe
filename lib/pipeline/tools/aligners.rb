@@ -18,6 +18,12 @@ module Pipeline
       def bwa_mem(params)
         params = { threads: config.threads, index: config.bwa_idx, mark_secondary: true }.merge(params)
 
+        if params[:fq1].is_a?(Array)
+          params[:fq1] = "<(zcat #{params[:fq1].join(" ")})"
+        end
+        if params[:fq2].is_a?(Array)
+          params[:fq2] = "<(zcat #{params[:fq2].join(" ")})"
+        end
         opt_map = { threads: :t,
                     mark_secondary: :M,
                     mismatch_penalty: :B,

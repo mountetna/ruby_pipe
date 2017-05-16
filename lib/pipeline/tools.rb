@@ -99,9 +99,9 @@ module Pipeline
       params = { :min_length => 24, :quals => (config.qual_type == "solexa" ? "-Q33" : nil) }.merge(params)
       run_cmd "zcat #{params[:in].join(" ")} | #{config.fastx_dir}/fastx_clipper -a #{params[:adapter]} #{params[:quals]} -l #{params[:min_length]} -n -v -o #{params[:out]}"
     end
-
+    
     def htseq_count(params)
-      run_cmd "python -m HTSeq.scripts.count #{params[:input]} #{params[:gtf]} --type=#{params[:type]} -s no -q > #{params[:out]}"
+      run_cmd "python -m HTSeq.scripts.count #{params[:input]} #{params[:gtf]} --type=#{params[:type]} --idattr=#{params[:idattr] || :gene_id}  --order=#{params[:order]}  -s no -q > #{params[:out]}"
     end
 
     def vcf_concat files, outfile
