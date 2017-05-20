@@ -1,1 +1,13 @@
+:bwa_idx: /taylorlab/data/samadb/ipi/ref/bwa_index/Homo_sapiens.GRCh38.dna.wholechrom.fa
+:bwa_idx: /taylorlab/data/samadb/ipi/ref/bwa_index/Homo_sapiens.GRCh38.dna.wholechrom.fa
 :kallisto_index: /cbc/resources/human/hg38/ensembl/Homo_sapiens_GRCch38.idx
+:hg38_rsem: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85
+:bowtie2_idx: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85
+:hg38_refflat: /taylorlab/data/samadb/ipi/ref/refFlat.hg38.85.20161209.txt
+:hg38_rrna_intervals: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85.rRNA.20160902.interval_list
+:hg38_rrna_bwa_intervals: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85.rRNA.20160921.interval_bwa_list
+:hg38_reference_gtf: /taylorlab/data/samadb/ipi/ref/Homo_sapiens.GRCh38.85.gtf
+:hgnc_complete: /taylorlab/data/samadb/ipi/ref/hgnc_complete_set.txt
+:ensembl_pc_genes: /taylorlab/data/samadb/ipi/ref/ensembl_pc_genes.txt
+:rrna_bwa_idx: /taylorlab/data/samadb/ipi/ref/human.rrna.fa
+:mt_rna_contigs: MT-RNR1 MT-RNR2

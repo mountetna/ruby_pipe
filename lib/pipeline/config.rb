@@ -72,6 +72,7 @@ module Pipeline
     def_var :reference_gtf do send "#{genome}_reference_gtf".to_sym end
     def_var :reference_refflat do send "#{genome}_refflat".to_sym end
     def_var :reference_rrna_intervals do send "#{genome}_rrna_intervals".to_sym end
+    def_var :reference_rrna_bwa_intervals do send "#{genome}_rrna_bwa_intervals".to_sym end
     def_var :reference_2bit do send "#{genome}_2bit".to_sym end
     def_var :reference_rsem do send "#{genome}_rsem".to_sym end
     def_var :reference_interval_bed do send "#{genome}_interval_bed".to_sym end
