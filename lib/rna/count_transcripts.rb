@@ -67,6 +67,7 @@ module Rna
   class DepleteRibo
     include Pipeline::Step
     runs_tasks :soak_ribo, :cull_non_ribo, :collect_rrna_metrics
+    has_tasks :soak_ribo_single_end, :cull_non_ribo_single_end, :soak_ribo, :cull_non_ribo, :collect_rrna_metrics
     runs_on :samples, :replicates
     resources :threads => 12
     resources memory: "50gb"
@@ -84,6 +85,21 @@ module Rna
           min_score: 23, out: config.rrna_sam or error_exit "BWA mem failed"
       end
     end
+
+    class SoakRiboSingleEnd
+      include Pipeline::Task
+      requires_files :input_fastq1s
+      dumps_file :rrna_sam
+
+      def run
+        log_info "Pairing aligned reads"
+        bwa_mem fq1:  config.input_fastq1s, 
+          index: config.rrna_bwa_idx, 
+          min_score: 23, 
+          out: config.rrna_sam or error_exit "BWA mem failed"
+      end
+    end
+
     class CullNonRibo
       include Pipeline::Task
       requires_file :rrna_sam
@@ -113,6 +129,34 @@ module Rna
         File.unlink config.rrna_sam
       end
     end
+
+    class CullNonRiboSingleEnd
+      include Pipeline::Task
+      requires_file :rrna_sam
+      dumps_file :non_rrna1_fastq_gz, :rrna_bam
+
+      def run
+        log_info "Culling unaligned reads"
+        picard :view_sam,
+          :I => config.rrna_sam,
+          :ALIGNMENT_STATUS => :Unaligned,
+          :out => config.non_rrna_sam or error_exit "picard view_sam failed"
+
+        picard :sam_to_fastq,
+          :I => config.non_rrna_sam,
+          :FASTQ => config.non_rrna1_fastq or error_exit "picard sam_to_fastq failed"
+
+        run_cmd "gzip -c #{config.non_rrna1_fastq} > #{config.non_rrna1_fastq_gz}" or error_exit "Could not gzip fastq file"
+        
+        run_cmd  "samtools view -Sb -F 4 #{config.rrna_sam} | samtools sort -o - #{config.rrna_tmp} >#{config.rrna_bam}"
+        run_cmd "samtools index #{config.rrna_bam}"
+
+        File.unlink config.non_rrna1_fastq
+        File.unlink config.non_rrna_sam
+        File.unlink config.rrna_sam
+      end
+    end
+
     class CollectRrnaMetrics
       include Pipeline::Task
       requires_file :rrna_bam
@@ -196,19 +240,24 @@ module Rna
     end
     class RsemSingleCount
       include Pipeline::Task
-      requires_file :input_fastq1s
-      outs_file :rsem_scratch_genes_results, :rsem_scratch_isoforms_results, :rsem_scratch_genome_unsorted_bam
-      
+      requires_file :non_rrna1_fastq_gz
+      dumps_file :rsem_genome_sorted_bam
+      outs_file :rsem_genes_results, :rsem_isoforms_results
+
       def run
+        ensure_dir config.rsem_scratch_dir
+        ensure_dir config.rsem_tmp_dir
         args = {
-          fq1s: rsem_format(*config.input_fastq1s),
+          fq1s: rsem_format(config.non_rrna1_fastq_gz),
           reference: rsem_format(config.reference_rsem),
           sample_name: config.sample_replicate_name
         }
         rsem :calculate_expression, 
+            bowtie2: true,
             temporary_folder: File.realdirpath(config.rsem_tmp_dir),
             num_threads: config.threads,
             output_genome_bam: true,
+            sort_bam_by_coordinate: true,
             args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
       end
     end

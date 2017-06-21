@@ -38,7 +38,8 @@ module Rna
       
 
     def_module :rsem_single_end,
-      rsem_count: [ :rsem_single_count ]
+      deplete_ribo: [ :soak_ribo_single_end, :cull_non_ribo_single_end, :collect_rrna_metrics ],
+      rsem_count: [ :rsem_single_count, :rsem_mark_duplicates ]
 
     def_module :count_splice, :splice_count => true
 
