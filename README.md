@@ -4,7 +4,46 @@ This is a set of pipelines that do various kinds of analysis. Some standard tool
 Installing the pipeline
 ===
 
+## Download ruby_pipe
+To obtain ruby_pipe from github via the command-line:
+
+    $ git clone https://github.com/mountetna/ruby_pipe.git
+    $ cd ruby_pipe/
+    $ git checkout -b ruby_pipe
+    $ git branch
+
+## Dependencies
+
 ruby_pipe expects certain tools to be in the path when it runs. Amongst them are a ruby installation, an R installation, and various bioinformatic tools such as BWA, Picard, etc.
+
+ruby_pipe additionally depends on a number of libraries distributed separately as gem files. Most of these dependencies are listed in `Gemfile` located in the ruby_pipe directory. In the following example, these resources are installed into the user's home directory using gem, a ruby package management tool:
+
+If not available, install bundler to manage Gemfile:
+
+    $ gem install --user-install bundler
+
+Add `bundle` to the execution path, which is this example is in the local .gem directory:
+
+    $ export PATH=$HOME/.gem/ruby/2.3.0/bin:$PATH
+
+Next, from the ruby_pipe directory containing its Gemfile:
+
+    $ bundle install --path=$HOME/.gem
+
+Additionally, ruby_pipe requires the germ gem-- a collection of bioinformatics related utilities. It will need to be built and is not currently listed in the ruby_pipe's Gemfile.
+
+    $ git clone https://github.com/mountetna/germ
+    $ cd germ/
+    $ gem build germ.gemspec
+    $ gem install --user-install --local ./germ-0.3.2.gem
+
+In addition to the `$PATH` modifications, set `$GEM_PATH`, ideally within one's .bashrc file. Don't forget to `source .bashrc` after updating:
+
+    export RUBY_VERSION=$( ruby -e "puts RUBY_VERSION" )
+    GEM_PATH=$HOME/.gem/ruby/$RUBY_VERSION:$GEM_HOME
+
+Optionally, rbenv provides a useful tool for selecting ruby environments, ie. what version of ruby will run the pipeline when multiple versions are available. More information on installing and configuring rbenv can be found at [https://github.com/rbenv/rbenv](https://github.com/rbenv/rbenv)
+
 
 Invoking a pipeline script
 ===
