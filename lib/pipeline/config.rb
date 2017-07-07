@@ -3,26 +3,6 @@ module Pipeline
   # The Config class is an object that allows you look up the value
   # of a variable, given a certain job item
 
-  class NewConfig
-    def find_key key, job_item
-      job_item ||= current_item
-
-      # First you should query the job item.
-      job_item.find_key(key) ||
-
-      # Then query the config file
-      config_file.find_key(key) ||
-       
-      # Then check the directory object
-      file_directory.find_key(key,job_item) ||
-
-      # Then check any script macros
-      macros.find_key(key,job_item) ||
-
-      # Finally, check the default configuration
-      defaults.find_key(key,job_item)
-    end
-  end
   module Config
     def def_var name, &block
       class_procs.update name => block
