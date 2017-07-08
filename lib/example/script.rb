@@ -1,3 +1,6 @@
+require '../pipeline/task'
+require '../pipeline/script'
+
 # Previously, this pipeline was divided into "Step" and
 # "Task", where each "Step" ran a series of tasks across an
 # array of job items.
@@ -44,9 +47,10 @@
 
 class Mutect < Pipeline::Task
   input :bam_file, format: :BAM
-  input :region
-  resource :hg38
-  output :mutect_vcf_file
+  input :region, format: String
+  output :mutect_vcf_file, format: :VCF
+
+  resource :genome
   tool :mutect
 
   def run
@@ -55,9 +59,9 @@ class Mutect < Pipeline::Task
 end
 
 class MutationDetection < Pipeline::Script
-  scratch :chrom_mutect_file, ":scratch_dir/@{sample.name}/@{chrom.name}.mutect.vcf.txt", :VCF
-  scratch :mutect_annotated_vcf, ":scratch_dir/@{sample.name}/@{chrom.name}.mutect.annotated.vcf.txt", :VCF
-  output :somatic_vcf, ":output_dir/@{sample.name}/@{sample.name}.annotated.vcf"
+  scratch :chrom_mutect_file, ":scratch_dir/@sample/@chrom.mutect.vcf.txt"
+  scratch :mutect_annotated_vcf, ":scratch_dir/@sample/@chrom.mutect.annotated.vcf.txt"
+  output :somatic_vcf, ":output_dir/@sample/@sample.annotated.vcf"
 
   across :samples, :chroms do |sample,chrom|
     task :mutect, 
@@ -78,7 +82,7 @@ class MutationDetection < Pipeline::Script
 
   across :samples do |sample|
     task :combine_vcfs,
-      vcfs: across(:chroms) { mutect_annotated_vcf },
-      vcf: 
+      vcfs: collect(:chroms) { mutect_annotated_vcf },
+      vcf: somatic_vcf
   end
 end

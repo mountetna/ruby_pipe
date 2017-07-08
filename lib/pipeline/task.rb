@@ -1,155 +1,83 @@
-require 'fileutils'
 module Pipeline
-  module Task
-    module ClassMethods
-      def class_init
-        @required_files = {}
-        @skip_symbols = {}
-        @dump_files = {}
-        @out_files = {}
+  class Task
+    class << self
+      # list of required filenames, strings, etc.
+      # that we need as input
+
+      def input name, options={}
+        # we need to know what name is to run
+        require_symbol(name, options.merge(type: :input))
       end
 
-      def skip_without *required
-        requires_file *required
-        @skip_symbols = @required_files
+      def output name, options={}
+        require_symbol(name, options.merge(type: :output))
       end
 
-      def requires_file(*required)
-        add_files @required_files, required
+      def resource name
+        @resources ||= []
+        @resources.push name
       end
-      alias :requires_files :requires_file
 
-      def dumps_file(*dump)
-        add_files @dump_files, dump
+      def tool name
+        @tools ||= []
+        @tools.push name
       end
-      alias :dumps_files :dumps_file
-
-      def outs_file(*outs)
-        add_files @out_files, outs
-      end
-      alias :outs_files :outs_file
-
-      def made_files; @out_files.merge @dump_files; end
-      attr_reader :required_files, :skip_symbols, :dump_files, :out_files
 
       private
-      def add_files hsh, files
-        files.each do |r|
-          if r.is_a? Hash
-            hsh.update r
-          else
-            hsh.update r => :has_data
-          end
-        end
+
+      def require_symbol name, options)
+        @required ||= {}
+        @required[name] = options)
       end
     end
-  end
-  class PipeError < StandardError
-  end
-  module Task
-    module ErrorHandling
-      def error_exit(txt)
-        raise Pipeline::PipeError, txt
+
+    def initialize(config)
+      @inputs = []
+      @outputs = []
+      @resources = []
+      @tools = []
+
+      create_requirements(config)
+    end
+
+    def create_requirements config
+      requirements = self.class.required
+
+      missing = requirements.reject do |name, opts|
+        config.has_key?(name) || opts[:optional]
       end
 
-      def error_out(txt)
-        log_error txt
-
-        log_error "Exiting at #{task_name}"
-
-        log_main "#{config.step} trial #{config.job_index} failed to complete at #{task_name}.".red.bold
-
-        open_error_pid do |f|
-          f.puts "#{config.step} #{config.job_index} #{task_name}"
-        end
-        exit
-      end
-    end
-  end
-
-  module Task
-    include Pipeline::Tools
-    include Pipeline::Logger
-    include Pipeline::Task::ErrorHandling
-    include Pipeline::Task::Auditing
-    include Pipeline::Task::Cleaning
-    include Pipeline::Base
-
-    def self.included(base)
-      base.extend(ClassMethods)
-      base.class_init if base.respond_to? :class_init
+      raise Pipeline::Error, "Missing #{missing.keys} as input to #{task_name}!" unless missing.empty?
     end
 
-    def initialize(s)
-      @step = s
+    def should_run?
+      # You are not marked as 'done' or 'running'
+      !(running? || done?) &&
+
+      # You have not made the correct output
+      !satisfied? &&
+
+      # You have the correct inputs
+      input_exists? &&
+
+      # You have the correct tools
+      tools_exist? &&
+
+      # You have the correct resources
+      resources_exist?
     end
 
-    def config
-      step.config
-    end
-    
-    attr_reader :step
+    private
 
-    def task_name
-      self.class.name.split(/::/).last.snake_case
-    end
-    
-    class_var :dump_files, :out_files, :made_files, :required_files, :skip_symbols
-
-    def should_run
-      # don't even log it if the script says to skip it
-      error_check do
-        return if step.script.exclude_task? self
-
-        log_info "task #{task_name}:".white.bold
-
-        # if all of the files exist, you shouldn't run
-        return nil unless make_files?
-
-        # this will exit the step if it is missing files.
-        # it will skip if some required symbols are nil
-        return nil unless has_required?
-        # this will merely move on to the next step
-      end
-      true
+    def error_exit(txt)
+      raise Pipeline::PipeError, txt
     end
 
-    def check_file(filename,f, type)
-      error_exit "Could not get filename for #{f}" if !filename
-
-      # make sure the directory is there
-      ensure_dir filename
-
-      error_exit "Could not find required file #{f} at #{filename}" if type == :has_data && !File.size?(filename)
-      error_exit "File #{f} at #{filename} is not readable" if !File.readable?(filename)
-
-      log_debug "#{f} ok at #{filename}" if config.verbose?
+    def error_out(txt)
+      exit
     end
 
     def has_required?
-      skip_symbols.each do |s,type|
-        return nil if !config.send s
-      end
-
-      required_files.each do |f,type|
-        filename = config.send(f)
-        if filename.is_a? Array
-          filename.each {|ff| check_file ff, f, type }
-        else
-          check_file filename, f, type
-        end
-      end
-      true
-    end
-
-    def make_file?(filename,f, type)
-      if (type != :has_data || File.size?(filename)) && File.readable?(filename)
-        log_debug "#{task_name}: #{f} already made at #{filename}" if config.verbose?
-        nil
-      else
-        ensure_dir filename
-        true
-      end
     end
 
     def make_files?
