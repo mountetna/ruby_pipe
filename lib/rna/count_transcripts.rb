@@ -259,6 +259,17 @@ module Rna
             output_genome_bam: true,
             sort_bam_by_coordinate: true,
             args: args, output: config.rsem_scratch_dir or error_exit "Could not run RSEM"
+
+        # Move bam files to output
+        FileUtils.mv config.rsem_scratch_genome_sorted_bam, config.rsem_genome_sorted_bam or error_exit "Could not move genome_sorted_bam"
+
+        # Move gene and isoform counts to output
+        FileUtils.mv config.rsem_scratch_genes_results, config.rsem_genes_results or error_exit "Could not move genes_results"
+        FileUtils.mv config.rsem_scratch_isoforms_results, config.rsem_isoforms_results or error_exit "Could not move isoforms_results"
+
+        FileUtils.rm_rf config.rsem_scratch_dir or error_exit "Could not remove RSEM scratch dir"
+
+        File.unlink config.non_rrna1_fastq_gz
       end
     end
   end
