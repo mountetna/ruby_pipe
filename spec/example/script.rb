@@ -1,5 +1,5 @@
-require '../pipeline/task'
-require '../pipeline/script'
+require_relative '../pipeline/task'
+require_relative '../pipeline/script'
 
 # Previously, this pipeline was divided into "Step" and
 # "Task", where each "Step" ran a series of tasks across an
@@ -50,18 +50,43 @@ class Mutect < Pipeline::Task
   input :region, format: String
   output :mutect_vcf_file, format: :VCF
 
-  resource :genome
   tool :mutect
+end
 
-  def run
-    mutect(etc. bam_file, output: mutect_vcf_file)
-  end
+class AnnotateVcf < Pipeline::Task
+  input :raw_vcf, format: :VCF
+  output :annotated_vcf, format: :VCF
+
+  tool :snpeff
+end
+
+class FilterVcf < Pipeline::Task
+  input :raw_vcf, format: :VCF
+  output :filtered_vcf, format: :VCF
+
+  tool :vcftools
+end
+
+class CombineVcf < Pipeline::Task
+  input :vcfs, format: [ :VCF ]
+  output :vcf, format: :VCF
+
+  tool :vcftools
+end
+
+
+# Now a question is - where do samples and chroms come from? They should be objects, of course - but of what sort?
+class Sample < Pipeline::Object
+  property :input_bam, String
+  property :inputs, [ Input ]
 end
 
 class MutationDetection < Pipeline::Script
+  object :samples, config(:samples)
+  object :chroms, config(:genome)
+
   scratch :chrom_mutect_file, ":scratch_dir/@sample/@chrom.mutect.vcf.txt"
   scratch :mutect_annotated_vcf, ":scratch_dir/@sample/@chrom.mutect.annotated.vcf.txt"
-  output :somatic_vcf, ":output_dir/@sample/@sample.annotated.vcf"
 
   across :samples, :chroms do |sample,chrom|
     task :mutect, 
@@ -79,6 +104,8 @@ class MutationDetection < Pipeline::Script
       filter: {
       }
   end
+
+  output :somatic_vcf, ":output_dir/@sample/@sample.annotated.vcf"
 
   across :samples do |sample|
     task :combine_vcfs,

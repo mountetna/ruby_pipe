@@ -25,9 +25,9 @@ module Pipeline
 
       private
 
-      def require_symbol name, options)
+      def require_symbol name, options
         @required ||= {}
-        @required[name] = options)
+        @required[name] = options
       end
     end
 
