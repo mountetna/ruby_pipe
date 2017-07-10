@@ -208,7 +208,6 @@ module Rna
             actual_sample_name = tube_name =~ /.rna./ ? tube_name.sub(/.rna.*/,'') : nil
             flags = Flagstat.new(config.qc_flag(rep))
             rnaseq_metrics = PicardMetrics.new.parse(config.qc_rnaseq(rep))
-            bwa_rnaseq_metrics = PicardMetrics.new.parse(config.qc_rnaseq(rep))
             gene_exps = HashTable.new(index: [ :gene_id ], types: { expected_count: :float, tpm: :float }).parse config.rsem_genes_results(rep)
             rrna_metrics = HashTable.new( index: [:stat], columns: [ :stat, :count ], types: { count: :int }, parse_mode: :noheader).parse(config.qc_rrna_metrics(rep))
             all_rna_seq << {
@@ -220,8 +219,8 @@ module Rna
               read_count: flags.total,
               duplicate_count: flags.duplicates,
               mapped_count: flags.mapped,
-              intergenic_count: (rnaseq_metrics.sections[:rna_seq_metrics].intergenic_bases + bwa_rnaseq_metrics.sections[:rna_seq_metrics].intergenic_bases)/config.read_size,
-              introns_count: (rnaseq_metrics.sections[:rna_seq_metrics].intronic_bases + bwa_rnaseq_metrics.sections[:rna_seq_metrics].intronic_bases)/config.read_size,
+              intergenic_count: (rnaseq_metrics.sections[:rna_seq_metrics].intergenic_bases)/config.read_size,
+              introns_count: (rnaseq_metrics.sections[:rna_seq_metrics].intronic_bases)/config.read_size,
               utr_count: rnaseq_metrics.sections[:rna_seq_metrics].utr_bases/config.read_size,
 
               coding_count: gene_exps.select{|gexp| non_mt_genes.include?(gexp.gene_id)}.map(&:expected_count).inject(&:+),

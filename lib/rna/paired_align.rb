@@ -27,7 +27,7 @@ module Rna
       :deplete_ribo => true,
       :rsem_count => true,
       :rsem_mark_duplicates => true,
-      :bwa_align => true,
+      #:bwa_align => true,
       :qc => true,
       :assemble_rsem_transcripts => true,
       :deseq_diff_exp => true
