@@ -149,6 +149,10 @@ module Exome
       :germline_mut_filter => true
     }
 
+    def_module :summary, {
+      :summarize => true
+    }
+
     def_module :default, {
       # the default sequence of events. The order is dictated by runs_steps
       :prep_pipe => true,
@@ -157,7 +161,7 @@ module Exome
       :compute_copy_number => true,
       :find_mutations_somatic_indel_detector => true,
       :absolute_purity => true,
-      :summarize => true
+      :summary => true
     }
 
     def exclude_task? task

@@ -12,6 +12,7 @@ module Exome
     runs_on :patients, :chroms
     audit_report :patient_name
     resources :threads => 1
+    resources memory: "10gb"
 
     class CreateIntervals
       include Pipeline::Task
@@ -63,6 +64,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :merge_files, :sample_index
     runs_on :samples
+    resources memory: "10gb"
 
     class MoveFiles
       include Pipeline::Task

@@ -6,7 +6,7 @@ module Rna
     include Pipeline::Step
     runs_tasks :calc_flags, :calc_rna_metrics, :collect_align_metrics #, :bwa_calc_flags, :bwa_calc_rna_metrics #, :compute_exon_duplicate_rate
     runs_on :samples, :replicates
-    resources memory: "20gb"
+    resources memory: "50gb"
 
     class CalcFlags
       include Pipeline::Task

@@ -79,6 +79,7 @@ module Exome
     has_tasks :make_fastq_chunk, :align_first, :align_second, :pair_reads, :align_mem, :verify_mate, :enforce_label
     runs_on :samples, :chunks
     resources :threads => 12
+    resources memory: "10gb"
 
     class MakeFastqChunk
       include Pipeline::Task

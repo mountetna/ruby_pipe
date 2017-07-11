@@ -10,6 +10,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :count_covariates
     runs_on :lanes
+    resources memory: "10gb"
 
     class CountCovariates
       include Pipeline::Task
@@ -31,6 +32,7 @@ module Exome
     runs_tasks :table_recal
     runs_on :samples
     resources :threads => 1
+    resources memory: "10gb"
 
     class TableRecal
       include Pipeline::Task

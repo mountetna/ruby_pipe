@@ -4,6 +4,7 @@ module Exome
     include Pipeline::Step
     runs_tasks :calc_flags, :calc_metrics, :collect_insert_sizes, :collect_align_metrics, :coverage_metrics
     runs_on :samples
+    resources memory: "10gb"
 
     class CalcFlags
       include Pipeline::Task
