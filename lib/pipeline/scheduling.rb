@@ -25,7 +25,8 @@ module Pipeline
           :N => opts[:name],
           :W => opts[:wait] ? wait_string(opts[:wait],opts[:prev_trials]) : nil,
           :t => opts[:trials] ? "1-#{opts[:trials]}" : nil,
-          :m => "n",
+          :m => "abe",
+          :M => "aaron.hechmer@ucsf.edu",
           :j => "oe",
           :o => "log/uncaught_errors.log",
           :v => vars.map{|v,n| n ? "#{v}=#{n}" : nil }.compact.join(",")
