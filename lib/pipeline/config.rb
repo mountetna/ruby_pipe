@@ -120,7 +120,7 @@ module Pipeline
         job_item.owner "#{unit}_name".to_sym
       end
     end
-
+    
     def cohort
       return @config
     end
@@ -177,8 +177,8 @@ module Pipeline
 
       load_config
       load_tools_config
-      load_genome_config
-
+      load_genome_config     
+      
       init_hook
     end
 
@@ -192,6 +192,7 @@ module Pipeline
       end
     end
 
+
     def load_procs
       @procs = {}
       self.class.ancestors.each do |a|
@@ -200,6 +201,7 @@ module Pipeline
     end
 
     def load_env_vars
+      
       # if these exist, put them in @opts
       Hash[
         :PBS_O_WORKDIR => :work_dir,
@@ -310,6 +312,9 @@ module Pipeline
       # if not there, it is likely in options. These can be nil for empty variables
       elsif @opts.has_key? meth
         return @opts[meth]
+      # only optionally specified in config file or elsewhere but still used as methods somewhere
+      elsif meth == :email_addr || :email_opts
+        return nil
       else
         super
       end

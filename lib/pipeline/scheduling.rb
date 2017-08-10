@@ -21,17 +21,19 @@ module Pipeline
           :memory => "1gb"
         }.merge(opts)
 
+        
         fields = {
           :N => opts[:name],
           :W => opts[:wait] ? wait_string(opts[:wait],opts[:prev_trials]) : nil,
           :t => opts[:trials] ? "1-#{opts[:trials]}" : nil,
-          :m => "abe",
-          :M => "aaron.hechmer@ucsf.edu",
+          :m => opts[:email_opts] ? opts[:email_opts] : "n",
+          :M => opts[:email_addr] ? opts[:email_addr] : nil,
           :j => "oe",
           :o => "log/uncaught_errors.log",
           :v => vars.map{|v,n| n ? "#{v}=#{n}" : nil }.compact.join(",")
         }
         fields.delete_if { |k,v| v.nil? }
+        
 
         res = []
         res.push "walltime=#{opts[:walltime]}:00:00:00" if opts[:walltime]
@@ -173,6 +175,7 @@ module Pipeline
 
     def schedule_job(action,opts=nil)
       # there are some standard vars to pass in
+
       vars = {
         :CONFIG => config.config_file,
         :STEP => config.step,
@@ -184,11 +187,13 @@ module Pipeline
         :SINGLE_STEP => config.single_step
       }
 
-      opts = { 
+      opts = {
         :name => "#{config.pipe}.#{action == :schedule ? :schedule : config.step}",
-        :queue => config.step_queue
+        :queue => config.step_queue,
+        :email_addr => config.email_addr,
+        :email_opts => config.email_opts
       }.merge(opts || {})
-
+      
       scheduler.run(vars, opts) do |cmd|
         log_info "Scheduled #{config.step} with #{cmd}"
       end
