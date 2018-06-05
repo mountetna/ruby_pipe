@@ -3,13 +3,13 @@ module Pipeline
     module Gatk
       def gatk(tool,opts)
         opts = { :analysis_type => tool.to_s.camel_case, :reference_sequence => config.reference_fa, :logging_level => config.logging_level, :num_threads => config.threads }.merge(opts)
-        java :tmp => config.cohort_scratch, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
+        java :tmp => config.sample_tmp, :mem => 4, :jar => "#{config.gatk_dir}/#{config.gatk_jar}", :args => format_opts(opts)
       end
     end
     module Picard
       def picard(jar,params)
-        params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.cohort_scratch }.merge(params)
-        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
+        params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.sample_tmp }.merge(params)
+        java :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
       end
     end
     module Samtools

@@ -83,6 +83,14 @@ module Pipeline
         ":pipe.:cohort_name.:step.:job_index.log" => :step_log,
         ":pipe.:cohort_name.:script.log" => :main_log
       },
+    
+      ":tmp_dir" => {
+        "@sample_name" => {
+          "." => :sample_tmp
+         },
+       },
+      
+      
       ":scratch_dir" => {
         "@sample_name" => {
           "." => :sample_scratch

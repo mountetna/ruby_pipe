@@ -7,7 +7,7 @@ module Pipeline
           :reference_sequence => config.reference_fa,
           :analysis_type => "IndelGenotyperV2"
         }.merge(opts)
-        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.indelocator_dir}/#{config.indelocator_jar}", :args => format_opts(opts)
+        java :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.indelocator_dir}/#{config.indelocator_jar}", :args => format_opts(opts)
       end
 
       def somatic_indel_detector(opts)
@@ -16,7 +16,7 @@ module Pipeline
           :reference_sequence => config.reference_fa,
           :analysis_type => :SomaticIndelDetector
         }.merge(opts)
-        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.somaticindel_dir}/#{config.somaticindel_jar}", :args => format_opts(opts)
+        java :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.somaticindel_dir}/#{config.somaticindel_jar}", :args => format_opts(opts)
       end
 
       def pindel(opts)
@@ -67,7 +67,7 @@ module Pipeline
           :max_alt_allele_in_normal_fraction => 1
         }.merge(opts) if opts.delete :no_normal_filter
 
-        java :bin => config.java6, :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
+        java :bin => config.java6, :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.mutect_dir}/#{config.mutect_jar}", :args => format_opts(opts)
       end
 
       def freebayes(opts)
@@ -82,7 +82,7 @@ module Pipeline
     module Annotation
       def filter_muts(snvs,indels,out_file)
         filter_config ="#{config.config_dir}/#{config.genome}_mutationConfig.cfg"
-        run_cmd "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.cohort_scratch} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
+        run_cmd "python #{config.lib_dir}/FilterMutations/Filter.py --keepTmpFiles --tmp #{config.sample_tmp} #{config.filter_config || filter_config} #{snvs} #{indels} #{out_file}"
       end
 
       def snpeff infile, outfile
@@ -93,7 +93,7 @@ module Pipeline
           "-t",
           "-v GRCh37.75",
           infile ].join(" ")
-        java :mem => 2, :tmp => config.cohort_scratch, :jar => "#{config.snpeff_dir}/#{config.snpeff_jar}", :args => args, :out => outfile
+        java :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.snpeff_dir}/#{config.snpeff_jar}", :args => args, :out => outfile
       end
     end
     module Mutations
