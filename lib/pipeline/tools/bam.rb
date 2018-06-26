@@ -9,7 +9,7 @@ module Pipeline
     module Picard
       def picard(jar,params)
         params = { :VALIDATION_STRINGENCY => "SILENT", :TMP_DIR => config.sample_tmp }.merge(params)
-        java :mem => 2, :tmp => config.sample_tmp, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
+        java :mem => 4, :tmp => config.sample_tmp, :jar => "#{config.picard_dir}/#{jar.to_s.camel_case}.jar", :out => params.delete(:out), :args => format_opts(params){ |k,v| "#{k}=#{v}" }
       end
     end
     module Samtools
